@@ -1,0 +1,9 @@
+
+{
+    "data": [
+        {"id": "x","code": "xxxx-xx","name": "xxxx-xx","description": "xxxx-xx","image": "xxxx-xx","price": 65,"category": "xxxx-xx","quantity": 24,"inventoryStatus": "INSTOCK","rating": 5},
+        {"id": "y","code": "yyyy-yy","name": "yyyy-yy","description": "yyyy-yy","image": "yyyy-yy","price": 72,"category": "yyyy-yy","quantity": 61,"inventoryStatus": "INSTOCK","rating": 4},
+        {"id": "z","code": "zzzz-zz","name": "zzzz-zz","description": "zzzz-zz","image": "zzzz-zzg","price": 79,"category": "zzzz-zz","quantity": 2,"inventoryStatus": "zzzz-zz","rating": 3}
+    ]
+}
+    
