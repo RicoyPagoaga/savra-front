@@ -2,7 +2,7 @@ import getConfig from 'next/config';
 import React, { useContext } from 'react';
 import AppMenuitem from './AppMenuitem';
 import { LayoutContext } from './contex/layoutcontext';
-import { MenuProvider } from './contex/layoutcontext';
+import { MenuProvider } from './contex/menucontext';
 import Link from 'next/link';
 
 const AppMenu = () => {
@@ -55,6 +55,23 @@ const AppMenu = () => {
             items: [
                 {
                     label: 'Calendario',
+                    icon: 'pi pi-fw pi-calendar',
+                    to: ''
+                }
+            ] 
+        },
+        {
+            label: 'Administración',
+            icon: 'pi pi-fw pi-briefcase',
+            to: '/pages',
+            items: [
+                {
+                    label: 'Usuarios',
+                    icon: 'pi pi-fw pi-calendar',
+                    to: ''
+                },
+                {
+                    label: 'Cargos',
                     icon: 'pi pi-fw pi-calendar',
                     to: ''
                 }
