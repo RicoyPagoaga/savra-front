@@ -1,4 +1,5 @@
 import getConfig from 'next/config';
+import { ApiError } from 'next/dist/server/api-utils';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
@@ -13,26 +14,20 @@ import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../demo/service/ProductService';
+import { CategoriaClienteService } from '../../demo/service/CategoriaClienteService';
 
-const Clientes = () => {
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
+const CategoriaCliente = () => {
+    let emptyCategoriaCliente = {
+        idCategoria: null,
+        nombre: '',
+        descripcion: ''
     };
 
-    const [products, setProducts] = useState(null);
-    const [productDialog, setProductDialog] = useState(false);
-    const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
+    const [categoriaClientes, setCategoriaClientes] = useState(null);
+    const [categoriaClienteDialog, setCategoriaClienteDialog] = useState(false);
+    const [deleteCategoriaClienteDialog, setDeleteCategoriaClienteDialog] = useState(false);
+    const [deleteCategoriasClientesDialog, setDeleteCategoriasClientesDialog] = useState(false);
+    const [CategoriaCliente, setCategoriaCliente] = useState(emptyCategoriaCliente);
     const [selectedProducts, setSelectedProducts] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
@@ -40,9 +35,13 @@ const Clientes = () => {
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
 
+
+    const listarCategoriaClientes = () => {
+        const categoriaClienteService = new CategoriaClienteService();
+        categoriaClienteService.getCategoriaClientes().then(data => setCategoriaClientes(data));
+    };
     useEffect(() => {
-        const productService = new ProductService();
-        productService.getProducts().then((data) => setProducts(data));
+        listarCategoriaClientes()
     }, []);
 
     const formatCurrency = (value) => {
@@ -50,70 +49,65 @@ const Clientes = () => {
     };
 
     const openNew = () => {
-        setProduct(emptyProduct);
+        setCategoriaCliente(emptyCategoriaCliente);
         setSubmitted(false);
-        setProductDialog(true);
+        setCategoriaClienteDialog(true);
     };
 
     const hideDialog = () => {
         setSubmitted(false);
-        setProductDialog(false);
+        setCategoriaClienteDialog(false);
     };
 
-    const hideDeleteProductDialog = () => {
-        setDeleteProductDialog(false);
+    const hideDeleteCategoriaClienteDialog = () => {
+        setDeleteCategoriaClienteDialog(false);
     };
 
-    const hideDeleteProductsDialog = () => {
-        setDeleteProductsDialog(false);
+    const hideDeleteCategoriasClientesDialog = () => {
+        setDeleteCategoriasClientesDialog(false);
     };
 
-    const saveProduct = () => {
+    const saveCategoriaCliente = async () => {
         setSubmitted(true);
 
-        if (product.name.trim()) {
-            let _products = [...products];
-            let _product = { ...product };
-            if (product.id) {
-                const index = findIndexById(product.id);
-
-                _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'País Actualizado', life: 3000 });
+        if (CategoriaCliente.nombre.trim()) {
+            if (CategoriaCliente.idCategoria) {
+                const categoriaClienteService = new CategoriaClienteService();
+                await categoriaClienteService.updateCategoriaCliente(CategoriaCliente);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Actualizada', life: 3000 });
             } else {
-                _product.id = createId();
-                _product.image = 'product-placeholder.svg';
-                _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'País Registrado', life: 3000 });
+                const categoriaClienteService = new CategoriaClienteService();
+                await categoriaClienteService.addCategoriaCliente(CategoriaCliente);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Registrada', life: 3000 });
             }
-
-            setProducts(_products);
-            setProductDialog(false);
-            setProduct(emptyProduct);
+            listarCategoriaClientes();
+            setCategoriaClienteDialog(false);
+            setCategoriaCliente(emptyCategoriaCliente);
         }
     };
 
-    const editProduct = (product) => {
-        setProduct({ ...product });
-        setProductDialog(true);
+    const editCategoriaCliente= (categoriaCliente) => {
+        setCategoriaCliente({ ...categoriaCliente });
+        setCategoriaClienteDialog(true);
     };
 
-    const confirmDeleteProduct = (product) => {
-        setProduct(product);
-        setDeleteProductDialog(true);
+    const confirmDeleteProduct = (categoriaCliente) => {
+        setCategoriaCliente(categoriaCliente);
+        setDeleteCategoriaClienteDialog(true);
     };
 
-    const deleteProduct = () => {
-        let _products = products.filter((val) => val.id !== product.id);
-        setProducts(_products);
-        setDeleteProductDialog(false);
-        setProduct(emptyProduct);
-        toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'País Eliminado', life: 3000 });
+    const deleteCategoriaCliente = async ()=>{
+        const categoriaClienteService = new CategoriaClienteService();
+        await categoriaClienteService.removeCategoriaCliente(CategoriaCliente.idCategoria);
+        listarCategoriaClientes();
+        setDeleteCategoriaClienteDialog(false);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminada', life: 3000 });
     };
 
     const findIndexById = (id) => {
         let index = -1;
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
+        for (let i = 0; i < categoriaClientes.length; i++) {
+            if (categoriaClientes[i].id === id) {
                 index = i;
                 break;
             }
@@ -134,12 +128,9 @@ const Clientes = () => {
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-    const exportPDF = () => {
-        dt.current.exportPDF();
-    };
 
     const confirmDeleteSelected = () => {
-        setDeleteProductsDialog(true);
+        setDeleteCategoriasClientesDialog(true);
     };
 
     const deleteSelectedProducts = () => {
@@ -147,7 +138,7 @@ const Clientes = () => {
         setProducts(_products);
         setDeleteProductsDialog(false);
         setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Products Deleted', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminado', life: 3000 });
     };
 
     const onCategoryChange = (e) => {
@@ -156,12 +147,12 @@ const Clientes = () => {
         setProduct(_product);
     };
 
-    const onInputChange = (e, name) => {
+    const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        let _product = { ...CategoriaCliente };
+        _product[`${nombre}`] = val;
 
-        setProduct(_product);
+        setCategoriaCliente(_product);
     };
 
     const onInputNumberChange = (e, name) => {
@@ -176,8 +167,8 @@ const Clientes = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="New" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Delete" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
+                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
                 </div>
             </React.Fragment>
         );
@@ -186,78 +177,42 @@ const Clientes = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Export" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
             </React.Fragment>
         );
     };
 
-    const codeBodyTemplate = (rowData) => {
+    const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID</span>
-                {rowData.code}
+                <span className="p-column-title">ID Categoria</span>
+                {rowData.idCategoria}
             </>
         );
     };
 
-    const nameBodyTemplate = (rowData) => {
+    const nombreBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {rowData.name}
+                {rowData.nombre}
             </>
         );
     };
 
-    const imageBodyTemplate = (rowData) => {
+    const descripcionBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Documento</span>
-                <img src={`${contextPath}/demo/images/product/${rowData.image}`} alt={rowData.image} className="shadow-2" width="100" />
+                <span className="p-column-title">Descripción</span>
+                {rowData.descripcion}
             </>
         );
-    };
-
-    const priceBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Tipo Documento</span>
-                {formatCurrency(rowData.price)}
-            </>
-        );
-    };
-
-    const categoryBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Telefono</span>
-                {rowData.category}
-            </>
-        );
-    };
-
-    const ratingBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Dirección</span>
-                <Rating value={rowData.rating} readOnly cancel={false} />
-            </>
-        );
-    };
-
-    const statusBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Categoria</span>
-                <span className={`product-badge status-${rowData.inventoryStatus.toLowerCase()}`}>{rowData.inventoryStatus}</span>
-            </>
-        );
-    };
+    }; 
 
     const actionBodyTemplate = (rowData) => {
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProduct(rowData)} />
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCategoriaCliente(rowData)} />
                 <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
             </>
         );
@@ -266,6 +221,7 @@ const Clientes = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Categoria Clientes</h5>
+            <Button label="Listar" icon="pi pi-list" className="p-button-success mr-2" onClick={listarCategoriaClientes}/>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -273,21 +229,21 @@ const Clientes = () => {
         </div>
     );
 
-    const productDialogFooter = (
+    const categoriaClienteDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveProduct} />
+            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveCategoriaCliente} />
         </>
     );
-    const deleteProductDialogFooter = (
+    const deleteCategoriaClienteDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteCategoriaClienteDialog} />
+            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteCategoriaCliente} />
         </>
     );
-    const deleteProductsDialogFooter = (
+    const deleteCategoriasClientesDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductsDialog} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteCategoriasClientesDialog} />
             <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
         </>
     );
@@ -301,7 +257,7 @@ const Clientes = () => {
 
                     <DataTable
                         ref={dt}
-                        value={products}
+                        value={categoriaClientes}
                         selection={selectedProducts}
                         onSelectionChange={(e) => setSelectedProducts(e.value)}
                         dataKey="id"
@@ -310,53 +266,47 @@ const Clientes = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
                         globalFilter={globalFilter}
                         emptyMessage="No products found."
                         header={header}
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="Cod ISO" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="Nombre" header="Nombre" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Código de área" body={nameBodyTemplate}></Column>
+                        <Column field="idCategoria" header="Id Categoria" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={productDialog} style={{ width: '450px' }} header="Registro Países" modal className="p-fluid" footer={productDialogFooter} onHide={hideDialog}>
-                        {product.image && <img src={`${contextPath}/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />}
+                    <Dialog visible={categoriaClienteDialog} style={{ width: '450px' }} header="Registro Categorias Clientes" modal className="p-fluid" footer={categoriaClienteDialogFooter} onHide={hideDialog}>
                         <div className="field">
-                            <label htmlFor="name">Código ISO</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="name">Nombre</label>
+                            <InputText id="nombre" value={CategoriaCliente.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.nombre })} />
+                            {submitted && !CategoriaCliente.nombre && <small className="p-invalid">Nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Nombre del País</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="name">Código de área</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="name">Descripción</label>
+                            <InputTextarea id="descripcion" value={CategoriaCliente.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.descripcion })} />
+                            {submitted && !CategoriaCliente.descripcion && <small className="p-invalid">Descripción es requerida.</small>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
+                    <Dialog visible={deleteCategoriaClienteDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriaClienteDialogFooter} onHide={hideDeleteCategoriaClienteDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && (
+                            {CategoriaCliente && (
                                 <span>
-                                    Esta seguro que desea eliminar a <b>{product.name}</b>?
+                                    Esta seguro que desea eliminar a <b>{CategoriaCliente.nombre}</b>?
                                 </span>
                             )}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductsDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductsDialogFooter} onHide={hideDeleteProductsDialog}>
+                    <Dialog visible={deleteCategoriasClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriasClientesDialogFooter} onHide={hideDeleteCategoriasClientesDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && <span>Esta seguro que desea eliminar este país?</span>}
+                            {CategoriaCliente && <span>Esta seguro que desea eliminar esta Categoria?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -365,5 +315,5 @@ const Clientes = () => {
     );
 };
 
-export default Clientes;
+export default CategoriaCliente;
 

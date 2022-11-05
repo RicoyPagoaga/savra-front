@@ -46,7 +46,7 @@ const Clientes = () => {
     }, []);
 
     const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        return value.toLocaleString('es-LA', { style: 'currency', currency: 'HND' });
     };
 
     const openNew = () => {
@@ -78,12 +78,12 @@ const Clientes = () => {
                 const index = findIndexById(product.id);
 
                 _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Cliente Actualizado', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Actualizado', life: 3000 });
             } else {
                 _product.id = createId();
                 _product.image = 'product-placeholder.svg';
                 _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Cliente Agregado', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Agregado', life: 3000 });
             }
 
             setProducts(_products);
@@ -104,10 +104,12 @@ const Clientes = () => {
 
     const deleteProduct = () => {
         let _products = products.filter((val) => val.id !== product.id);
+        console.log(_products)
         setProducts(_products);
+        console.log(product.id)
         setDeleteProductDialog(false);
         setProduct(emptyProduct);
-        toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Product Deleted', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
     };
 
     const findIndexById = (id) => {
@@ -147,7 +149,7 @@ const Clientes = () => {
         setProducts(_products);
         setDeleteProductsDialog(false);
         setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Clientes Eliminados', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
     };
 
     const onCategoryChange = (e) => {
@@ -176,8 +178,8 @@ const Clientes = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="New" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Delete" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
+                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
                 </div>
             </React.Fragment>
         );
@@ -186,7 +188,7 @@ const Clientes = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Export" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
             </React.Fragment>
         );
     };
@@ -268,7 +270,7 @@ const Clientes = () => {
             <h5 className="m-0">Listado de Clientes</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Search..." />
+                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
             </span>
         </div>
     );
@@ -310,18 +312,18 @@ const Clientes = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Clientes"
                         globalFilter={globalFilter}
                         emptyMessage="No products found."
                         header={header}
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="ID" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="ID" header="ID" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '8rem' }}></Column>
                         <Column field="Nombre" header="Nombre" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Documento" body={nameBodyTemplate}></Column>
                         <Column field="price" header="Tipo Documento" body={nameBodyTemplate} sortable></Column>
-                        <Column field="category" header="Telefono" sortable body={categoryBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="category" header="Teléfono" sortable body={categoryBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column field="rating" header="Dirección" body={nameBodyTemplate} sortable></Column>
                         <Column field="inventoryStatus" header="Categoria" body={nameBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>

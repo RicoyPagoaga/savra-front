@@ -28,7 +28,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Categorias Clientes',
-                    icon: 'pi pi-fw pi-users',
+                    icon: 'pi pi-th-large" pi-th-large',
                     to: '/categoriaClientes/'
                 },
                 {
@@ -67,12 +67,12 @@ const AppMenu = () => {
             items: [
                 {
                     label: 'Usuarios',
-                    icon: 'pi pi-fw pi-calendar',
+                    icon: 'pi pi-fw pi-user',
                     to: ''
                 },
                 {
                     label: 'Cargos',
-                    icon: 'pi pi-fw pi-calendar',
+                    icon: 'pi pi-briefcase" pi-briefcase',
                     to: ''
                 }
             ] 
