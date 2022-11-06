@@ -152,12 +152,6 @@ const Clientes = () => {
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
     };
 
-    const onCategoryChange = (e) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
-
     const onInputChange = (e, name) => {
         const val = (e.target && e.target.value) || '';
         let _product = { ...product };
@@ -188,6 +182,7 @@ const Clientes = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
+                <Button label="Listar" icon="pi pi-list" className="p-button-info mr-2" onClick={exportCSV}/>
                 <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
             </React.Fragment>
         );

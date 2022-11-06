@@ -25,22 +25,35 @@ export class CategoriaClienteService{
     }
 
     async addCategoriaCliente(categoriaCliente){
-        await fetch('http://localhost:8080/api/v1/categoriaClientes/addCategoriaCliente',{
+        try {
+            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes/addCategoriaCliente',{
             "method": 'POST',
             "body": JSON.stringify(categoriaCliente),
             "headers": {
                 "Content-type": 'application/json'
-            }
-        });
+                }
+            });
+            const result = await response.json();
+            if(response.status !== 201)throw result;
+        } catch (error) {
+            throw error;
+        }
+        
     }
 
     async updateCategoriaCliente(categoriaCliente){
-        await fetch('http://localhost:8080/api/v1/categoriaClientes',{
+        try {
+            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes',{
             "method": 'PUT',
             "body": JSON.stringify(categoriaCliente),
             "headers": {
                 "Content-type": 'application/json'
             }
         });
+        const result = await response.json();
+        if(response.status !== 200)throw result;
+        } catch (error) {
+            throw error;
+        }
     }
 }

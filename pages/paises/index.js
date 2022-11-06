@@ -195,7 +195,7 @@ const Clientes = () => {
         return (
             <>
                 <span className="p-column-title">ID</span>
-                {rowData.code}
+                {rowData.id}
             </>
         );
     };
@@ -310,9 +310,9 @@ const Clientes = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} países"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
                         globalFilter={globalFilter}
-                        emptyMessage="No products found."
+                        emptyMessage="No se encontraron categorias de clientes."
                         header={header}
                         responsiveLayout="scroll"
                     >

@@ -23,12 +23,19 @@ const CategoriaCliente = () => {
         descripcion: ''
     };
 
+    let emptyRestApiError = {
+        httpStatus : '',
+        errorMessage: '',
+        errorDetails: ''
+    };
+
     const [categoriaClientes, setCategoriaClientes] = useState(null);
     const [categoriaClienteDialog, setCategoriaClienteDialog] = useState(false);
     const [deleteCategoriaClienteDialog, setDeleteCategoriaClienteDialog] = useState(false);
     const [deleteCategoriasClientesDialog, setDeleteCategoriasClientesDialog] = useState(false);
     const [CategoriaCliente, setCategoriaCliente] = useState(emptyCategoriaCliente);
-    const [selectedProducts, setSelectedProducts] = useState(null);
+    const [apiError, setApiError] = useState(emptyRestApiError);
+    const [selectedCategoriaClientes, setSelectedCategoriaClientes] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
@@ -43,10 +50,6 @@ const CategoriaCliente = () => {
     useEffect(() => {
         listarCategoriaClientes()
     }, []);
-
-    const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    };
 
     const openNew = () => {
         setCategoriaCliente(emptyCategoriaCliente);
@@ -67,22 +70,38 @@ const CategoriaCliente = () => {
         setDeleteCategoriasClientesDialog(false);
     };
 
+    const pasoRegistro = () =>{
+        listarCategoriaClientes();
+        setCategoriaClienteDialog(false);
+        setCategoriaCliente(emptyCategoriaCliente);
+    }
     const saveCategoriaCliente = async () => {
         setSubmitted(true);
-
         if (CategoriaCliente.nombre.trim()) {
             if (CategoriaCliente.idCategoria) {
-                const categoriaClienteService = new CategoriaClienteService();
-                await categoriaClienteService.updateCategoriaCliente(CategoriaCliente);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Actualizada', life: 3000 });
+                try {
+                    const categoriaClienteService = new CategoriaClienteService();
+                    await categoriaClienteService.updateCategoriaCliente(CategoriaCliente);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Actualizada', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    //console.log(error);
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                    //console.log(apiError.errorDetails);
+                }
             } else {
-                const categoriaClienteService = new CategoriaClienteService();
-                await categoriaClienteService.addCategoriaCliente(CategoriaCliente);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Registrada', life: 3000 });
-            }
-            listarCategoriaClientes();
-            setCategoriaClienteDialog(false);
-            setCategoriaCliente(emptyCategoriaCliente);
+                try {
+                    const categoriaClienteService = new CategoriaClienteService();
+                    await categoriaClienteService.addCategoriaCliente(CategoriaCliente);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Registrada', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    //setApiError(error);
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                    //setApiError(emptyRestApiError);
+                }
+            };
+            
         }
     };
 
@@ -91,7 +110,7 @@ const CategoriaCliente = () => {
         setCategoriaClienteDialog(true);
     };
 
-    const confirmDeleteProduct = (categoriaCliente) => {
+    const confirmDeleteCategoriaCliente = (categoriaCliente) => {
         setCategoriaCliente(categoriaCliente);
         setDeleteCategoriaClienteDialog(true);
     };
@@ -104,58 +123,29 @@ const CategoriaCliente = () => {
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminada', life: 3000 });
     };
 
-    const findIndexById = (id) => {
-        let index = -1;
-        for (let i = 0; i < categoriaClientes.length; i++) {
-            if (categoriaClientes[i].id === id) {
-                index = i;
-                break;
-            }
-        }
-
-        return index;
-    };
-
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
-
+   
     const exportCSV = () => {
         dt.current.exportCSV();
     };
 
-    const confirmDeleteSelected = () => {
-        setDeleteCategoriasClientesDialog(true);
-    };
-
     const deleteSelectedProducts = () => {
-        let _products = products.filter((val) => !selectedProducts.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
+        let _products = categoriaClientes.filter((val) => !selectedCategoriaClientes.includes(val));
+        setCategoriaClientes(_products);
+        setDeleteCategoriasClientesDialog(false);
+        setSelectedCategoriaClientes(null);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminado', life: 3000 });
     };
 
-    const onCategoryChange = (e) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
-
+    
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...CategoriaCliente };
-        _product[`${nombre}`] = val;
+        let _categoriaCliente = { ...CategoriaCliente };
+        _categoriaCliente[`${nombre}`] = val;
 
-        setCategoriaCliente(_product);
+        setCategoriaCliente(_categoriaCliente);
     };
 
-    const onInputNumberChange = (e, name) => {
+    const onInputNumberChange = (e, nombre) => {
         const val = e.value || 0;
         let _product = { ...product };
         _product[`${name}`] = val;
@@ -168,7 +158,6 @@ const CategoriaCliente = () => {
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
                 </div>
             </React.Fragment>
         );
@@ -213,7 +202,7 @@ const CategoriaCliente = () => {
         return (
             <>
                 <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCategoriaCliente(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCategoriaCliente(rowData)} />
             </>
         );
     };
@@ -221,7 +210,6 @@ const CategoriaCliente = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Categoria Clientes</h5>
-            <Button label="Listar" icon="pi pi-list" className="p-button-success mr-2" onClick={listarCategoriaClientes}/>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -258,8 +246,8 @@ const CategoriaCliente = () => {
                     <DataTable
                         ref={dt}
                         value={categoriaClientes}
-                        selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
+                        selection={selectedCategoriaClientes}
+                        onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
                         dataKey="id"
                         paginator
                         rows={10}
@@ -268,11 +256,10 @@ const CategoriaCliente = () => {
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
                         globalFilter={globalFilter}
-                        emptyMessage="No products found."
+                        emptyMessage="No se encontraron categorias de clientes."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
                         <Column field="idCategoria" header="Id Categoria" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
@@ -281,12 +268,12 @@ const CategoriaCliente = () => {
 
                     <Dialog visible={categoriaClienteDialog} style={{ width: '450px' }} header="Registro Categorias Clientes" modal className="p-fluid" footer={categoriaClienteDialogFooter} onHide={hideDialog}>
                         <div className="field">
-                            <label htmlFor="name">Nombre</label>
+                            <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={CategoriaCliente.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.nombre })} />
                             {submitted && !CategoriaCliente.nombre && <small className="p-invalid">Nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Descripción</label>
+                            <label htmlFor="descripcion">Descripción</label>
                             <InputTextarea id="descripcion" value={CategoriaCliente.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.descripcion })} />
                             {submitted && !CategoriaCliente.descripcion && <small className="p-invalid">Descripción es requerida.</small>}
                         </div>
