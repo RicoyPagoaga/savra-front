@@ -1,8 +1,10 @@
 import getConfig from 'next/config';
+import { CLIENT_STATIC_FILES_RUNTIME_MAIN_APP } from 'next/dist/shared/lib/constants';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
 import { FileUpload } from 'primereact/fileupload';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
@@ -13,154 +15,169 @@ import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../demo/service/ProductService';
+import { ClienteService } from '../../demo/service/clienteservice';
+import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
+import { CategoriaClienteService } from '../../demo/service/CategoriaClienteService';
 
 const Clientes = () => {
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
+    let emptyCliente = {
+        idCliente: null,
+        nombre: '',
+        documento: '',
+        idTipoDocumento : null,
+        telefono: '',
+        direccion: '',
+        idCategoria: null
     };
 
-    const [products, setProducts] = useState(null);
-    const [productDialog, setProductDialog] = useState(false);
-    const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
-    const [selectedProducts, setSelectedProducts] = useState(null);
+    let emptyRestApiError = {
+        httpStatus : '',
+        errorMessage: '',
+        errorDetails: ''
+    };
+
+    const [clientes, setClientes] = useState(null);
+    const [tipoDocumentos,setTipoDocumentos] = useState(null);
+    const [categoriaClientes,setCategoriaClientes] = useState(null);
+    const [clienteDialog, setClienteDialog] = useState(false);
+    const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
+    const [deleteClientesClientesDialog, setDeleteClientesClientesDialog] = useState(false);
+    const [cliente, setCliente] = useState(emptyCliente);
+    const [apiError, setApiError] = useState(emptyRestApiError);
+    const [selectedclientes, setSelectedclientes] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
 
-    useEffect(() => {
-        const productService = new ProductService();
-        productService.getProducts().then((data) => setProducts(data));
-    }, []);
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('es-LA', { style: 'currency', currency: 'HND' });
+    const listarClientes = () => {
+        const clienteservice = new ClienteService();
+        clienteservice.getClientes().then(data => setClientes(data));
     };
-
+    const listarTipoDocumentos = async() => {
+        const tiposDocumentoService = new TipoDocumentoService();
+        await tiposDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
+    };
+    const listarCategoriasClientes =async () => {
+        const categoriaservice = new CategoriaClienteService();
+        await categoriaservice.getCategoriaClientes().then(data => setCategoriaClientes(data));
+    };
+    
+    useEffect(async() => {
+        listarClientes();
+        await listarTipoDocumentos();
+        await listarCategoriasClientes();
+    }, []);
+    const [opcionesDocumentoItem,setOpcionesDocumentoItem] = useState(null);
+    const opcionesDocumentosItem = [
+        {name:'option 1', code: 'option1'},
+        {name:'adios', code: 'option2'}
+    ];
     const openNew = () => {
-        setProduct(emptyProduct);
+        setCliente(emptyCliente);
         setSubmitted(false);
-        setProductDialog(true);
+        setClienteDialog(true);
     };
 
     const hideDialog = () => {
         setSubmitted(false);
-        setProductDialog(false);
+        setClienteDialog(false);
     };
 
-    const hideDeleteProductDialog = () => {
-        setDeleteProductDialog(false);
+    const hideDeleteClienteDialog = () => {
+        setDeleteClienteDialog(false);
     };
 
-    const hideDeleteProductsDialog = () => {
-        setDeleteProductsDialog(false);
+    const hideDeleteClientesClientesDialog = () => {
+        setDeleteClientesClientesDialog(false);
     };
 
-    const saveProduct = () => {
+    const pasoRegistro = () =>{
+        listarClientes();
+        setClienteDialog(false);
+        setCliente(emptyCliente);
+    }
+    const saveCliente = async () => {
         setSubmitted(true);
-
-        if (product.name.trim()) {
-            let _products = [...products];
-            let _product = { ...product };
-            if (product.id) {
-                const index = findIndexById(product.id);
-
-                _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Actualizado', life: 3000 });
+        if (cliente.nombre.trim()) {
+            if (cliente.idCliente) {
+                try {
+                    const clienteservice = new ClienteService();
+                    await clienteservice.updateCliente(cliente);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Actualizado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                    //console.log(apiError.errorDetails);
+                }
             } else {
-                _product.id = createId();
-                _product.image = 'product-placeholder.svg';
-                _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Agregado', life: 3000 });
-            }
-
-            setProducts(_products);
-            setProductDialog(false);
-            setProduct(emptyProduct);
+                try {
+                    const clienteservice = new ClienteService();
+                    await clienteservice.addCliente(cliente);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Registrado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    console.log(cliente.idCategoria?.idCategoria);
+                    console.log(cliente.idTipoDocumento?.idTipoDocumento);
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                    //setApiError(emptyRestApiError);
+                }
+            };
+            
         }
     };
 
-    const editProduct = (product) => {
-        setProduct({ ...product });
-        setProductDialog(true);
+    const editCliente= (cliente) => {
+        setCliente({ ...cliente });
+        setClienteDialog(true);
     };
 
-    const confirmDeleteProduct = (product) => {
-        setProduct(product);
-        setDeleteProductDialog(true);
+    const confirmDeleteCliente = (cliente) => {
+        setCliente(cliente);
+        setDeleteClienteDialog(true);
     };
 
-    const deleteProduct = () => {
-        let _products = products.filter((val) => val.id !== product.id);
-        console.log(_products)
-        setProducts(_products);
-        console.log(product.id)
-        setDeleteProductDialog(false);
-        setProduct(emptyProduct);
+    const deleteCliente = async ()=>{
+        const clienteservice = new ClienteService();
+        await clienteservice.removeCliente(cliente.idCliente);
+        listarClientes();
+        setDeleteClienteDialog(false);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
     };
 
-    const findIndexById = (id) => {
-        let index = -1;
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
-                index = i;
-                break;
-            }
-        }
-
-        return index;
-    };
-
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
-
+   
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-    const exportPDF = () => {
-        dt.current.exportPDF();
-    };
-
-    const confirmDeleteSelected = () => {
-        setDeleteProductsDialog(true);
-    };
 
     const deleteSelectedProducts = () => {
-        let _products = products.filter((val) => !selectedProducts.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
+        let _products = clientes.filter((val) => !selectedclientes.includes(val));
+        setclientes(_products);
+        setDeleteClientesClientesDialog(false);
+        setSelectedclientes(null);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
     };
 
-    const onInputChange = (e, name) => {
+    
+    const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        let _cliente = { ...cliente };
+        _cliente[`${nombre}`] = val;
 
-        setProduct(_product);
+        setCliente(_cliente);
     };
 
-    const onInputNumberChange = (e, name) => {
+    const onInputChangeId = (e, idCliente) => {
+        const val = (e.target && e.target.value) || '';
+        let _cliente = { ...cliente };
+        _cliente[`${idCliente}`] = val;
+
+        setCliente(_cliente);
+    };
+
+    const onInputNumberChange = (e, nombre) => {
         const val = e.value || 0;
         let _product = { ...product };
         _product[`${name}`] = val;
@@ -173,7 +190,6 @@ const Clientes = () => {
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
                 </div>
             </React.Fragment>
         );
@@ -182,71 +198,67 @@ const Clientes = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Listar" icon="pi pi-list" className="p-button-info mr-2" onClick={exportCSV}/>
                 <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
             </React.Fragment>
         );
     };
 
-    const codeBodyTemplate = (rowData) => {
+    const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID</span>
-                {rowData.code}
+                <span className="p-column-title">ID Cliente</span>
+                {rowData.idCliente}
             </>
         );
     };
 
-    const nameBodyTemplate = (rowData) => {
+    const nombreBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {rowData.name}
+                {rowData.nombre}
             </>
         );
     };
 
-    const imageBodyTemplate = (rowData) => {
+    const documentoBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Documento</span>
-                <img src={`${contextPath}/demo/images/product/${rowData.image}`} alt={rowData.image} className="shadow-2" width="100" />
+                {rowData.documento}
             </>
         );
-    };
+    }; 
 
-    const priceBodyTemplate = (rowData) => {
+    const idTipoDocumentoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Tipo Documento</span>
-                {formatCurrency(rowData.price)}
+                <span className="p-column-title">Id Tipo Documento</span>
+                {rowData.idTipoDocumento}
             </>
         );
     };
-
-    const categoryBodyTemplate = (rowData) => {
+    const telefonoBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Telefono</span>
-                {rowData.category}
+                {rowData.telefono}
             </>
         );
     };
-
-    const ratingBodyTemplate = (rowData) => {
+    const direccionBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Dirección</span>
-                <Rating value={rowData.rating} readOnly cancel={false} />
+                <span className="p-column-title">Direccion</span>
+                {rowData.direccion}
             </>
         );
     };
-
-    const statusBodyTemplate = (rowData) => {
+    const idCategoriaBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Categoria</span>
-                <span className={`product-badge status-${rowData.inventoryStatus.toLowerCase()}`}>{rowData.inventoryStatus}</span>
+                <span className="p-column-title">Id Categoria</span>
+                {rowData.idCategoria}
             </>
         );
     };
@@ -254,8 +266,8 @@ const Clientes = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProduct(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCliente(rowData)} />
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCliente(rowData)} />
             </>
         );
     };
@@ -270,21 +282,21 @@ const Clientes = () => {
         </div>
     );
 
-    const productDialogFooter = (
+    const clienteDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveProduct} />
+            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveCliente} />
         </>
     );
-    const deleteProductDialogFooter = (
+    const deleteClienteDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteClienteDialog} />
+            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteCliente} />
         </>
     );
-    const deleteProductsDialogFooter = (
+    const deleteClientesClientesDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductsDialog} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteClientesClientesDialog} />
             <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
         </>
     );
@@ -298,9 +310,9 @@ const Clientes = () => {
 
                     <DataTable
                         ref={dt}
-                        value={products}
-                        selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
+                        value={clientes}
+                        selection={selectedclientes}
+                        onSelectionChange={(e) => setSelectedclientes(e.value)}
                         dataKey="id"
                         paginator
                         rows={10}
@@ -309,69 +321,68 @@ const Clientes = () => {
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Clientes"
                         globalFilter={globalFilter}
-                        emptyMessage="No products found."
+                        emptyMessage="No se encontraron clientes."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="ID" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '8rem' }}></Column>
-                        <Column field="Nombre" header="Nombre" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Documento" body={nameBodyTemplate}></Column>
-                        <Column field="price" header="Tipo Documento" body={nameBodyTemplate} sortable></Column>
-                        <Column field="category" header="Teléfono" sortable body={categoryBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                        <Column field="rating" header="Dirección" body={nameBodyTemplate} sortable></Column>
-                        <Column field="inventoryStatus" header="Categoria" body={nameBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="idCliente" header="Id Cliente" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="idTipoDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="idCategoria"header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={productDialog} style={{ width: '450px' }} header="Registro Clientes" modal className="p-fluid" footer={productDialogFooter} onHide={hideDialog}>
-                        {product.image && <img src={`${contextPath}/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />}
+                    <Dialog visible={clienteDialog} style={{ width: '450px' }} header="Registro Clientes" modal className="p-fluid" footer={clienteDialogFooter} onHide={hideDialog}>
                         <div className="field">
-                            <label htmlFor="name">Nombre</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombre">Nombre</label>
+                            <InputText id="nombre" value={cliente.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.nombre })} />
+                            {submitted && !cliente.nombre && <small className="p-invalid">Nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Documento</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="documento">Documento</label>
+                            <InputText id="documento" value={cliente.documento} onChange={(e) => onInputChange(e, 'documento')} required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.documento })} />
+                            {submitted && !cliente.documento && <small className="p-invalid">Documento es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Tipo Documento</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="idTipoDocumento">Tipo Documento</label>
+                            <Dropdown id="idTipoDocumento" value={cliente.idTipoDocumento} onChange={(e) => onInputChangeId(e, 'idTipoDocumento')} options={tipoDocumentos} optionLabel = "nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento?.idTipoDocumento })} />
+                            {submitted && !cliente.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Telefono</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="telefono">Teléfono</label>
+                            <InputText id="telefono" value={cliente.telefono} onChange={(e) => onInputChange(e, 'telefono')} required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.telefono })} />
+                            {submitted && !cliente.telefono && <small className="p-invalid">Teléfono es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="description">Dirección</label>
-                            <InputTextarea id="description" value={product.description} onChange={(e) => onInputChange(e, 'description')} required rows={3} cols={20} />
+                            <label htmlFor="direccion">Dirección</label>
+                            <InputText id="direccion" value={cliente.direccion} onChange={(e) => onInputChange(e, 'direccion')} required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.direccion })} />
+                            {submitted && !cliente.direccion && <small className="p-invalid">Dirección es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Categoria</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="idCategoria">Categoria</label>
+                            <Dropdown id="idCategoria" value={cliente.idCategoria} onChange={(e) => onInputChangeId(e, 'idCategoria')} options={categoriaClientes} optionLabel = "nombre" placeholder="Seleccione una Categoria" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria?.idCategoria })} />
+                            {submitted && !cliente.idCategoria && <small className="p-invalid">Categoria es requerida.</small>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
+                    <Dialog visible={deleteClienteDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteClienteDialogFooter} onHide={hideDeleteClienteDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && (
+                            {cliente && (
                                 <span>
-                                    Esta seguro que desea eliminar a <b>{product.name}</b>?
+                                    Esta seguro que desea eliminar a <b>{cliente.nombre}</b>?
                                 </span>
                             )}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductsDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductsDialogFooter} onHide={hideDeleteProductsDialog}>
+                    <Dialog visible={deleteClientesClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteClientesClientesDialogFooter} onHide={hideDeleteClientesClientesDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && <span>Esta seguro que desea eliminar este producto?</span>}
+                            {cliente && <span>Esta seguro que desea eliminar esta Cliente?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -381,3 +392,4 @@ const Clientes = () => {
 };
 
 export default Clientes;
+
