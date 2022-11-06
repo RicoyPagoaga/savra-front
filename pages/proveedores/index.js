@@ -3,269 +3,261 @@ import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { FileUpload } from 'primereact/fileupload';
-import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { RadioButton } from 'primereact/radiobutton';
-import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
+import { Dropdown } from 'primereact/dropdown';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../demo/service/ProductService';
+import { ProveedorService } from '../../demo/service/ProveedorService';
 
-const Clientes = () => {
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
+const Proveedores = () => {
+    let proveedorVacio = {
+        idProveedor: null,
+        nombre: '',
+        correo: '',
+        telefono: '',
+        cod_iso: '',
+        nombreContacto: '',
+        sitioWeb: '',
     };
 
-    const [products, setProducts] = useState(null);
-    const [productDialog, setProductDialog] = useState(false);
-    const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
-    const [selectedProducts, setSelectedProducts] = useState(null);
+    const [proveedores, setProveedores] = useState(null);
+    const [proveedorDialog, setProveedorDialog] = useState(false);
+    const [deleteProveedorDialog, setDeleteProveedorDialog] = useState(false);
+    const [deleteProveedoresDialog, setDeleteProveedoresDialog] = useState(false);
+    const [proveedor, setProveedor] = useState(proveedorVacio);
+    const [selectedProveedores, setSelectedProveedores] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const [paises, setPaises] = useState([]);
+    const [codigoISO, setCodigoISO] = useState(false);
+
+    const listarProveedores = () => {
+        const proveedorService = new ProveedorService();
+        proveedorService.getProveedores().then(data => setProveedores(data));
+    };
+
+    /*const listarPaises = () => {
+        const paisService = new PaisService();
+        paisService.getPaises().then(data => setPaises(data));
+    };*/
 
     useEffect(() => {
-        const productService = new ProductService();
-        productService.getProducts().then((data) => setProducts(data));
-    }, []);
+        listarProveedores();  
+        //listarPaises();
+    }, []); 
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    };
+
+    const dropdownValues = [
+        'HN', 'TH', 'CO'
+    ];
 
     const openNew = () => {
-        setProduct(emptyProduct);
+        setProveedor(proveedorVacio);
         setSubmitted(false);
-        setProductDialog(true);
-    };
+        setProveedorDialog(true);
+    }
 
     const hideDialog = () => {
         setSubmitted(false);
-        setProductDialog(false);
-    };
+        setProveedorDialog(false);
+    }
 
-    const hideDeleteProductDialog = () => {
-        setDeleteProductDialog(false);
-    };
+    const hideDeleteProveedorDialog = () => {
+        setDeleteProveedorDialog(false);
+    }
 
-    const hideDeleteProductsDialog = () => {
-        setDeleteProductsDialog(false);
-    };
+    const hideDeleteProveedoresDialog = () => {
+        setDeleteProveedoresDialog(false);
+    }
 
-    const saveProduct = () => {
+    const pasoRegistro = () => {
+        listarProveedores();
+        setProveedorDialog(false);
+        setProveedor(proveedorVacio);
+    }
+
+    const saveProveedor = async () => {
         setSubmitted(true);
 
-        if (product.name.trim()) {
-            let _products = [...products];
-            let _product = { ...product };
-            if (product.id) {
-                const index = findIndexById(product.id);
-
-                _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Proveedor Actualizado', life: 3000 });
-            } else {
-                _product.id = createId();
-                _product.image = 'product-placeholder.svg';
-                _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Proveedor Registrado', life: 3000 });
+        if (proveedor.nombre.trim()) {
+            if (proveedor.idProveedor) {
+                try {
+                    const proveedorService = new ProveedorService();
+                    await proveedorService.updateProveedor(proveedor);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Actualizado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                    //console.log(error.errorDetails);
+                }
             }
-
-            setProducts(_products);
-            setProductDialog(false);
-            setProduct(emptyProduct);
-        }
-    };
-
-    const editProduct = (product) => {
-        setProduct({ ...product });
-        setProductDialog(true);
-    };
-
-    const confirmDeleteProduct = (product) => {
-        setProduct(product);
-        setDeleteProductDialog(true);
-    };
-
-    const deleteProduct = () => {
-        let _products = products.filter((val) => val.id !== product.id);
-        setProducts(_products);
-        setDeleteProductDialog(false);
-        setProduct(emptyProduct);
-        toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Proveedor Eliminado', life: 3000 });
-    };
-
-    const findIndexById = (id) => {
-        let index = -1;
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
-                index = i;
-                break;
+            else {
+                try {
+                    const proveedorService = new ProveedorService();
+                    await proveedorService.addProveedor(proveedor);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Creado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                }
             }
         }
+    }
 
-        return index;
-    };
+    const editProveedor = (proveedor) => {
+        setProveedor({ ...proveedor });
+        setProveedorDialog(true);
+    }
 
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
+    const confirmDeleteProveedor = (proveedor) => {
+        setProveedor(proveedor);
+        setDeleteProveedorDialog(true);
+    }
+
+    const deleteProveedor = async () => {
+        const proveedorService = new ProveedorService();
+        await proveedorService.removeProveedor(proveedor.idProveedor);
+        listarProveedores();
+        setDeleteProveedorDialog(false);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Eliminado', life: 3000 });
+    }
+
 
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-    const exportPDF = () => {
-        dt.current.exportPDF();
-    };
 
     const confirmDeleteSelected = () => {
-        setDeleteProductsDialog(true);
-    };
+        setDeleteProveedoresDialog(true);
+    }
 
-    const deleteSelectedProducts = () => {
-        let _products = products.filter((val) => !selectedProducts.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Éxitoso', detail: 'Proveedor Eliminado', life: 3000 });
-    };
+    const deleteSelectedProveedores = () => {
+        const proveedorService = new ProveedorService();
+        selectedProveedores.map(async (proveedor) => {
+            await proveedorService.removeProveedor(proveedor.idProveedor);
+        });
+        let _proveedores = proveedores.filter(val => !selectedProveedores.includes(val));
+        setProveedores(_proveedores);
+        setDeleteProveedoresDialog(false);
+        setSelectedProveedores(null);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedores Eliminados', life: 3000 });
+    }
 
-    const onCategoryChange = (e) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
 
     const onInputChange = (e, name) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        let _proveedor = { ...proveedor };
+        _proveedor[`${name}`] = val;
 
-        setProduct(_product);
-    };
+        /*if (nombre != 'cod_iso')
+            _proveedor[`${nombre}`] = val;
+        else {
+            _proveedor[`${nombre}`] = val.cod_iso;
+        }*/
 
-    const onInputNumberChange = (e, name) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        setProveedor(_proveedor);
+    }
 
-        setProduct(_product);
-    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="New" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Delete" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
+                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProveedores || !selectedProveedores.length} />
                 </div>
             </React.Fragment>
-        );
-    };
+        )
+    }
 
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Export" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                {/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Importar" chooseLabel="Import" className="mr-2 inline-block" /> */}
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
-        );
-    };
+        )
+    }
 
-    const codeBodyTemplate = (rowData) => {
+    const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID</span>
-                {rowData.code}
+                <span className="p-column-title">Código</span>
+                {rowData.idProveedor}
             </>
         );
-    };
+    }
 
-    const nameBodyTemplate = (rowData) => {
+    const nombreBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {rowData.name}
+                {rowData.nombre}
             </>
         );
-    };
+    }
 
-    const imageBodyTemplate = (rowData) => {
+    const correoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Documento</span>
-                <img src={`${contextPath}/demo/images/product/${rowData.image}`} alt={rowData.image} className="shadow-2" width="100" />
+                <span className="p-column-title">Correo</span>
+                {rowData.correo}
             </>
-        );
-    };
+        )
+    }
 
-    const priceBodyTemplate = (rowData) => {
+    const telefonoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Tipo Documento</span>
-                {formatCurrency(rowData.price)}
+                <span className="p-column-title">Teléfono</span>
+                {rowData.telefono}
             </>
         );
-    };
+    }
 
-    const categoryBodyTemplate = (rowData) => {
+    const codIsoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Telefono</span>
-                {rowData.category}
+                <span className="p-column-title">Código ISO</span>
+                {rowData.cod_iso}
             </>
         );
-    };
+    }
 
-    const ratingBodyTemplate = (rowData) => {
+    const contactoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Dirección</span>
-                <Rating value={rowData.rating} readOnly cancel={false} />
+                <span className="p-column-title">Contacto</span>
+                {rowData.nombreContacto}
             </>
         );
-    };
+    }
 
-    const statusBodyTemplate = (rowData) => {
+    const sitioWebBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Categoria</span>
-                <span className={`product-badge status-${rowData.inventoryStatus.toLowerCase()}`}>{rowData.inventoryStatus}</span>
+                <span className="p-column-title">Sitio Web</span>
+                {rowData.sitioWeb}
             </>
-        );
-    };
+        )
+    }
 
     const actionBodyTemplate = (rowData) => {
         return (
-            <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProduct(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
-            </>
+            <div className="actions">
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProveedor(rowData)} />
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteProveedor(rowData)} />
+            </div>
         );
-    };
+    }
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Listado de Proveedores</h5>
+            <h5 className="m-0">Proveedores</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -273,22 +265,22 @@ const Clientes = () => {
         </div>
     );
 
-    const productDialogFooter = (
+    const proveedorDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveProduct} />
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveProveedor} />
         </>
     );
-    const deleteProductDialogFooter = (
+    const deleteProveedorDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProveedorDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteProveedor} />
         </>
     );
-    const deleteProductsDialogFooter = (
+    const deleteProveedoresDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductsDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProveedoresDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProveedores} />
         </>
     );
 
@@ -301,80 +293,77 @@ const Clientes = () => {
 
                     <DataTable
                         ref={dt}
-                        value={products}
-                        selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
-                        dataKey="id"
+                        value={proveedores}
+                        selection={selectedProveedores}
+                        onSelectionChange={(e) => setSelectedProveedores(e.value)}
+                        dataKey="idProveedor"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores" 
                         globalFilter={globalFilter}
-                        emptyMessage="No products found."
+                        emptyMessage="No se encontraron proveedores."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="ID" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="Nombre" header="Nombre" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="correo" header="Correo" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="telefono" header="Teléfono" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="pais" header="País" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="contacto" header="Contacto" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="sitioWeb" header="Sitio Web" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="correo" header="Correo" sortable body={correoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
+                        <Column field="cod_iso" header="Código ISO" sortable body={codIsoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
-                    <Dialog visible={productDialog} style={{ width: '450px' }} header="Registro Proveedoress" modal className="p-fluid" footer={productDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={proveedorDialog} style={{ width: '450px' }} header="Detalles de Proveedor" modal className="p-fluid" footer={proveedorDialogFooter} onHide={hideDialog}>
+                        {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
-                            <label htmlFor="name">Nombre</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombre">Nombre</label>
+                            <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />
+                            {submitted && !proveedor.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Correo</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="correo">Correo</label>
+                            <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
+                            {submitted && !proveedor.correo && <small className="p-invalid">El correo es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Teléfono</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="telefono">Teléfono</label>
+                            <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />
+                            {submitted && !proveedor.telefono && <small className="p-invalid">El teléfono es requerido.</small>}
+                        </div>
+
+                        <div className="field">
+                            <label htmlFor="cod_iso">Código ISO</label>
+                            <Dropdown id="cod_iso" value={proveedor.cod_iso} onChange={(e) => onInputChange(e, 'cod_iso')} options={dropdownValues} />
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Código ISO</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombreContacto">Contacto</label>
+                            <InputText id="nombreContacto" value={proveedor.nombreContacto} onChange={(e) => onInputChange(e, 'nombreContacto')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.nombreContacto })} />
+                            {submitted && !proveedor.nombreContacto && <small className="p-invalid">El nombre de contacto es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Contacto</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="sitioWeb">Sitio Web</label>
+                            <InputText id="sitioWeb" value={proveedor.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.sitioWeb })} />
+                            {submitted && !proveedor.sitioWeb && <small className="p-invalid">El sitio web es requerido.</small>}
                         </div>
-                        <div className="field">
-                            <label htmlFor="name">Sitio Web</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                    </Dialog> 
+
+                    <Dialog visible={deleteProveedorDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProveedorDialogFooter} onHide={hideDeleteProveedorDialog}>
+                        <div className="flex align-items-center justify-content-center">
+                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                            {proveedor && <span>¿Está seguro de que desea eliminar a <b>{proveedor.nombre}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
+                    <Dialog visible={deleteProveedoresDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProveedoresDialogFooter} onHide={hideDeleteProveedoresDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{product.name}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteProductsDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductsDialogFooter} onHide={hideDeleteProductsDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && <span>Esta seguro que desea eliminar este proveedor?</span>}
+                            {proveedor && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -383,4 +372,4 @@ const Clientes = () => {
     );
 };
 
-export default Clientes;
+export default Proveedores;
