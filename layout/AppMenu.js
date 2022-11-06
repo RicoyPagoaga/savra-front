@@ -43,8 +43,18 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Proveedores',
-                    icon: 'pi pi-fw pi-tablet',
+                    icon: 'pi pi-fw pi-pencil',
                     to: '/proveedores/'
+                },
+                {
+                    label: 'Marcas',
+                    icon: 'pi pi-fw pi-tablet',
+                    to: '/marcas/'
+                },
+                {
+                    label: 'Modelos',
+                    icon: 'pi pi-fw pi-tablet',
+                    to: '/modelos/'
                 },
             ]
         },
