@@ -1,271 +1,209 @@
-import getConfig from 'next/config';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { FileUpload } from 'primereact/fileupload';
-import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { RadioButton } from 'primereact/radiobutton';
-import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../demo/service/ProductService';
+import { PaisService } from '../../demo/service/PaisService';
 
-const Clientes = () => {
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
+const Paises = () => {
+    let paisVacio = {
+        idPais: null,
+        cod_iso: '',
+        nombre: '',
+        cod_area: ''
     };
 
-    const [products, setProducts] = useState(null);
-    const [productDialog, setProductDialog] = useState(false);
-    const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
-    const [selectedProducts, setSelectedProducts] = useState(null);
+    const [paiss, setPaiss] = useState();
+    const [paisDialog, setPaisDialog] = useState(false);
+    const [deletePaisDialog, setDeletePaisDialog] = useState(false);
+    const [deletePaissDialog, setDeletePaissDialog] = useState(false);
+    const [pais, setPais] = useState(paisVacio);
+    const [selectedPaiss, setSelectedPaiss] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    const contextPath = getConfig().publicRuntimeConfig.contextPath;
+
+    const listarPaiss = () => {
+        const paisService = new PaisService();
+        paisService.getPaises().then(data => setPaiss(data));
+    };
 
     useEffect(() => {
-        const productService = new ProductService();
-        productService.getProducts().then((data) => setProducts(data));
+        listarPaiss();
     }, []);
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    };
-
     const openNew = () => {
-        setProduct(emptyProduct);
+        setPais(paisVacio);
         setSubmitted(false);
-        setProductDialog(true);
-    };
+        setPaisDialog(true);
+    }
 
     const hideDialog = () => {
         setSubmitted(false);
-        setProductDialog(false);
-    };
+        setPaisDialog(false);
+    }
 
-    const hideDeleteProductDialog = () => {
-        setDeleteProductDialog(false);
-    };
+    const hideDeletePaisDialog = () => {
+        setDeletePaisDialog(false);
+    }
 
-    const hideDeleteProductsDialog = () => {
-        setDeleteProductsDialog(false);
-    };
+    const hideDeletePaissDialog = () => {
+        setDeletePaissDialog(false);
+    }
 
-    const saveProduct = () => {
+    const pasoRegistro = () => {
+        listarPaiss();
+        setPaisDialog(false);
+        setPais(paisVacio); 
+    }
+
+    const savePais = async () => {
         setSubmitted(true);
-
-        if (product.name.trim()) {
-            let _products = [...products];
-            let _product = { ...product };
-            if (product.id) {
-                const index = findIndexById(product.id);
-
-                _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Actualizado', life: 3000 });
-            } else {
-                _product.id = createId();
-                _product.image = 'product-placeholder.svg';
-                _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Registrado', life: 3000 });
+        if (pais.nombre.trim()) {
+            if (pais.idPais) {
+               try {
+                    const paisService = new PaisService();
+                    await paisService.updatePais(pais);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Actualizado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+                }
             }
-
-            setProducts(_products);
-            setProductDialog(false);
-            setProduct(emptyProduct);
-        }
-    };
-
-    const editProduct = (product) => {
-        setProduct({ ...product });
-        setProductDialog(true);
-    };
-
-    const confirmDeleteProduct = (product) => {
-        setProduct(product);
-        setDeleteProductDialog(true);
-    };
-
-    const deleteProduct = () => {
-        let _products = products.filter((val) => val.id !== product.id);
-        setProducts(_products);
-        setDeleteProductDialog(false);
-        setProduct(emptyProduct);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Eliminado', life: 3000 });
-    };
-
-    const findIndexById = (id) => {
-        let index = -1;
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
-                index = i;
-                break;
+            else {
+                try {
+                    const paisService = new PaisService();
+                    await paisService.addPais(pais);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Creado', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+    
+                }
             }
-        }
+        }   
+        
+    }
 
-        return index;
-    };
+    const editPais = (pais) => {
+        setPais({ ...pais});
+        setPaisDialog(true);
+    }
 
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
+    const confirmDeletePais = (pais) => {
+        setPais(pais);
+        setDeletePaisDialog(true);
+    }
+
+    const deletePais = async () => {
+        const paisService = new PaisService();
+        await paisService.removePais(pais.idPais);
+        listarPaiss();
+        setDeletePaisDialog(false);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Eliminado', life: 3000 });
+    }
 
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-    const exportPDF = () => {
-        dt.current.exportPDF();
-    };
 
     const confirmDeleteSelected = () => {
-        setDeleteProductsDialog(true);
-    };
+        setDeletePaissDialog(true);
+    }
 
-    const deleteSelectedProducts = () => {
-        let _products = products.filter((val) => !selectedProducts.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Eliminado', life: 3000 });
-    };
 
-    const onCategoryChange = (e) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
+    const deleteSelectedPaiss = async () => {
+        const paisService = new PaisService();
+        selectedPaiss.map(async (pais) => {
+            await paisService.removePais(pais.idPais);
+        });
+        let _paiss = paiss.filter((val) => !selectedPaiss.includes(val));
+        setPaiss(_paiss);
+        setDeletePaissDialog(false);
+        setSelectedPaiss(null);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Paises Eliminados', life: 3000 });
+    }
 
-    const onInputChange = (e, name) => {
+
+    const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        let _pais = { ...pais };
+        _pais[`${nombre}`] = val;
 
-        setProduct(_product);
-    };
+        setPais(_pais);
+    }
 
-    const onInputNumberChange = (e, name) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
-
-        setProduct(_product);
-    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedPaiss || !selectedPaiss.length} />
                 </div>
             </React.Fragment>
-        );
-    };
+        )
+    }
 
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
-        );
-    };
+        )
+    }
 
-    const codeBodyTemplate = (rowData) => {
+    const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID</span>
-                {rowData.id}
+                <span className="p-column-title">ID Pais</span>
+                {rowData.idPais}
             </>
         );
-    };
+    }
 
-    const nameBodyTemplate = (rowData) => {
+    const cod_isoBodyTemplate = (rowData) => {
+        return (
+            <>
+                <span className="p-column-title">Codigo ISO</span>
+                {rowData.cod_iso}
+            </>
+        );
+    }
+    const nombreBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {rowData.name}
+                {rowData.nombre}
             </>
         );
-    };
-
-    const imageBodyTemplate = (rowData) => {
+    }
+    const cod_areaBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Documento</span>
-                <img src={`${contextPath}/demo/images/product/${rowData.image}`} alt={rowData.image} className="shadow-2" width="100" />
+                <span className="p-column-title">Codigo area</span>
+                {rowData.cod_area}
             </>
         );
-    };
-
-    const priceBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Tipo Documento</span>
-                {formatCurrency(rowData.price)}
-            </>
-        );
-    };
-
-    const categoryBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Telefono</span>
-                {rowData.category}
-            </>
-        );
-    };
-
-    const ratingBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Dirección</span>
-                <Rating value={rowData.rating} readOnly cancel={false} />
-            </>
-        );
-    };
-
-    const statusBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Categoria</span>
-                <span className={`product-badge status-${rowData.inventoryStatus.toLowerCase()}`}>{rowData.inventoryStatus}</span>
-            </>
-        );
-    };
+    }
 
     const actionBodyTemplate = (rowData) => {
         return (
-            <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProduct(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
-            </>
+            <div className="actions">
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editPais(rowData)} />
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeletePais(rowData)} />
+            </div>
         );
-    };
+    }
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Listado de Países</h5>
+            <h5 className="m-0">Paiss</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -273,22 +211,22 @@ const Clientes = () => {
         </div>
     );
 
-    const productDialogFooter = (
+    const paisDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveProduct} />
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={savePais}/>
         </>
     );
-    const deleteProductDialogFooter = (
+    const deletePaisDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeletePaisDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deletePais} />
         </>
     );
-    const deleteProductsDialogFooter = (
+    const deletePaissDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductsDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeletePaissDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedPaiss} />
         </>
     );
 
@@ -301,62 +239,58 @@ const Clientes = () => {
 
                     <DataTable
                         ref={dt}
-                        value={products}
-                        selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
-                        dataKey="id"
+                        value={paiss}
+                        selection={selectedPaiss}
+                        onSelectionChange={(e) => setSelectedPaiss(e.value)}
+                        dataKey="idPais"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} paises" 
                         globalFilter={globalFilter}
-                        emptyMessage="No se encontraron categorias de clientes."
+                        emptyMessage="No se encontraron paiss."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="Código ISO" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="Nombre" header="Nombre" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Código de área" body={nameBodyTemplate}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column field="idPais" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="cod_iso" header="Código ISO" sortable body={cod_isoBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="cod_area" header="Código Area" sortable body={cod_areaBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
-                    <Dialog visible={productDialog} style={{ width: '450px' }} header="Registro Países" modal className="p-fluid" footer={productDialogFooter} onHide={hideDialog}>
-                        {product.image && <img src={`${contextPath}/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />}
+                    <Dialog visible={paisDialog} style={{ width: '450px' }} header="Registro Paises" modal className="p-fluid" footer={paisDialogFooter} onHide={hideDialog}>
                         <div className="field">
-                            <label htmlFor="name">Código ISO</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombre">Código ISO</label>
+                            <InputText id="nombre" value={pais.cod_iso} onChange={(e) => onInputChange(e, 'cod_iso')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.cod_iso })} />
+                            { submitted && !pais.cod_iso && <small className="p-invalid">Código ISO es requerido.</small> }
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Nombre del País</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombre">Nombre</label>
+                            <InputText id="nombre" value={pais.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.nombre })} />
+                            { submitted && !pais.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                         </div>
                         <div className="field">
-                            <label htmlFor="name">Código de área</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombre">Código de Area</label>
+                            <InputText id="nombre" value={pais.cod_area} onChange={(e) => onInputChange(e, 'cod_area')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.cod_area })} />
+                            { submitted && !pais.cod_area && <small className="p-invalid">Código de área requerido.</small> }
+                        </div>
+                    </Dialog> 
+
+                    <Dialog visible={deletePaisDialog} style={{ width: '450px' }} header="Confirm" modal footer={deletePaisDialogFooter} onHide={hideDeletePaisDialog}>
+                        <div className="flex align-items-center justify-content-center">
+                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                            {pais && <span>¿Está seguro de que desea eliminar a <b>{pais.nombre}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
+                    <Dialog visible={deletePaissDialog} style={{ width: '450px' }} header="Confirm" modal footer={deletePaissDialogFooter} onHide={hideDeletePaissDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{product.name}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteProductsDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductsDialogFooter} onHide={hideDeleteProductsDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && <span>Esta seguro que desea eliminar este país?</span>}
+                            {pais && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -365,5 +299,4 @@ const Clientes = () => {
     );
 };
 
-export default Clientes;
-
+export default Paises;

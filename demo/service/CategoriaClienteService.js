@@ -33,6 +33,7 @@ export class CategoriaClienteService{
                 "Content-type": 'application/json'
                 }
             });
+            
             const result = await response.json();
             if(response.status !== 201)throw result;
         } catch (error) {

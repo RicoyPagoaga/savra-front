@@ -1,11 +1,9 @@
 import getConfig from 'next/config';
-import { CLIENT_STATIC_FILES_RUNTIME_MAIN_APP } from 'next/dist/shared/lib/constants';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
-import { FileUpload } from 'primereact/fileupload';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -37,8 +35,10 @@ const Clientes = () => {
     };
 
     const [clientes, setClientes] = useState(null);
-    const [tipoDocumentos,setTipoDocumentos] = useState(null);
-    const [categoriaClientes,setCategoriaClientes] = useState(null);
+    const [tipoDocumentos,setTipoDocumentos] = useState([]);
+    const [tipoDocumento, setTipoDocumento] = useState(null);
+    const [categoriaClientes,setCategoriaClientes] = useState([]);
+    const [categoriaCliente, setCategoriaCliente] = useState(null);
     const [clienteDialog, setClienteDialog] = useState(false);
     const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
     const [deleteClientesClientesDialog, setDeleteClientesClientesDialog] = useState(false);
@@ -70,13 +70,13 @@ const Clientes = () => {
         await listarTipoDocumentos();
         await listarCategoriasClientes();
     }, []);
-    const [opcionesDocumentoItem,setOpcionesDocumentoItem] = useState(null);
-    const opcionesDocumentosItem = [
-        {name:'option 1', code: 'option1'},
-        {name:'adios', code: 'option2'}
-    ];
+    //const [documentosItem,setOpcionesDocumentoItem] = useState(null);
+    //const documentosItem = tipoDocumentos.map((idTipoDocumento) =>{
+    //})
     const openNew = () => {
         setCliente(emptyCliente);
+        setTipoDocumento(null);
+        setCategoriaCliente(null);
         setSubmitted(false);
         setClienteDialog(true);
     };
@@ -99,8 +99,10 @@ const Clientes = () => {
         setClienteDialog(false);
         setCliente(emptyCliente);
     }
+    
     const saveCliente = async () => {
         setSubmitted(true);
+
         if (cliente.nombre.trim()) {
             if (cliente.idCliente) {
                 try {
@@ -119,10 +121,8 @@ const Clientes = () => {
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Registrado', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
-                    console.log(cliente.idCategoria?.idCategoria);
-                    console.log(cliente.idTipoDocumento?.idTipoDocumento);
+                    console.log(cliente);
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                    //setApiError(emptyRestApiError);
                 }
             };
             
@@ -131,14 +131,19 @@ const Clientes = () => {
 
     const editCliente= (cliente) => {
         setCliente({ ...cliente });
+        console.log(tipoDocumentos);
+        const documento = tipoDocumentos.find((item) => {
+            if(item.idTipoDocumento == cliente.idTipoDocumento)
+            return item
+        });
+        setTipoDocumento(documento);
+        const categoria = categoriaClientes.find((item) => {
+            if(item.idCategoria == cliente.idCategoria)
+            return item
+        });
+        setCategoriaCliente(categoria);
         setClienteDialog(true);
     };
-
-    const confirmDeleteCliente = (cliente) => {
-        setCliente(cliente);
-        setDeleteClienteDialog(true);
-    };
-
     const deleteCliente = async ()=>{
         const clienteservice = new ClienteService();
         await clienteservice.removeCliente(cliente.idCliente);
@@ -164,25 +169,19 @@ const Clientes = () => {
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _cliente = { ...cliente };
-        _cliente[`${nombre}`] = val;
-
+        if (nombre == 'idTipoDocumento') {
+            _cliente[`${nombre}`] = val.idTipoDocumento;
+            setTipoDocumento(e.value);
+            console.log(e.value);
+        } else if (nombre == 'idCategoria') {
+            _cliente[`${nombre}`] = val.idCategoria;
+            setCategoriaCliente(e.value);
+        } else {
+            _cliente[`${nombre}`] = val;
+        }
+        //console.log(_cliente);
         setCliente(_cliente);
-    };
 
-    const onInputChangeId = (e, idCliente) => {
-        const val = (e.target && e.target.value) || '';
-        let _cliente = { ...cliente };
-        _cliente[`${idCliente}`] = val;
-
-        setCliente(_cliente);
-    };
-
-    const onInputNumberChange = (e, nombre) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
-
-        setProduct(_product);
     };
 
     const leftToolbarTemplate = () => {
@@ -231,12 +230,33 @@ const Clientes = () => {
     }; 
 
     const idTipoDocumentoBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Id Tipo Documento</span>
-                {rowData.idTipoDocumento}
-            </>
-        );
+        const documento = tipoDocumentos.find((item) => {
+            if(item.idTipoDocumento == rowData.idTipoDocumento)
+                 return item;
+            });
+            console.log(documento)
+        if(documento != null){
+            return (
+                <>
+                    <span className="p-column-title">Id Tipo Documento</span>
+                    {
+                        documento.nombreDocumento
+                    }
+                    
+                </>
+            );
+        }else{
+            return (
+                <>
+                    <span className="p-column-title">Id Tipo Documento</span>
+                    {
+                        rowData.idTipoDocumento
+                    }
+                    
+                </>
+            );
+        }
+        
     };
     const telefonoBodyTemplate = (rowData) => {
         return (
@@ -255,12 +275,25 @@ const Clientes = () => {
         );
     };
     const idCategoriaBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Id Categoria</span>
-                {rowData.idCategoria}
-            </>
-        );
+        const categoria = categoriaClientes.find((item) => {
+            if(item.idCategoria == rowData.idCategoria)
+            return item
+        });
+        if(categoria != null ){
+            return (
+                <>
+                    <span className="p-column-title">Id Categoria</span>
+                    {categoria.nombre}
+                </>
+            );
+        }else{
+            return (
+                <>
+                    <span className="p-column-title">Id Categoria</span>
+                    {rowData.idCategoria}
+                </>
+            );
+        }
     };
 
     const actionBodyTemplate = (rowData) => {
@@ -348,7 +381,7 @@ const Clientes = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" value={cliente.idTipoDocumento} onChange={(e) => onInputChangeId(e, 'idTipoDocumento')} options={tipoDocumentos} optionLabel = "nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento?.idTipoDocumento })} />
+                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')}  optionLabel = "nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento })}></Dropdown>
                             {submitted && !cliente.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
@@ -362,9 +395,9 @@ const Clientes = () => {
                             {submitted && !cliente.direccion && <small className="p-invalid">Dirección es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="idCategoria">Categoria</label>
-                            <Dropdown id="idCategoria" value={cliente.idCategoria} onChange={(e) => onInputChangeId(e, 'idCategoria')} options={categoriaClientes} optionLabel = "nombre" placeholder="Seleccione una Categoria" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria?.idCategoria })} />
-                            {submitted && !cliente.idCategoria && <small className="p-invalid">Categoria es requerida.</small>}
+                            <label htmlFor="idCategoria">Categoría</label>
+                            <Dropdown id="idCategoria" value={categoriaCliente} onChange={(e) => onInputChange(e, 'idCategoria')} options={categoriaClientes} optionLabel = "nombre" placeholder="Seleccione una Categoría" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria })} ></Dropdown>
+                            {submitted && !cliente.idCategoria && <small className="p-invalid">Categoría es requerida.</small>}
                         </div>
                     </Dialog>
 

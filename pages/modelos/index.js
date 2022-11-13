@@ -75,6 +75,7 @@ const Modelos = () => {
     const saveModelo = async () => {
         setSubmitted(true);
         if (modelo.nombre.trim()) {
+            console.log(modelo);
             if (modelo.idModelo) {
                 try {
                     const modeloService = new ModeloService();
