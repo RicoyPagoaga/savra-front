@@ -122,18 +122,25 @@ const CategoriaCliente = () => {
         setDeleteCategoriaClienteDialog(false);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminada', life: 3000 });
     };
+    const confirmDeleteSelected = () => {
+        setDeleteCategoriasClientesDialog(true);
+    }
 
    
     const exportCSV = () => {
         dt.current.exportCSV();
     };
 
-    const deleteSelectedProducts = () => {
-        let _products = categoriaClientes.filter((val) => !selectedCategoriaClientes.includes(val));
-        setCategoriaClientes(_products);
+    const deleteSelectedCategoriaClientes = () => {
+        const categoriaService = new CategoriaClienteService();
+        selectedCategoriaClientes.map(async (categoria) => {
+            await categoriaService.removeCategoriaCliente(categoria.idCategoria);
+        });
+        let categoriaCientes = categoriaClientes.filter((val) => !selectedCategoriaClientes.includes(val));
+        setCategoriaClientes(categoriaCientes);
         setDeleteCategoriasClientesDialog(false);
         setSelectedCategoriaClientes(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminado', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Paises Eliminados', life: 3000 });
     };
 
     
@@ -145,19 +152,13 @@ const CategoriaCliente = () => {
         setCategoriaCliente(_categoriaCliente);
     };
 
-    const onInputNumberChange = (e, nombre) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
-
-        setProduct(_product);
-    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedCategoriaClientes || !selectedCategoriaClientes.length} />
                 </div>
             </React.Fragment>
         );
@@ -232,8 +233,8 @@ const CategoriaCliente = () => {
     const deleteCategoriasClientesDialogFooter = (
         <>
             <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteCategoriasClientesDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
-        </>
+            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedCategoriaClientes} />
+        </> 
     );
 
     return (
@@ -248,7 +249,7 @@ const CategoriaCliente = () => {
                         value={categoriaClientes}
                         selection={selectedCategoriaClientes}
                         onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
-                        dataKey="id"
+                        dataKey="idCategoria"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
@@ -260,6 +261,7 @@ const CategoriaCliente = () => {
                         header={header}
                         responsiveLayout="scroll"
                     >
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
                         <Column field="idCategoria" header="Id Categoría" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
@@ -293,7 +295,7 @@ const CategoriaCliente = () => {
                     <Dialog visible={deleteCategoriasClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriasClientesDialogFooter} onHide={hideDeleteCategoriasClientesDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {CategoriaCliente && <span>Esta seguro que desea eliminar esta Categoria?</span>}
+                            {CategoriaCliente && <span>Esta seguro que desea eliminar esta Categoria (s)?</span>}
                         </div>
                     </Dialog>
                 </div>
