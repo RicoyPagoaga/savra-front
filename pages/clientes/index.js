@@ -41,10 +41,10 @@ const Clientes = () => {
     const [categoriaCliente, setCategoriaCliente] = useState(null);
     const [clienteDialog, setClienteDialog] = useState(false);
     const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
-    const [deleteClientesClientesDialog, setDeleteClientesClientesDialog] = useState(false);
+    const [deleteClientesDialog, setDeleteClientesDialog] = useState(false);
     const [cliente, setCliente] = useState(emptyCliente);
     const [apiError, setApiError] = useState(emptyRestApiError);
-    const [selectedclientes, setSelectedclientes] = useState(null);
+    const [selectedClientes, setSelectedClientes] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
@@ -90,8 +90,8 @@ const Clientes = () => {
         setDeleteClienteDialog(false);
     };
 
-    const hideDeleteClientesClientesDialog = () => {
-        setDeleteClientesClientesDialog(false);
+    const hideDeleteClientesDialog = () => {
+        setDeleteClientesDialog(false);
     };
 
     const pasoRegistro = () =>{
@@ -151,20 +151,28 @@ const Clientes = () => {
         setDeleteClienteDialog(false);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
     };
-
+    const confirmDeleteCliente = (cliente) => {
+        setCliente(cliente);
+        setDeleteClienteDialog(true);
+    };
    
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-
-    const deleteSelectedProducts = () => {
-        let _products = clientes.filter((val) => !selectedclientes.includes(val));
-        setclientes(_products);
-        setDeleteClientesClientesDialog(false);
-        setSelectedclientes(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
+    const confirmDeleteSelected = () => {
+        setDeleteClientesDialog(true);
+    }
+    const deleteSelectedClientes = () => {
+        const clienteService = new ClienteService();
+        selectedClientes.map(async (cliente) => {
+            await clienteService.removeCliente(cliente.idCliente);
+        });
+        let _clientes = clientes.filter((val) => !selectedClientes.includes(val));
+        setClientes(_clientes);
+        setDeleteClientesDialog(false);
+        setSelectedClientes(null);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
     };
-
     
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
@@ -189,6 +197,7 @@ const Clientes = () => {
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedClientes || !selectedClientes.length} />
                 </div>
             </React.Fragment>
         );
@@ -327,10 +336,10 @@ const Clientes = () => {
             <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteCliente} />
         </>
     );
-    const deleteClientesClientesDialogFooter = (
+    const deleteClientesDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteClientesClientesDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteClientesDialog} />
+            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedClientes} />
         </>
     );
 
@@ -344,9 +353,9 @@ const Clientes = () => {
                     <DataTable
                         ref={dt}
                         value={clientes}
-                        selection={selectedclientes}
-                        onSelectionChange={(e) => setSelectedclientes(e.value)}
-                        dataKey="id"
+                        selection={selectedClientes}
+                        onSelectionChange={(e) => setSelectedClientes(e.value)}
+                        dataKey="idCliente"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
@@ -358,6 +367,7 @@ const Clientes = () => {
                         header={header}
                         responsiveLayout="scroll"
                     >
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
                         <Column field="idCliente" header="Id Cliente" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
@@ -412,10 +422,10 @@ const Clientes = () => {
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteClientesClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteClientesClientesDialogFooter} onHide={hideDeleteClientesClientesDialog}>
+                    <Dialog visible={deleteClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteClientesDialogFooter} onHide={hideDeleteClientesDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {cliente && <span>Esta seguro que desea eliminar esta Cliente?</span>}
+                            {cliente && <span>Esta seguro que desea eliminar los siguientes Clientes?</span>}
                         </div>
                     </Dialog>
                 </div>

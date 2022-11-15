@@ -56,6 +56,11 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-tablet',
                     to: '/modelos/'
                 },
+                {
+                    label: 'Trasmisiones Automotrices',
+                    icon: 'pi pi-fw pi-sliders-v',
+                    to: '/transmisiones/'
+                }
             ]
         },
         {
