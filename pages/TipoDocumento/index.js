@@ -1,294 +1,215 @@
-import getConfig from 'next/config';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
-import { FileUpload } from 'primereact/fileupload';
-import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { RadioButton } from 'primereact/radiobutton';
-import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
-import { ProductService } from '../../demo/service/ProductService';
+import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
 
-const TipoDocumento = () => {
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
+const TipoDocumentos = () => {
+    let tipoDocumentoVacio = {
+        idTipoDocumento: null,
+        nombreDocumento: ''
     };
 
-    const [products, setProducts] = useState(null);
-    const [productDialog, setProductDialog] = useState(false);
-    const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [deleteProductsDialog, setDeleteProductsDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
-    const [selectedProducts, setSelectedProducts] = useState(null);
+    const [tipoDocumentos, setTipoDocumentos] = useState();
+    const [tipoDocumentoDialog, setTipoDocumentoDialog] = useState(false);
+    const [deleteTipoDocumentoDialog, setDeleteTipoDocumentoDialog] = useState(false);
+    const [deleteTipoDocumentosDialog, setDeleteTipoDocumentosDialog] = useState(false);
+    const [tipoDocumento, setTipoDocumento] = useState(tipoDocumentoVacio);
+    const [selectedTipoDocumentos, setSelectedTipoDocumentos] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    const contextPath = getConfig().publicRuntimeConfig.contextPath;
+
+    const listarTipoDocumentos = () => {
+        const tipoDocumentoService = new TipoDocumentoService();
+        tipoDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
+    };
 
     useEffect(() => {
-        const productService = new ProductService();
-        productService.getProducts().then((data) => setProducts(data));
+        listarTipoDocumentos();
     }, []);
 
-    const formatCurrency = (value) => {
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    };
-
     const openNew = () => {
-        setProduct(emptyProduct);
+        setTipoDocumento(tipoDocumentoVacio);
         setSubmitted(false);
-        setProductDialog(true);
-    };
+        setTipoDocumentoDialog(true);
+    }
 
     const hideDialog = () => {
         setSubmitted(false);
-        setProductDialog(false);
-    };
+        setTipoDocumentoDialog(false);
+    }
 
-    const hideDeleteProductDialog = () => {
-        setDeleteProductDialog(false);
-    };
+    const hideDeleteTipoDocumentoDialog = () => {
+        setDeleteTipoDocumentoDialog(false);
+    }
 
-    const hideDeleteProductsDialog = () => {
-        setDeleteProductsDialog(false);
-    };
+    const hideDeleteTipoDocumentosDialog = () => {
+        setDeleteTipoDocumentosDialog(false);
+    }
 
-    const saveProduct = () => {
+    const pasoRegistro = () => {
+        listarTipoDocumentos();
+        setTipoDocumentoDialog(false);
+        setTipoDocumento(tipoDocumentoVacio); 
+    }
+
+    const saveTipoDocumento = async () => {
         setSubmitted(true);
-
-        if (product.name.trim()) {
-            let _products = [...products];
-            let _product = { ...product };
-            if (product.id) {
-                const index = findIndexById(product.id);
-
-                _products[index] = _product;
-                toast.current.show({ severity: 'success', summary: 'Exitoso', detail: 'Documento Actualizado', life: 3000 });
-            } else {
-                _product.id = createId();
-                _product.image = 'product-placeholder.svg';
-                _products.push(_product);
-                toast.current.show({ severity: 'success', summary: 'Exitoso', detail: 'Documento Creado', life: 3000 });
+        if (tipoDocumento.nombreDocumento.trim()) {
+            if (tipoDocumento.idTipoDocumento) {
+               try {
+                    const tipoDocumentoService = new TipoDocumentoService();
+                    await tipoDocumentoService.updateTipoDocumento(tipoDocumento);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Actualizado (^‿^)', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+                }
             }
-
-            setProducts(_products);
-            setProductDialog(false);
-            setProduct(emptyProduct);
-        }
-    };
-
-    const editProduct = (product) => {
-        setProduct({ ...product });
-        setProductDialog(true);
-    };
-
-    const confirmDeleteProduct = (product) => {
-        setProduct(product);
-        setDeleteProductDialog(true);
-    };
-
-    const deleteProduct = () => {
-        let _products = products.filter((val) => val.id !== product.id);
-        setProducts(_products);
-        setDeleteProductDialog(false);
-        setProduct(emptyProduct);
-        toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Tipo Documento Eliminado', life: 3000 });
-    };
-
-    const findIndexById = (id) => {
-        let index = -1;
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
-                index = i;
-                break;
+            else {
+                try {
+                    const tipoDocumentoService = new TipoDocumentoService();
+                    await tipoDocumentoService.addTipoDocumento(tipoDocumento);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Creado (^‿^)', life: 3000 });
+                    pasoRegistro();
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+    
+                }
             }
-        }
+        }   
+        
+    }
 
-        return index;
-    };
+    const editTipoDocumento = (tipoDocumento) => {
+        setTipoDocumento({ ...tipoDocumento});
+        setTipoDocumentoDialog(true);
+    }
 
-    const createId = () => {
-        let id = '';
-        let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 5; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return id;
-    };
+    const confirmDeleteTipoDocumento = (tipoDocumento) => {
+        setTipoDocumento(tipoDocumento);
+        setDeleteTipoDocumentoDialog(true);
+    }
+
+    const deleteTipoDocumento = async () => {
+        const tipoDocumentoService = new TipoDocumentoService();
+        await tipoDocumentoService.removeTipoDocumento(tipoDocumento.idTipoDocumento);
+        listarTipoDocumentos();
+        setDeleteTipoDocumentoDialog(false);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Eliminado 🚨', life: 3000 });
+    }
 
     const exportCSV = () => {
         dt.current.exportCSV();
     };
-    const exportPDF = () => {
-        dt.current.exportPDF();
-    };
 
     const confirmDeleteSelected = () => {
-        setDeleteProductsDialog(true);
-    };
+        setDeleteTipoDocumentosDialog(true);
+    }
 
-    const deleteSelectedProducts = () => {
-        let _products = products.filter((val) => !selectedProducts.includes(val));
-        setProducts(_products);
-        setDeleteProductsDialog(false);
-        setSelectedProducts(null);
-        toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Documentos Deleted', life: 3000 });
-    };
 
-    const onCategoryChange = (e) => {
-        let _product = { ...product };
-        _product['category'] = e.value;
-        setProduct(_product);
-    };
+    const deleteSelectedTipoDocumentos = async () => {
+        const tipoDocumentoService = new TipoDocumentoService();
+        selectedTipoDocumentos.map(async (tipoDocumento) => {
+            await tipoDocumentoService.removeTipoDocumento(tipoDocumento.idTipoDocumento);
+        });
+        let _tipoDocumentos = tipoDocumentos.filter((val) => !selectedTipoDocumentos.includes(val));
+        setTipoDocumentos(_tipoDocumentos);
+        setDeleteTipoDocumentosDialog(false);
+        setSelectedTipoDocumentos(null);
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'TipoDocumentoes Eliminados 🚨', life: 3000 });
+    }
 
-    const onInputChange = (e, name) => {
+
+    const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
-        let _product = { ...product };
-        _product[`${name}`] = val;
+        let _tipoDocumento = { ...tipoDocumento };
+        _tipoDocumento[`${nombre}`] = val;
 
-        setProduct(_product);
-    };
+        setTipoDocumento(_tipoDocumento);
+    }
 
-    const onInputNumberChange = (e, name) => {
-        const val = e.value || 0;
-        let _product = { ...product };
-        _product[`${name}`] = val;
-
-        setProduct(_product);
-    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="New" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Delete" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProducts || !selectedProducts.length} />
+                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedTipoDocumentos || !selectedTipoDocumentos.length} />
                 </div>
             </React.Fragment>
-        );
-    };
+        )
+    }
 
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Export" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
-        );
-    };
+        )
+    }
 
-    const codeBodyTemplate = (rowData) => {
+    const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID</span>
-                {rowData.code}
+                <span className="p-column-title">ID TipoDocumento</span>
+                {rowData.idTipoDocumento}
             </>
         );
-    };
+    }
 
-    const nameBodyTemplate = (rowData) => {
+    const nombreBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {rowData.name}
+                {rowData.nombreDocumento}
             </>
         );
-    };
-
-    const imageBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Documento</span>
-                <img src={`${contextPath}/demo/images/product/${rowData.image}`} alt={rowData.image} className="shadow-2" width="100" />
-            </>
-        );
-    };
-
-    const priceBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Tipo Documento</span>
-                {formatCurrency(rowData.price)}
-            </>
-        );
-    };
-
-    const categoryBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Telefono</span>
-                {rowData.category}
-            </>
-        );
-    };
-
-    const ratingBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Dirección</span>
-                <Rating value={rowData.rating} readOnly cancel={false} />
-            </>
-        );
-    };
-
-    const statusBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">Categoria</span>
-                <span className={`product-badge status-${rowData.inventoryStatus.toLowerCase()}`}>{rowData.inventoryStatus}</span>
-            </>
-        );
-    };
+    }
+    
 
     const actionBodyTemplate = (rowData) => {
         return (
-            <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProduct(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
-            </>
+            <div className="actions">
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editTipoDocumento(rowData)} />
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteTipoDocumento(rowData)} />
+            </div>
         );
-    };
+    }
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Listado de Países</h5>
+            <h5 className="m-0">Tipo Documentos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Search..." />
+                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
             </span>
         </div>
     );
 
-    const productDialogFooter = (
+    const tipoDocumentoDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Registar" icon="pi pi-check" className="p-button-text" onClick={saveProduct} />
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveTipoDocumento}/>
         </>
     );
-    const deleteProductDialogFooter = (
+    const deleteTipoDocumentoDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteTipoDocumentoDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteTipoDocumento}   />
         </>
     );
-    const deleteProductsDialogFooter = (
+    const deleteTipoDocumentosDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductsDialog} />
-            <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProducts} />
+            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteTipoDocumentosDialog} />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedTipoDocumentos} />
         </>
     );
 
@@ -301,51 +222,46 @@ const TipoDocumento = () => {
 
                     <DataTable
                         ref={dt}
-                        value={products}
-                        selection={selectedProducts}
-                        onSelectionChange={(e) => setSelectedProducts(e.value)}
-                        dataKey="id"
+                        value={tipoDocumentos}
+                        selection={selectedTipoDocumentos}
+                        onSelectionChange={(e) => setSelectedTipoDocumentos(e.value)}
+                        dataKey="idTipoDocumento"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Tipo Documentos" 
                         globalFilter={globalFilter}
-                        emptyMessage="No products found."
+                        emptyMessage="No se encontraron Tipo Documentos."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
-                        <Column field="ID" header="ID Documento" sortable body={codeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="Nombre" header="Nombre Documento" sortable body={nameBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column field="idTipoDocumento" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="nombreDocumento" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
-                    <Dialog visible={productDialog} style={{ width: '450px' }} header="Registro Tipo Documento" modal className="p-fluid" footer={productDialogFooter} onHide={hideDialog}>                        
+                    <Dialog visible={tipoDocumentoDialog} style={{ width: '450px' }} header="Registro Tipo Documentos" modal className="p-fluid" footer={tipoDocumentoDialogFooter} onHide={hideDialog}>
                         <div className="field">
-                            <label htmlFor="name">Nombre Documento</label>
-                            <InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />
-                            {submitted && !product.name && <small className="p-invalid">Name is required.</small>}
+                            <label htmlFor="nombreDocumento">Nombre</label>
+                            <InputText id="nombreDocumento" value={tipoDocumento.nombreDocumento} onChange={(e) => onInputChange(e, 'nombreDocumento')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipoDocumento.nombreDocumento })} />
+                            { submitted && !tipoDocumento.nombreDocumento && <small className="p-invalid">Nombre Documento es requerido.</small> }
                         </div>
-                        
-                    </Dialog>
+                    </Dialog> 
 
-                    <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
+                    <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{product.name}</b>?
-                                </span>
-                            )}
+                            {tipoDocumento && <span>¿Está seguro de que desea eliminar a <b>{tipoDocumento.nombreDocumento}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteProductsDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteProductsDialogFooter} onHide={hideDeleteProductsDialog}>
+                    <Dialog visible={deleteTipoDocumentosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTipoDocumentosDialogFooter} onHide={hideDeleteTipoDocumentosDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {product && <span>Esta seguro que desea eliminar este documento?</span>}
+                            {tipoDocumento && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -354,4 +270,4 @@ const TipoDocumento = () => {
     );
 };
 
-export default TipoDocumento;
+export default TipoDocumentos;
