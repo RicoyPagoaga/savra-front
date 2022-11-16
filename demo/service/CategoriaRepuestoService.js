@@ -1,18 +1,18 @@
 import getConfig from 'next/config';
 
-let url = 'http://localhost:8080/api/v1/proveedores';
+let url = 'http://localhost:8080/api/v1/categoria_repuestos';
 
-export class ProveedorService {
+export class CategoriaRepuestoService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getProveedores() {
-        const response = await fetch('http://localhost:8080/api/v1/proveedores');
+    async getCategoriasRepuestos() {
+        const response = await fetch(url);
         return await response.json();
     }
 
-    async removeProveedor(id) {
+    async removeCategoriaRepuesto(id) {
         try {
             let url_ = url + '/delete/' + id;
             const response = await fetch(url_, {
@@ -27,34 +27,34 @@ export class ProveedorService {
         }
     }
 
-    async addProveedor(proveedor) {
+    async addCategoriaRepuesto(categoria) {
         try {
-            let url_ = url + '/addProveedor';
+            let url_ = url + '/addCategoriaRepuesto';
             const response = await fetch(url_, {
                 "method": 'POST',
-                "body": JSON.stringify(proveedor),
+                "body": JSON.stringify(categoria),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if(response.status !== 201)throw result;
+            if (response.status !== 201)throw result;
         } catch (error) {
             throw error;
         }
     }
 
-    async updateProveedor(proveedor) {
+    async updateCategoriaRepuesto(categoria) {
         try {
             const response = await fetch(url, {
                 "method":'PUT',
-                "body": JSON.stringify(proveedor),
+                "body": JSON.stringify(categoria),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if(response.status !== 200)throw result;
+            if (response.status !== 200)throw result;
         } catch (error) {
             throw error;
         }

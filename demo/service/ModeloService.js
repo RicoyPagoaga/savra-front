@@ -13,13 +13,18 @@ export class ModeloService {
     }
 
     async removeModelo(id) {
-        let url_ = url + '/delete/' + id;
-        const response = await fetch(url_, {
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        }); 
+        try {
+            let url_ = url + '/delete/' + id;
+            const response = await fetch(url_, {
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            }); 
+            if (response.status == 500) throw 'No es posible eliminar el registro';
+        } catch (error) {
+            throw error;
+        }
     }
 
     async addModelo(modelo) {

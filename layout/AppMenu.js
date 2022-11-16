@@ -43,7 +43,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Proveedores',
-                    icon: 'pi pi-fw pi-pencil',
+                    icon: 'pi pi-fw pi-users',
                     to: '/proveedores/'
                 },
                 {
@@ -60,7 +60,17 @@ const AppMenu = () => {
                     label: 'Trasmisiones Automotrices',
                     icon: 'pi pi-fw pi-sliders-v',
                     to: '/transmisiones/'
-                }
+                },
+                {
+                    label: 'Categorias Repuestos',
+                    icon: 'pi pi-th-large" pi-th-large',
+                    to: '/categoriaRepuestos/'
+                },
+                {
+                    label: 'Repuestos',
+                    icon: 'pi pi-fw pi-pencil',
+                    to: '/repuestos/'
+                },
             ]
         },
         {
