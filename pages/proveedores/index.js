@@ -349,11 +349,10 @@ const Proveedores = () => {
                         <Column field="idPais" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
 
                     <Dialog visible={proveedorDialog} style={{ width: '450px' }} header="Detalles de Proveedor" modal className="p-fluid" footer={proveedorDialogFooter} onHide={hideDialog}>
-                        {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />

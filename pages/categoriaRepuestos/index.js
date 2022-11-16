@@ -5,6 +5,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
+import { InputTextarea } from 'primereact/inputtextarea';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { CategoriaRepuestoService } from '../../demo/service/CategoriaRepuestoService';
@@ -284,7 +285,7 @@ const categoria_repuestos = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="descripcion">Descripción</label>
-                            <InputText id="descripcion" value={categoria.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !categoria.descripcion })} />
+                            <InputTextarea id="descripcion" value={categoria.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !categoria.descripcion })} />
                             { submitted && !categoria.descripcion && <small className="p-invalid">La descripción es requerido.</small> }
                         </div>
                     </Dialog> 

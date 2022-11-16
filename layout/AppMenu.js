@@ -27,7 +27,7 @@ const AppMenu = () => {
                     to: '/Empleados/'
                 },
                 {
-                    label: 'Categorias Clientes',
+                    label: 'Categorías Clientes',
                     icon: 'pi pi-th-large" pi-th-large',
                     to: '/categoriaClientes/'
                 },
@@ -62,7 +62,7 @@ const AppMenu = () => {
                     to: '/transmisiones/'
                 },
                 {
-                    label: 'Categorias Repuestos',
+                    label: 'Categorías Repuestos',
                     icon: 'pi pi-th-large" pi-th-large',
                     to: '/categoriaRepuestos/'
                 },

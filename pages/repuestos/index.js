@@ -20,8 +20,8 @@ const Repuestos = () => {
     let repuestoVacio = {
         idRepuesto: null,
         nombre: '',
-        fecha_referenciaInicio: null,
-        fecha_referenciaFinal: null,
+        anio_referenciaInicio: null,
+        anio_referenciaFinal: null,
         idCategoria: null,
         stockActual: null,
         stockMinimo: null,
@@ -31,7 +31,7 @@ const Repuestos = () => {
         idTransmision: null,
     };
 
-    const [repuestos, setRepuestos] = useState(null);
+    const [repuestos, setRepuestos] = useState([]);
     const [repuestoDialog, setRepuestoDialog] = useState(false);
     const [deleteRepuestoDialog, setDeleteRepuestoDialog] = useState(false);
     const [deleteRepuestosDialog, setDeleteRepuestosDialog] = useState(false);
@@ -41,9 +41,6 @@ const Repuestos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    //fechas
-    const [fechaInicio, setFechaInicio] = useState(null);
-    const [fechaFinal, setFechaFinal] = useState(null);
 
     //foraneas categoria, proveedor, modelo, transmision
     const [categoria, setCategoria] = useState(null);
@@ -319,7 +316,7 @@ const Repuestos = () => {
         return (
             <>
                 <span className="p-column-title">Fecha de Referencia Inicial</span>
-                {rowData.fecha_referenciaInicio}
+                {rowData.anio_referenciaInicio}
             </>
         );
     }
@@ -328,7 +325,7 @@ const Repuestos = () => {
         return (
             <>
                 <span className="p-column-title">Fecha de Referencia Final</span>
-                {rowData.fecha_referenciaFinal}
+                {rowData.anio_referenciaFinal}
             </>
         );
     }
@@ -494,8 +491,8 @@ const Repuestos = () => {
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
                         <Column field="idRepuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="fecha_referenciaInicio" header="Fecha de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="fecha_referenciaFinal" header="Fecha de Referencia Final" body={fechaFinalBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
+                        <Column field="anio_referenciaInicio" header="Año de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="anio_referenciaFinal" header="Año de Referencia Final" body={fechaFinalBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
                         <Column field="idCategoria" header="Categoría" sortable body={categoriaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="stockActual" header="Stock Actual" body={stockActualBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="stockMinimo" header="Stock Mínimo" body={stockMinimoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
@@ -503,7 +500,7 @@ const Repuestos = () => {
                         <Column field="idProveedor" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="idModelo" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="idTransmision" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
 
                     <Dialog visible={repuestoDialog} style={{ width: '450px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
@@ -514,14 +511,14 @@ const Repuestos = () => {
                             {submitted && !repuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="fecha_referenciaInicio">Fecha Referencia Inicial</label>
-                            <InputText id="fecha_referenciaInicio" type="number" value={repuesto.fecha_referenciaInicio} onChange={(e) => onInputChange(e, 'fecha_referenciaInicio')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.fecha_referenciaInicio })} />
-                            {submitted && !repuesto.fecha_referenciaInicio && <small className="p-invalid">La fecha referencia inicial es requerida.</small>}
+                            <label htmlFor="anio_referenciaInicio">Año de Referencia Inicial</label>
+                            <InputText id="anio_referenciaInicio" type="number" value={repuesto.anio_referenciaInicio} onChange={(e) => onInputChange(e, 'anio_referenciaInicio')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaInicio })} />
+                            {submitted && !repuesto.anio_referenciaInicio && <small className="p-invalid">El año de referencia inicial es requerida.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="fecha_referenciaFinal">Fecha Referencia Final</label>
-                            <InputText id="fecha_referenciaFinal" type="number" value={repuesto.fecha_referenciaFinal} onChange={(e) => onInputChange(e, 'fecha_referenciaFinal')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.fecha_referenciaFinal })} />
-                            {submitted && !repuesto.fecha_referenciaFinal && <small className="p-invalid">La fecha referencia final es requerida.</small>}
+                            <label htmlFor="anio_referenciaFinal">Año de Referencia Final</label>
+                            <InputText id="anio_referenciaFinal" type="number" value={repuesto.anio_referenciaFinal} onChange={(e) => onInputChange(e, 'anio_referenciaFinal')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaFinal })} />
+                            {submitted && !repuesto.anio_referenciaFinal && <small className="p-invalid">El año de referencia final es requerida.</small>}
                         </div>
 
                         <div className="field">

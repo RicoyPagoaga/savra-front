@@ -8,7 +8,7 @@ export class ProveedorService {
     }
 
     async getProveedores() {
-        const response = await fetch('http://localhost:8080/api/v1/proveedores');
+        const response = await fetch(url);
         return await response.json();
     }
 
@@ -21,7 +21,7 @@ export class ProveedorService {
                     "Content-type": 'application/json'
                 }
             }); 
-            if (response.status == 500) throw 'No es posible eliminar el registro';
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
         } catch (error) {
             throw error;
         }

@@ -21,7 +21,7 @@ export class ModeloService {
                     "Content-type": 'application/json'
                 }
             }); 
-            if (response.status == 500) throw 'No es posible eliminar el registro';
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
         } catch (error) {
             throw error;
         }
