@@ -1,18 +1,18 @@
 import getConfig from 'next/config';
 
-let url = 'http://localhost:8080/api/v1/proveedores';
+let url = 'http://localhost:8080/api/v1/repuestos';
 
-export class ProveedorService {
+export class RepuestoService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getProveedores() {
+    async getRepuestos() {
         const response = await fetch(url);
         return await response.json();
     }
 
-    async removeProveedor(id) {
+    async removeRepuesto(id) {
         try {
             let url_ = url + '/delete/' + id;
             const response = await fetch(url_, {
@@ -27,34 +27,34 @@ export class ProveedorService {
         }
     }
 
-    async addProveedor(proveedor) {
+    async addRepuesto(repuesto) {
         try {
-            let url_ = url + '/addProveedor';
+            let url_ = url + '/addRepuesto';
             const response = await fetch(url_, {
                 "method": 'POST',
-                "body": JSON.stringify(proveedor),
+                "body": JSON.stringify(repuesto),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if(response.status !== 201)throw result;
+            if (response.status !== 201)throw result;
         } catch (error) {
             throw error;
         }
     }
 
-    async updateProveedor(proveedor) {
+    async updateRepuesto(repuesto) {
         try {
             const response = await fetch(url, {
                 "method":'PUT',
-                "body": JSON.stringify(proveedor),
+                "body": JSON.stringify(repuesto),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if(response.status !== 200)throw result;
+            if (response.status !== 200)throw result;
         } catch (error) {
             throw error;
         }

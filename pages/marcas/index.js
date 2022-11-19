@@ -15,18 +15,11 @@ const Marcas = () => {
         nombre: '',
     };
 
-    let emptyRestApiError = {
-        httpStatus : '',
-        errorMessage: '',
-        errorDetails: '',
-    }
-
     const [marcas, setMarcas] = useState();
     const [marcaDialog, setMarcaDialog] = useState(false);
     const [deleteMarcaDialog, setDeleteMarcaDialog] = useState(false);
     const [deleteMarcasDialog, setDeleteMarcasDialog] = useState(false);
     const [marca, setMarca] = useState(marcaVacia);
-    const [apiError, setApiError] = useState(emptyRestApiError);
     const [selectedMarcas, setSelectedMarcas] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
@@ -41,6 +34,12 @@ const Marcas = () => {
     useEffect(() => {
         listarMarcas();
     }, []);
+
+
+    const onSearchChange = (event) => {
+        const searchFieldString = event.target.value.toLocaleLowerCase();
+        //setSearchField(searchFieldString);
+    };
 
     const openNew = () => {
         setMarca(marcaVacia);
@@ -97,6 +96,8 @@ const Marcas = () => {
     const editMarca = (marca) => {
         setMarca({ ...marca});
         setMarcaDialog(true);
+        console.log(globalFilter);
+        console.log(marcas);
     }
 
     const confirmDeleteMarca = (marca) => {
@@ -105,11 +106,15 @@ const Marcas = () => {
     }
 
     const deleteMarca = async () => {
-        const marcaService = new MarcaService();
-        await marcaService.removeMarca(marca.idMarca);
-        listarMarcas();
-        setDeleteMarcaDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Eliminada', life: 3000 });
+        try {
+            const marcaService = new MarcaService();
+            await marcaService.removeMarca(marca.idMarca);
+            listarMarcas();
+            setDeleteMarcaDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Eliminada', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });  
+        }
     }
 
     const exportCSV = () => {
@@ -122,16 +127,25 @@ const Marcas = () => {
 
 
     const deleteSelectedMarcas = async () => {
+        let x = ' ';
         const marcaService = new MarcaService();
         selectedMarcas.map(async (marca) => {
-            await marcaService.removeMarca(marca.idMarca);
+            try {
+                await marcaService.removeMarca(marca.idMarca);
+            } catch (error) {
+                x = x + 'error'; 
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error + ` ${marca.nombre}`, life: 3000 }); 
+            }
+            console.log(x);
         });
-        let _marcas = marcas.filter((val) => !selectedMarcas.includes(val));
-        setMarcas(_marcas);
-        setDeleteMarcasDialog(false);
-        setSelectedMarcas(null);
-        //listarMarcas();
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marcas Eliminadas', life: 3000 });
+        if (x == '') {
+            let _marcas = marcas.filter((val) => !selectedMarcas.includes(val));
+            setMarcas(_marcas);
+            setDeleteMarcasDialog(false);
+            setSelectedMarcas(null);
+            //listarMarcas();
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marcas Eliminadas', life: 3000 });
+        }
     }
 
 
@@ -191,12 +205,21 @@ const Marcas = () => {
         );
     }
 
+    const filter = (e) => {
+        let x = e.target.value;
+
+        if (x.trim() != '') 
+            setGlobalFilter(x);
+        else
+            setGlobalFilter(' ');
+    }
+
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Marcas</h5>
+            <h5 className="m-0">Listado de Marcas</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
+                <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
             </span>
         </div>
     );
@@ -259,14 +282,14 @@ const Marcas = () => {
                         </div>
                     </Dialog> 
 
-                    <Dialog visible={deleteMarcaDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteMarcaDialogFooter} onHide={hideDeleteMarcaDialog}>
+                    <Dialog visible={deleteMarcaDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteMarcaDialogFooter} onHide={hideDeleteMarcaDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {marca && <span>¿Está seguro de que desea eliminar a <b>{marca.nombre}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteMarcasDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteMarcasDialogFooter} onHide={hideDeleteMarcasDialog}>
+                    <Dialog visible={deleteMarcasDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteMarcasDialogFooter} onHide={hideDeleteMarcasDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {marca && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}

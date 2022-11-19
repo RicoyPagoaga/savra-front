@@ -57,6 +57,7 @@ const Modelos = () => {
     const hideDialog = () => {
         setSubmitted(false);
         setModeloDialog(false);
+        setMarca('');
     }
 
     const hideDeleteModeloDialog = () => {
@@ -71,11 +72,12 @@ const Modelos = () => {
         listarModelos();
         setModeloDialog(false);
         setModelo(modeloVacio);
+        setMarca('');
     }
+
     const saveModelo = async () => {
         setSubmitted(true);
         if (modelo.nombre.trim()) {
-            console.log(modelo);
             if (modelo.idModelo) {
                 try {
                     const modeloService = new ModeloService();
@@ -84,7 +86,6 @@ const Modelos = () => {
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                    console.log(error.errorDetails);
                 }
             }
             else {
@@ -99,17 +100,21 @@ const Modelos = () => {
             }
             
         }
-        
     }
-    const editModelo = (modelo) => {
-        setModelo({ ...modelo});
-        let marcaNombre= '';
+
+    const getMarca = (id) => {
+        let marca_ = {};
         marcas.map((marca) => {
-            if(marca.idMarca == modelo.idMarca) {
-                marcaNombre = marca.nombre;
+            if(marca.idMarca == id) {
+                marca_ = marca;
             }
         });
-        setMarca(marcaNombre);
+        return marca_;
+    }
+
+    const editModelo = (modelo) => {
+        setModelo({ ...modelo});
+        setMarca(getMarca(modelo.idMarca));
         setModeloDialog(true);
     }
 
@@ -126,7 +131,7 @@ const Modelos = () => {
             setDeleteModeloDialog(false);
             toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Modelo Eliminado', life: 3000 });   
         } catch (error) {
-            toast.current.show({ severity: 'failure', summary: 'Error', detail: error });  
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life:3000 });  
         }
     }
 
@@ -163,7 +168,6 @@ const Modelos = () => {
             setMarca(e.value)
         }
         
-        //console.log(marca);
         setModelo(_modelo);
     }
 
@@ -181,7 +185,6 @@ const Modelos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                {/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Importar" chooseLabel="Import" className="mr-2 inline-block" /> */}
                 <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
         )
@@ -220,7 +223,6 @@ const Modelos = () => {
         );
     }
 
-
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
@@ -230,12 +232,21 @@ const Modelos = () => {
         );
     }
 
+    const filter = (e) => {
+        let x = e.target.value;
+
+        if (x.trim() != '') 
+            setGlobalFilter(x);
+        else 
+            setGlobalFilter(' ');
+    }
+
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Modelos</h5>
+            <h5 className="m-0">Listado de Modelos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
+                <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
             </span>
         </div>
     );
@@ -287,11 +298,10 @@ const Modelos = () => {
                         <Column field="idModelo" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="idMarca" header="Marca" sortable body={marcaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column body={actionBodyTemplate}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
                     <Dialog visible={modeloDialog} style={{ width: '450px' }} header="Registro Modelos" modal className="p-fluid" footer={modeloDialogFooter} onHide={hideDialog}>
-                        {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={modelo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !modelo.nombre })} />
@@ -299,19 +309,19 @@ const Modelos = () => {
                             
                         </div>
                         <div className="field">
-                            <label htmlFor="idMarca">Marca</label>
-                            <Dropdown id="idMarca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre"></Dropdown>
+                            <label htmlFor="marca">Marca</label>
+                            <Dropdown id="marca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre"></Dropdown>
                         </div>
                     </Dialog> 
 
-                    <Dialog visible={deleteModeloDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteModeloDialogFooter} onHide={hideDeleteModeloDialog}>
+                    <Dialog visible={deleteModeloDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModeloDialogFooter} onHide={hideDeleteModeloDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {modelo && <span>¿Está seguro de que desea eliminar a <b>{modelo.nombre}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteModelosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteModelosDialogFooter} onHide={hideDeleteModelosDialog}>
+                    <Dialog visible={deleteModelosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModelosDialogFooter} onHide={hideDeleteModelosDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {modelo && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
