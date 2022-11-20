@@ -93,12 +93,12 @@ const AppMenu = () => {
                 {
                     label: 'Usuarios',
                     icon: 'pi pi-fw pi-user',
-                    to: ''
+                    to: '/usuarios/'
                 },
                 {
                     label: 'Cargos',
                     icon: 'pi pi-briefcase" pi-briefcase',
-                    to: ''
+                    to: '/cargos/'
                 }
             ] 
         }
