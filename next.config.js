@@ -7,6 +7,6 @@ const nextConfig = {
         contextPath: process.env.NODE_ENV === 'production' ? '/savra-front' : '',
         uploadPath: process.env.NODE_ENV === 'production' ? '/savra-front/upload.php' : '/api/upload'
     }
+   
 }
-
 module.exports = nextConfig
