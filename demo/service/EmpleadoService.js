@@ -1,9 +1,5 @@
 import getConfig from 'next/config';
-/*problema de corns
-if (!response.ok) {
-            throw new Error(`Error! status: ${response.status}`);
-          }
-*/
+
 let url='http://localhost:8080/api/v1/empleados';
 
 export class EmpleadoService{

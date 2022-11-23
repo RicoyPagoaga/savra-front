@@ -18,6 +18,7 @@ import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
 import Moment from 'moment';
 
+
 const Empleados = () => {
     let emptyEmpleado = {
         idEmpleado: null,
@@ -65,10 +66,7 @@ const Empleados = () => {
         const tiposDocumentoService = new TipoDocumentoService();
         await tiposDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
     };
-    //const listarCategoriasEmpleados =async () => {
-     //   const categoriaservice = new CategoriaEmpleadoService();
-     //   await categoriaservice.getCategoriaEmpleados().then(data => setCategoriaEmpleados(data));
-   // };
+   
     
     useEffect(async() => {
         listarEmpleados();
@@ -142,6 +140,8 @@ const Empleados = () => {
             if(item.idTipoDocumento == empleado.idTipoDocumento)
             return item
         });
+
+
         setTipoDocumento(documento);
         setCalendarValueNac(empleado.fechaNacimiento);
         setCalendarValueIn(empleado.fechaIngreso);
@@ -427,7 +427,7 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
-                            <Calendar showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChangeDate(e,'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
+                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChangeDate(e,'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
                             {submitted && !empleado.fechaNacimiento && <small className="p-invalid">Fecha de Nacimiento es requerida.</small>}
                         </div>
                         <div className="field">
@@ -437,7 +437,7 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaIngreso">Fecha Ingreso</label>
-                            <Calendar showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChangeDate(e,'fechaIngreso')} placeholder="Seleccione una fecha de ingreso" ></Calendar>
+                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChangeDate(e,'fechaIngreso')} placeholder="Seleccione una fecha de ingreso" ></Calendar>
                             {submitted && !empleado.fechaIngreso && <small className="p-invalid">Fecha de Ingreso es requerida.</small>}
                         </div>
 
