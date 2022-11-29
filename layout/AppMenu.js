@@ -53,7 +53,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Modelos',
-                    icon: 'pi pi-fw pi-tablet',
+                    icon: 'pi pi-fw pi-box',
                     to: '/modelos/'
                 },
                 {
@@ -68,8 +68,23 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Repuestos',
-                    icon: 'pi pi-fw pi-pencil',
+                    icon: 'pi pi-fw pi-wrench',
                     to: '/repuestos/'
+                },
+                {
+                    label: 'Métodos de Pago',
+                    icon: 'pi pi-fw pi-wallet',
+                    to: '/metodoPago/'
+                },
+                {
+                    label: 'Tipos de Entrega',
+                    icon: 'pi pi-fw pi-truck',
+                    to: '/tipoEntrega/'
+                },
+                {
+                    label: 'Impuestos',
+                    icon: 'pi pi-fw pi-money-bill',
+                    to: '/impuestos/'
                 },
             ]
         },
