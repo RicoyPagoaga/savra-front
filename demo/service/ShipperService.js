@@ -1,34 +1,34 @@
 import getConfig from 'next/config';
 
-let url='http://localhost:8080/api/v1/empleados';
 
-export class EmpleadoService{
+let url='http://localhost:8080/api/v1/shippers';
+
+export class ShipperService{
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getEmpleados(){
+    async getShippers(){
         const response = await fetch(url);
         return await response.json();
     }
-
-    async removeEmpleado(id){
+    
+    async removeShipper(id){
         let url_ = url + '/delete/' + id;
-        const response = await fetch(url_,{
+        const response = await fetch(url_ ,{
             "method": 'DELETE',
             "headers": {
                 "Content-type": 'application/json'
             }
         });
-        if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
     }
 
-    async addEmpleado(Empleado){
+    async addShipper(shipper){
         try {
-            let url_ = url + '/addEmpleado';
+            let url_ = url + '/addShipper';
             const response = await fetch(url_,{
             "method": 'POST',
-            "body": JSON.stringify(Empleado),
+            "body": JSON.stringify(shipper),
             "headers": {
                 "Content-type": 'application/json'
                 }
@@ -41,11 +41,11 @@ export class EmpleadoService{
         
     }
 
-    async updateEmpleado(Empleado){
+    async updateShipper(shipper){
         try {
             const response = await fetch(url,{
             "method": 'PUT',
-            "body": JSON.stringify(Empleado),
+            "body": JSON.stringify(shipper),
             "headers": {
                 "Content-type": 'application/json'
             }
