@@ -310,7 +310,8 @@ const Modelos = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="marca">Marca</label>
-                            <Dropdown id="marca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre"></Dropdown>
+                            <Dropdown id="marca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre" required autoFocus className={classNames({ 'p-invalid': submitted && !modelo.idMarca })}></Dropdown>
+                            {submitted && !modelo.idMarca && <small className="p-invalid">Marca es requerida.</small>}
                         </div>
                     </Dialog> 
 

@@ -10,6 +10,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { ProveedorService } from '../../demo/service/ProveedorService';
+import { PaisService } from '../../demo/service/PaisService';
 
 const Proveedores = () => {
     let proveedorVacio = {
@@ -32,7 +33,7 @@ const Proveedores = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    //const [paises, setPaises] = useState([]);
+    const [paises, setPaises] = useState([]);
     const [codigoISO, setCodigoISO] = useState(false);
 
     const listarProveedores = () => {
@@ -40,22 +41,15 @@ const Proveedores = () => {
         proveedorService.getProveedores().then(data => setProveedores(data));
     };
 
-    /*const listarPaises = () => {
+    const listarPaises = () => {
         const paisService = new PaisService();
         paisService.getPaises().then(data => setPaises(data));
-    };*/
+    };
 
     useEffect(() => {
         listarProveedores();  
-        //listarPaises();
+        listarPaises();
     }, []); 
-
-
-    const paises = [
-        { idPais: 1, cod_iso: 'HN'}, 
-        { idPais: 2, cod_iso: 'CO' }, 
-        { idPais: 3, cod_iso: 'TH' }
-    ];
 
     const openNew = () => {
         setProveedor(proveedorVacio);
@@ -96,7 +90,6 @@ const Proveedores = () => {
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                    //console.log(error.errorDetails);
                 }
             }
             else {
@@ -178,8 +171,8 @@ const Proveedores = () => {
         }
 
         setProveedor(_proveedor);
+        console.log(_proveedor);
     }
-
 
     const leftToolbarTemplate = () => {
         return (
@@ -195,7 +188,6 @@ const Proveedores = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                {/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Importar" chooseLabel="Import" className="mr-2 inline-block" /> */}
                 <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
         )
@@ -222,7 +214,7 @@ const Proveedores = () => {
     const correoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Correo</span>
+                <span className="p-column-title">Correo Electrónico</span>
                 {rowData.correo}
             </>
         )
@@ -344,7 +336,7 @@ const Proveedores = () => {
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
                         <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="correo" header="Correo" sortable body={correoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
                         <Column field="idPais" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
@@ -359,19 +351,20 @@ const Proveedores = () => {
                             {submitted && !proveedor.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="correo">Correo</label>
+                            <label htmlFor="correo">Correo Electrónico</label>
                             <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
                             {submitted && !proveedor.correo && <small className="p-invalid">El correo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="telefono">Teléfono</label>
-                            <InputText id="telefono" type="number" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />
+                            <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />                            
                             {submitted && !proveedor.telefono && <small className="p-invalid">El teléfono es requerido.</small>}
                         </div>
 
                         <div className="field">
                             <label htmlFor="cod_iso">Código ISO</label>
-                            <Dropdown id="cod_iso" options={paises} value={codigoISO} onChange={(e) => onInputChange(e, 'idPais')} optionLabel="cod_iso" />
+                            <Dropdown id="cod_iso" options={paises} value={codigoISO} onChange={(e) => onInputChange(e, 'idPais')} optionLabel="cod_iso" required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.idPais })}  />
+                            {submitted && !proveedor.idPais && <small className="p-invalid">El código ISO es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="nombreContacto">Contacto</label>
