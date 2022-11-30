@@ -250,7 +250,7 @@ const Paises = () => {
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} paises" 
                         globalFilter={globalFilter}
-                        emptyMessage="No se encontraron paiss."
+                        emptyMessage="No se encontraron paises."
                         header={header}
                         responsiveLayout="scroll"
                     >
@@ -258,7 +258,7 @@ const Paises = () => {
                         <Column field="idPais" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="cod_iso" header="Código ISO" sortable body={cod_isoBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column field="cod_area" header="Código Area" sortable body={cod_areaBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="cod_area" header="Código Área" sortable body={cod_areaBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 

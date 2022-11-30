@@ -96,6 +96,21 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-money-bill',
                     to: '/impuestos/'
                 },
+                {
+                    label: 'Cupones',
+                    icon: 'pi pi-fw pi-ticket',
+                    to: '/cupones/'
+                },
+                {
+                    label: 'Parámetros Factura',
+                    icon: 'pi pi-fw pi-verified',
+                    to: '/parametros/'
+                },
+                {
+                    label: 'Facturas',
+                    icon: 'pi pi-fw pi-shopping-bag',
+                    to: '/facturas/'
+                },
             ]
         },
         {

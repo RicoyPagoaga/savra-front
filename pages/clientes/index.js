@@ -187,7 +187,7 @@ const Clientes = () => {
         } else {
             _cliente[`${nombre}`] = val;
         }
-        //console.log(_cliente);
+        //console.log(val);
         setCliente(_cliente);
 
     };
@@ -377,7 +377,7 @@ const Clientes = () => {
                         <Column field="idCategoria"header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
-
+                    
                     <Dialog visible={clienteDialog} style={{ width: '450px' }} header="Registro Clientes" modal className="p-fluid" footer={clienteDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
