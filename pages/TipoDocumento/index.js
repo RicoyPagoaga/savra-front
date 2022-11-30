@@ -99,11 +99,17 @@ const TipoDocumentos = () => {
     }
 
     const deleteTipoDocumento = async () => {
+        try {
         const tipoDocumentoService = new TipoDocumentoService();
         await tipoDocumentoService.removeTipoDocumento(tipoDocumento.idTipoDocumento);
         listarTipoDocumentos();
         setDeleteTipoDocumentoDialog(false);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Eliminado 🚨', life: 3000 });
+            
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });  
+        }
+        
     }
 
     const exportCSV = () => {

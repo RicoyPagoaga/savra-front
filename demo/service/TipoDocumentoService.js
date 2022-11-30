@@ -11,13 +11,19 @@ export class TipoDocumentoService{
     }
 
     async removeTipoDocumento(id) {
-        let url_ = url + '/delete/' + id;
+        try {
+            let url_ = url + '/delete/' + id;
         const response = await fetch(url_, {
             "method": 'DELETE',
             "headers": {
                 "Content-type": 'application/json'
             }
         }); 
+        if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
+        } catch (error) {
+            throw error;
+        }
+        
     }
 
     async addTipoDocumento(tipoDocumento) {

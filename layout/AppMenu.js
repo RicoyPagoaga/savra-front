@@ -70,6 +70,16 @@ const AppMenu = () => {
                     label: 'Repuestos',
                     icon: 'pi pi-fw pi-wrench',
                     to: '/repuestos/'
+                }, 
+                {
+                    label: 'Shippers',
+                    icon: 'pi pi-truck',
+                    to: '/shippers/'
+                },
+                {
+                    label: 'Arqueos',
+                    icon:'pi pi-users " pi-users',
+                    to: '/arqueos/'
                 },
                 {
                     label: 'Métodos de Pago',
@@ -114,6 +124,11 @@ const AppMenu = () => {
                     label: 'Cargos',
                     icon: 'pi pi-briefcase" pi-briefcase',
                     to: '/cargos/'
+                },
+                {
+                    label: 'Permisos',
+                    icon: 'pi pi-lock" pi-lock',
+                    to: '/permisos/'
                 }
             ] 
         }
