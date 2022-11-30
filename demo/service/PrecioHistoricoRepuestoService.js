@@ -1,37 +1,38 @@
 import getConfig from 'next/config';
-let url = 'http://localhost:8080/api/v1/tipoDocumento';
-export class TipoDocumentoService{
+
+let url = 'http://localhost:8080/api/v1/precios_repuesto';
+
+export class PrecioHistoricoRepuestoService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getTipoDocumentos(){
+    async getPreciosHistorico() {
         const response = await fetch(url);
         return await response.json();
     }
 
-    async removeTipoDocumento(id) {
+    async removePrecioHistorico(id) {
         try {
             let url_ = url + '/delete/' + id;
-        const response = await fetch(url_, {
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        }); 
-        if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
+            const response = await fetch(url_, {
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            }); 
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
         } catch (error) {
             throw error;
         }
-        
     }
 
-    async addTipoDocumento(tipoDocumento) {
+    async addPrecioHistorico(precioHistorico) {
         try {
-            let url_ = url + '/addTipoDocumento';
+            let url_ = url + '/addPrecioHistoricoRepuesto';
             const response = await fetch(url_, {
                 "method": 'POST',
-                "body": JSON.stringify(tipoDocumento),
+                "body": JSON.stringify(precioHistorico),
                 "headers": {
                     "Content-type": 'application/json'
                 }
@@ -43,11 +44,11 @@ export class TipoDocumentoService{
         }
     }
 
-    async updateTipoDocumento(tipoDocumento) {
+    async updatePrecioHistorico(precioHistorico) {
         try {
             const response = await fetch(url, {
                 "method":'PUT',
-                "body": JSON.stringify(tipoDocumento),
+                "body": JSON.stringify(precioHistorico),
                 "headers": {
                     "Content-type": 'application/json'
                 }
@@ -59,11 +60,3 @@ export class TipoDocumentoService{
         }
     }
 }
-
-
-
-
-
-
-
-

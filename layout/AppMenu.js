@@ -53,7 +53,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Modelos',
-                    icon: 'pi pi-fw pi-tablet',
+                    icon: 'pi pi-fw pi-box',
                     to: '/modelos/'
                 },
                 {
@@ -70,6 +70,31 @@ const AppMenu = () => {
                     label: 'Repuestos',
                     icon: 'pi pi-fw pi-wrench',
                     to: '/repuestos/'
+                }, 
+                {
+                    label: 'Shippers',
+                    icon: 'pi pi-truck',
+                    to: '/shippers/'
+                },
+                {
+                    label: 'Arqueos',
+                    icon:'pi pi-users " pi-users',
+                    to: '/arqueos/'
+                },
+                {
+                    label: 'Métodos de Pago',
+                    icon: 'pi pi-fw pi-wallet',
+                    to: '/metodoPago/'
+                },
+                {
+                    label: 'Tipos de Entrega',
+                    icon: 'pi pi-fw pi-truck',
+                    to: '/tipoEntrega/'
+                },
+                {
+                    label: 'Impuestos',
+                    icon: 'pi pi-fw pi-money-bill',
+                    to: '/impuestos/'
                 },
                 {
                     label: 'Cupones',
@@ -114,6 +139,11 @@ const AppMenu = () => {
                     label: 'Cargos',
                     icon: 'pi pi-briefcase" pi-briefcase',
                     to: '/cargos/'
+                },
+                {
+                    label: 'Permisos',
+                    icon: 'pi pi-lock" pi-lock',
+                    to: '/permisos/'
                 }
             ] 
         }
