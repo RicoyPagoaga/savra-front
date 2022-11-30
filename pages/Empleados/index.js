@@ -43,8 +43,6 @@ const Empleados = () => {
     const [tipoDocumento, setTipoDocumento] = useState(null);
     const [calendarValueNac, setCalendarValueNac] = useState(null);
     const [calendarValueIn, setCalendarValueIn] = useState(null);
-    //const [categoriaEmpleados,setCategoriaEmpleados] = useState([]);
-    const [categoriaEmpleado, setCategoriaEmpleado] = useState(null);
     const [empleadoDialog, setEmpleadoDialog] = useState(false);
     const [deleteEmpleadoDialog, setDeleteEmpleadoDialog] = useState(false);
     const [deleteEmpleadosDialog, setDeleteEmpleadosDialog] = useState(false);
@@ -105,50 +103,48 @@ const Empleados = () => {
     
     const saveEmpleado = async () => {
         setSubmitted(true);
-
-        if (empleado.nombre.trim()) {
+        const empleadoservice = new EmpleadoService();
             if (empleado.idEmpleado) {
                 try {
-                    const empleadoservice = new EmpleadoService();
-                    await empleadoservice.updateempleado(empleado);
+                    await empleadoservice.updateEmpleado(empleado);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                    //console.log(apiError.errorDetails);
                 }
             } else {
                 try {
-                    const empleadoservice = new EmpleadoService();
                     await empleadoservice.addEmpleado(empleado);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Registrado', life: 3000 });
                     pasoRegistro();
-                    console.log(empleado);
                 } catch (error) {
                     console.log(empleado);
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
                 }
             };
-            
-        }
     };
 
     const editEmpleado= (empleado) => {
         setEmpleado({ ...empleado });
-        console.log(tipoDocumentos);
+        const fechaN = () => {
+            var nacimiento = empleado.fechaNacimiento.toString().split('-');
+            return new Date(nacimiento[0],nacimiento[1]-1,nacimiento[2])
+        }
+        const fechaI = () => {
+            var ingreso = empleado.fechaIngreso.toString().split('-');
+            return new Date(ingreso[0],ingreso[1]-1,ingreso[2])
+        }
         const documento = tipoDocumentos.find((item) => {
             if(item.idTipoDocumento == empleado.idTipoDocumento)
             return item
         });
-
-
         setTipoDocumento(documento);
-        setCalendarValueNac(empleado.fechaNacimiento);
-        setCalendarValueIn(empleado.fechaIngreso);
-        console.log(empleado);
+        setCalendarValueNac(fechaN)
+        console.log(fechaN.toString());
+        setCalendarValueIn(fechaI);
+        console.log(fechaI.toString());
         setEmpleadoDialog(true);
     };
-    
 
     const deleteEmpleado = async ()=>{
         const empleadoservice = new EmpleadoService();
@@ -183,33 +179,30 @@ const Empleados = () => {
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _empleado = { ...empleado };
-        if (nombre == 'idTipoDocumento') {
-            _empleado[`${nombre}`] = val.idTipoDocumento;
-            setTipoDocumento(e.value);
-            console.log(e.value);
-        } else if (nombre == 'idCategoria') {
-            _empleado[`${nombre}`] = val.idCategoria;
-            setCategoriaEmpleado(e.value);
-        } else {
-            _empleado[`${nombre}`] = val;
+        switch(nombre){
+            case "idTipoDocumento":
+                _empleado[`${nombre}`] = val.idTipoDocumento;
+                setTipoDocumento(e.value);
+                break;
+            case "fechaNacimiento":
+                _empleado[`${nombre}`] = val;
+                setCalendarValueNac(e.value);
+                break;
+            case "fechaIngreso":
+                _empleado[`${nombre}`] = val;
+                setCalendarValueIn(e.value);
+                break;
+            default:
+                _empleado[`${nombre}`] = val;
+                break;
         }
+        console.log(val);
         console.log(val.idTipoDocumento);
-        setEmpleado(_empleado);
-
-    };
-
-    const onInputChangeDate = (e, fecha) => {
-        const val = (e.target && e.target.value) || '';
-        let _empleado = { ...empleado };
-
-        if (fecha == 'fechaNacimiento') {
-            _empleado[`${fecha}`] = val;
-            setCalendarValueNac(e.value);
-        } else{
-            _empleado[`${fecha}`] = val;
-            setCalendarValueIn(e.value);
-        }
-        //console.log(val)
+        console.log(val.fechaNacimiento);
+        console.log(val.fechaIngreso);
+        console.log(calendarValueIn);
+        console.log(calendarValueNac);
+        console.log(_empleado)
         setEmpleado(_empleado);
     };
 
@@ -289,7 +282,7 @@ const Empleados = () => {
         
     };
     const fechaNacimientoBodyTemplate = (rowData) => {
-        var dateDMY = Moment(rowData.fechaNacimiento).format('DD/MM/YYYY')
+        var dateDMY = Moment(rowData.fechaNacimiento).format('DD/MM/YYYY');
         return (
             <>
                 <span className="p-column-title">Fecha Nacimiento</span>
@@ -297,8 +290,6 @@ const Empleados = () => {
             </>
         );
     };
-
-
     const telefonoBodyTemplate = (rowData) => {
         return (
             <>
@@ -404,7 +395,7 @@ const Empleados = () => {
                         <Column field="fechaNacimiento" header="Fecha Nacimiento" sortable body={fechaNacimientoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="fechaIngreso" header="Fecha Ingreso" sortable body={fechaIngresoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="correo" header="Correo" sortable body={correoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="correo" header="Correo electrónico" sortable body={correoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
@@ -427,7 +418,7 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
-                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChangeDate(e,'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
+                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e,'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
                             {submitted && !empleado.fechaNacimiento && <small className="p-invalid">Fecha de Nacimiento es requerida.</small>}
                         </div>
                         <div className="field">
@@ -437,14 +428,13 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaIngreso">Fecha Ingreso</label>
-                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChangeDate(e,'fechaIngreso')} placeholder="Seleccione una fecha de ingreso" ></Calendar>
+                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChange(e,'fechaIngreso')} placeholder="Seleccione una fecha de ingreso"></Calendar>
                             {submitted && !empleado.fechaIngreso && <small className="p-invalid">Fecha de Ingreso es requerida.</small>}
                         </div>
-
                         <div className="field">
-                            <label htmlFor="correo">Correo</label>
+                            <label htmlFor="correo">Correo Electrónico</label>
                             <InputText id="correo" value={empleado.correo} onChange={(e) => onInputChange(e, 'correo')} required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.correo })} />
-                            {submitted && !empleado.correo && <small className="p-invalid">Correo es requerido.</small>}
+                            {submitted && !empleado.correo && <small className="p-invalid">Correo electrónico es requerido.</small>}
                         </div>
                        
                         <div className="field">

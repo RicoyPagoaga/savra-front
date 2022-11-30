@@ -205,10 +205,6 @@ const TableDemo = () => {
         return <span className={`customer-badge status-${rowData.status}`}>{rowData.status}</span>;
     };
 
-    const statusFilterTemplate = (options) => {
-        return <Dropdown value={options.value} options={statuses} onChange={(e) => options.filterCallback(e.value, options.index)} itemTemplate={statusItemTemplate} placeholder="Select a Status" className="p-column-filter" showClear />;
-    };
-
     const statusItemTemplate = (option) => {
         return <span className={`customer-badge status-${option}`}>{option}</span>;
     };

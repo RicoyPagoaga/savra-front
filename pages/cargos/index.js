@@ -13,7 +13,8 @@ const Cargos = () => {
     let cargoVacio = {
         idCargo: null,
         nombre: '',
-        descrpcion:''
+        descripcion:'',
+        salario: null
     };
 
     let emptyRestApiError = {
@@ -85,7 +86,7 @@ const Cargos = () => {
                 try {
                     const cargoService = new CargoService();
                     await cargoService.addCargo(cargo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Creado (^‿^)', life: 3000 });
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Registrado (^‿^)', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
@@ -181,15 +182,22 @@ const Cargos = () => {
             </>
         );
     }
-    const descrpcionBodyTemplate = (rowData) => {
+    const descripcionBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">descrpcion</span>
-                {rowData.descrpcion}
+                <span className="p-column-title">descripcion</span>
+                {rowData.descripcion}
             </>
         );
     }
-    
+    const salarioBodyTemplate = (rowData) => {
+        return (
+            <>
+                <span className="p-column-title">salario</span>
+                {rowData.salario}
+            </>
+        );
+    }
 
     const actionBodyTemplate = (rowData) => {
         return (
@@ -202,7 +210,7 @@ const Cargos = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Cargos de personal</h5>
+            <h5 className="m-0">Listado de Cargos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -256,7 +264,8 @@ const Cargos = () => {
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
                         <Column field="idCargo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column field="descrpcion" header="Descripción" sortable body={descrpcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="salario" header="Salario" sortable body={salarioBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
@@ -267,9 +276,14 @@ const Cargos = () => {
                             { submitted && !cargo.nombre && <small className="p-invalid">Nombre cargo es requerido.</small> }
                         </div>
                         <div className="field">
-                            <label htmlFor="descrpcion">Descripción</label>
-                            <InputText id="descrpcion" value={cargo.descrpcion} onChange={(e) => onInputChange(e, 'descrpcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.descrpcion })} />
-                            { submitted && !cargo.descrpcion && <small className="p-invalid">Descripcion cargo es requerido.</small> }
+                            <label htmlFor="descripcion">Descripción</label>
+                            <InputText id="descripcion" value={cargo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.descripcion })} />
+                            { submitted && !cargo.descripcion && <small className="p-invalid">Descripcion cargo es requerido.</small> }
+                        </div>
+                        <div className="field">
+                            <label htmlFor="salario">Salario</label>
+                            <InputText id="salario" type="number" value={cargo.salario} onChange={(e) => onInputChange(e, 'salario')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.salario })} />
+                            {submitted && !cargo.salario && <small className="p-invalid">Salario es requerido.</small>}
                         </div>
                     </Dialog> 
 

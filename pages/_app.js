@@ -6,10 +6,10 @@ import 'primeflex/primeflex.css';
 import 'primeicons/primeicons.css';
 import '../styles/layout/layout.scss';
 import '../styles/demo/Demos.scss';
-import { appWithTranslation} from 'next-i18next';
+
 import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOption, localeOptions } from 'primereact/api';
 
- function  MyApp({ Component, pageProps }) {
+ export default function  MyApp({ Component, pageProps }) {
     addLocale('es', {
         firstDayOfWeek: 1,
         dayNames: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
@@ -22,7 +22,7 @@ import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOptio
     });
     
     locale('es');
-  if (Component.getLayout) {
+    if (Component.getLayout) {
         return (
             <LayoutProvider>
                 {Component.getLayout(<Component {...pageProps} />)}
@@ -41,5 +41,4 @@ import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOptio
 
     
 }
-export default appWithTranslation(MyApp);
 

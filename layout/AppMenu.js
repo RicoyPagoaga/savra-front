@@ -68,8 +68,23 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Repuestos',
-                    icon: 'pi pi-fw pi-pencil',
+                    icon: 'pi pi-fw pi-wrench',
                     to: '/repuestos/'
+                },
+                {
+                    label: 'Cupones',
+                    icon: 'pi pi-fw pi-ticket',
+                    to: '/cupones/'
+                },
+                {
+                    label: 'Parámetros Factura',
+                    icon: 'pi pi-fw pi-verified',
+                    to: '/parametros/'
+                },
+                {
+                    label: 'Facturas',
+                    icon: 'pi pi-fw pi-shopping-bag',
+                    to: '/facturas/'
                 },
             ]
         },
