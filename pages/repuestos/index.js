@@ -57,6 +57,8 @@ const Repuestos = () => {
     const [precioHistorico, setPrecioHistorico] = useState(precioHistoricoVacio);
     const [precioHistoricos, setPrecioHistoricos] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
+    const [minDate, setMinDate] = useState(null);
+    const [maxDate, setMaxDate] = useState(null);
 
     //foraneas categoria, proveedor, modelo, transmision
     const [categoria, setCategoria] = useState(null);
@@ -99,6 +101,18 @@ const Repuestos = () => {
         precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
     };
 
+    const setearRangoFechas = () => {
+        const fechaActual = Date.now(); //fecha actual
+        let fecha = new Date(fechaActual);
+
+        let fechaAyer = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + (fecha.getDate() - 1);
+        const [y, m, d] = fechaAyer.split('-');
+        let fechaMin = new Date(+y, m-1, +d);
+    
+        setMinDate(fechaMin);
+        setMaxDate(fecha);
+    };
+
     useEffect(() => {
         listarRepuestos(); 
         listarCategorias();
@@ -106,6 +120,7 @@ const Repuestos = () => {
         listarModelos();
         listarTransmisiones(); 
         listarPrecios();
+        setearRangoFechas();
     }, []); 
 
     const openNew = () => {
@@ -158,11 +173,11 @@ const Repuestos = () => {
                     if (precioHistorico.idRepuesto == null) {
                         //si es primera vez 
                         precioHistorico.idRepuesto = repuesto.idRepuesto;
-                        precioHistorico.fechaInicio = '2022-01-01';
-                        precioHistorico.fechaFinal = '2022-03-03'
+                        precioHistorico.fechaInicio = '1822-01-01';
+                        precioHistorico.fechaFinal = '1822-03-03'
                         await precioHistoricoService.addPrecioHistorico(precioHistorico);
                     } else {
-                        precioHistorico.fechaFinal = '2022-03-03'
+                        precioHistorico.fechaFinal = '1822-03-03'
                         await precioHistoricoService.addPrecioHistorico(precioHistorico);
                     }      
                     const repuestoService = new RepuestoService();
@@ -196,8 +211,8 @@ const Repuestos = () => {
                     await repuestoService.addRepuesto(repuesto);
                     //agregar precio historico
                     const precioHistoricoService = new PrecioHistoricoRepuestoService();   
-                    precioHistorico.fechaInicio = '2022-01-01';
-                    precioHistorico.fechaFinal = '2022-03-03'
+                    precioHistorico.fechaInicio = '1822-01-01';
+                    precioHistorico.fechaFinal = '1822-03-03'
                     await precioHistoricoService.addPrecioHistorico(precioHistorico);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Creado', life: 3000 });
                     pasoRegistro();
@@ -558,6 +573,50 @@ const Repuestos = () => {
         return rowData.precio;
     };
 
+    const cellEditor = (options) => {
+        //disabled={!options.value || (options.value != minDate && options.value != maxDate)}
+        if (options.value) {
+            return calendarEditor(options); 
+        }
+        else
+            return options.value; 
+    };
+
+    const calendarEditor = (options) => {
+        return <Calendar minDate={minDate} maxDate={maxDate} dateFormat="yy-mm-dd" value={options.value} onChange={(e) => options.editorCallback(e.target.value)} 
+         ></Calendar>;
+    };
+
+    const getFecha = (fecha) => {
+        let _fecha = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + fecha.getDate();
+        return _fecha;
+    };
+
+    const onCellEditComplete = async (e) => {
+        let { rowData, newValue, field, originalEvent: event } = e;
+        let min_date = getFecha(minDate);
+        let max_date = getFecha(maxDate);
+        let precio = {...precioHistoricoVacio};
+        precio = rowData;
+
+        try {
+            
+            if (newValue != null && (precio.fechaFinal == min_date || precio.fechaFinal == max_date)) {
+                let fecha = new Date(newValue);
+                let fechaActualizar = getFecha(fecha);        
+                precio[field] = fechaActualizar;
+                //actualizar BD
+                const precioHistoricoService = new PrecioHistoricoRepuestoService();   
+                precioHistoricoService.updatePrecioHistorico(precio);
+            } else {
+                event.preventDefault();
+            }
+            listarPrecios();
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
+        }
+    };
+
     const rowExpansionTemplate = (data) => {
         let table = [];
         precioHistoricos.map((item) => {
@@ -569,10 +628,13 @@ const Repuestos = () => {
             <div className="orders-subtable">
                 <h5>Precio Histórico del Repuesto: {data.nombre}</h5>
                 <DataTable value={table} 
+                editMode="cell" 
+                className="editable-cells-table"
                 responsiveLayout="scroll"
                 emptyMessage="No se encontraron precios del repuesto.">
                     <Column field="fechaInicio" header="Fecha Inicial" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    <Column field="fechaFinal" header="Fecha Final" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column key="fechaFinal" field="fechaFinal" header="Fecha Final" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }} 
+                                editor={(options) => cellEditor(options)} onCellEditComplete={onCellEditComplete} ></Column>
                     <Column field="precio" header="Precio" body={precioBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                 </DataTable>
             </div>

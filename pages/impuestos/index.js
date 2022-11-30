@@ -316,14 +316,14 @@ const Impuestos = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaInicio">Fecha Inicial</label>
-                            <Calendar inputId="fechaInicio" value={fechaInicio_} onChange={(e) => onInputChange(e, 'fechaInicio')} dateFormat="yy-mm-dd"
-                            required autoFocus className={classNames({ 'p-invalid': submitted && !impuesto.fechaInicio })}></Calendar>
+                            <Calendar inputId="fechaInicio" value={fechaInicio_} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fechaInicio')} dateFormat="yy-mm-dd"
+                            placeholder='Seleccione fecha inicial' required autoFocus className={classNames({ 'p-invalid': submitted && !impuesto.fechaInicio })}></Calendar>                
                             {submitted && !impuesto.fechaInicio && <small className="p-invalid">La fecha inicial es requerida.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="fechaFinal">Fecha Final</label>
-                            <Calendar inputId="fechaFinal" value={fechaFinal_} onChange={(e) => onInputChange(e, 'fechaFinal')} dateFormat="yy-mm-dd"
-                            required autoFocus className={classNames({ 'p-invalid': submitted && !impuesto.fechaFinal })}></Calendar>
+                            <Calendar inputId="fechaFinal" value={fechaFinal_} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fechaFinal')} dateFormat="yy-mm-dd"
+                            placeholder='Seleccione fecha final' required autoFocus className={classNames({ 'p-invalid': submitted && !impuesto.fechaFinal })}></Calendar>
                             {submitted && !impuesto.fechaFinal && <small className="p-invalid">La fecha final es requerida.</small>}
                         </div>
                         <div className="field">
