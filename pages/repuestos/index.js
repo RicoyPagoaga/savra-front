@@ -11,24 +11,34 @@ import { InputNumber } from 'primereact/inputnumber';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { RepuestoService } from '../../demo/service/RepuestoService';
+import { RepuestoTemporalService } from '../../demo/service/RepuestoTemporalService';
 import { CategoriaRepuestoService } from '../../demo/service/CategoriaRepuestoService';
 import { ModeloService } from '../../demo/service/ModeloService';
 import { ProveedorService } from '../../demo/service/ProveedorService';
 import { TransmisionService } from '../../demo/service/TransmisionService';
+import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 
 const Repuestos = () => {
+    
     let repuestoVacio = {
         idRepuesto: null,
         nombre: '',
         anio_referenciaInicio: null,
         anio_referenciaFinal: null,
         idCategoria: null,
-        stockActual: null,
-        stockMinimo: null,
-        stockMaximo: null,
+        stockActual: '0',
+        stockMinimo: '0',
+        stockMaximo: '0',
         idProveedor: null,
         idModelo: null,
         idTransmision: null,
+    };
+
+    let precioHistoricoVacio = {
+        idRepuesto: null,
+        fechaInicio: null,
+        fechaFinal: null,
+        precio: 0,
     };
 
     const [repuestos, setRepuestos] = useState([]);
@@ -41,6 +51,12 @@ const Repuestos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    
+    //precio historico
+    const [allExpanded, setAllExpanded] = useState(false);
+    const [precioHistorico, setPrecioHistorico] = useState(precioHistoricoVacio);
+    const [precioHistoricos, setPrecioHistoricos] = useState([]);
+    const [expandedRows, setExpandedRows] = useState([]);
 
     //foraneas categoria, proveedor, modelo, transmision
     const [categoria, setCategoria] = useState(null);
@@ -61,23 +77,27 @@ const Repuestos = () => {
     const listarCategorias = () => {
         const categoriaService = new CategoriaRepuestoService();
         categoriaService.getCategoriasRepuestos().then(data => setCategorias(data));
-    }
+    };
 
     const listarProveedores = () => {
         const proveedorService = new ProveedorService();
         proveedorService.getProveedores().then(data => setProveedores(data));
-    }
+    };
 
     const listarModelos = () => {
         const modeloService = new ModeloService();
         modeloService.getModelos().then(data => setModelos(data));
-    }
+    };
 
     const listarTransmisiones = () => {
         const transmisionService = new TransmisionService();
         transmisionService.getTransmisiones().then(data => setTransmisiones(data));
-    }
+    };
 
+    const listarPrecios = () => {
+        const precioHistoricoService = new PrecioHistoricoRepuestoService();
+        precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
+    };
 
     useEffect(() => {
         listarRepuestos(); 
@@ -85,11 +105,12 @@ const Repuestos = () => {
         listarProveedores();
         listarModelos();
         listarTransmisiones(); 
+        listarPrecios();
     }, []); 
-
 
     const openNew = () => {
         setRepuesto(repuestoVacio);
+        setPrecioHistorico(precioHistoricoVacio);
         setSubmitted(false);
         setRepuestoDialog(true);
     }
@@ -102,6 +123,7 @@ const Repuestos = () => {
         setProveedor(null);
         setModelo(null);
         setTransmision(null);
+        setPrecioHistorico(precioHistoricoVacio);
     }
 
     const hideDeleteRepuestoDialog = () => {
@@ -114,13 +136,15 @@ const Repuestos = () => {
 
     const pasoRegistro = () => {
         listarRepuestos();
+        listarPrecios();
         setRepuestoDialog(false);
         setRepuesto(repuestoVacio);
         //
+        setPrecioHistorico(precioHistoricoVacio);
         setCategoria(null);
         setProveedor(null);
         setModelo(null);
-        setTransmision(null);
+        setTransmision(null);   
     }
 
     const saveRepuesto = async () => {
@@ -129,18 +153,52 @@ const Repuestos = () => {
         if (repuesto.nombre.trim()) {
             if (repuesto.idRepuesto) {
                 try {
+                    const precioHistoricoService = new PrecioHistoricoRepuestoService(); 
+                    
+                    if (precioHistorico.idRepuesto == null) {
+                        //si es primera vez 
+                        precioHistorico.idRepuesto = repuesto.idRepuesto;
+                        precioHistorico.fechaInicio = '2022-01-01';
+                        precioHistorico.fechaFinal = '2022-03-03'
+                        await precioHistoricoService.addPrecioHistorico(precioHistorico);
+                    } else {
+                        precioHistorico.fechaFinal = '2022-03-03'
+                        await precioHistoricoService.addPrecioHistorico(precioHistorico);
+                    }      
                     const repuestoService = new RepuestoService();
-                    await repuestoService.updateRepuesto(repuesto);
+                    await repuestoService.updateRepuesto(repuesto);             
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Actualizado', life: 3000 });
-                    pasoRegistro();
+                    pasoRegistro();   
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
                 }
             }
             else {
                 try {
+                    const repuestoTemporalService = new RepuestoTemporalService();
+                    let repuestoTemporal = {
+                        idRepuesto: null,
+                        nombre: repuesto.nombre,
+                        anio_referenciaInicio: repuesto.anio_referenciaInicio,
+                        anio_referenciaFinal: repuesto.anio_referenciaFinal,
+                        idCategoria: repuesto.idCategoria,
+                        stockActual: repuesto.stockActual,
+                        stockMinimo: repuesto.stockMinimo,
+                        stockMaximo: repuesto.stockMaximo,
+                        idProveedor: repuesto.idProveedor,
+                        idModelo: repuesto.idModelo,
+                        idTransmision: repuesto.idTransmision,
+                        precio: precioHistorico.precio,
+                    };
+                    await repuestoTemporalService.addRepuestoTemporal(repuestoTemporal);
+                    //agregar repuesto
                     const repuestoService = new RepuestoService();
                     await repuestoService.addRepuesto(repuesto);
+                    //agregar precio historico
+                    const precioHistoricoService = new PrecioHistoricoRepuestoService();   
+                    precioHistorico.fechaInicio = '2022-01-01';
+                    precioHistorico.fechaFinal = '2022-03-03'
+                    await precioHistoricoService.addPrecioHistorico(precioHistorico);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Creado', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
@@ -149,12 +207,6 @@ const Repuestos = () => {
             }
 
         }
-    }
-
-    const getFecha = (fecha) => {
-        const [y, m, d] = fecha.split('-');
-        let _fecha = new Date(+y, m-1, +d);
-        return _fecha;
     }
 
     const getCategoria = (id) => {
@@ -198,6 +250,12 @@ const Repuestos = () => {
     }
 
     const editRepuesto = (repuesto) => {
+        if (repuesto.stockActual == 0) {
+            repuesto.stockActual = "0"
+        }
+        if (repuesto.stockMinimo == 0) {
+            repuesto.stockMinimo = "0"
+        }
         setRepuesto({ ...repuesto });
         //
         setCategoria(getCategoria(repuesto.idCategoria));
@@ -206,6 +264,12 @@ const Repuestos = () => {
         setTransmision(getTransmision(repuesto.idTransmision));
         //
         setRepuestoDialog(true);
+
+        precioHistoricos.map((item) => {
+            if (item.idRepuesto == repuesto.idRepuesto && item.fechaFinal == null) {
+                setPrecioHistorico(item);
+            } 
+        });
     }
 
     const confirmDeleteRepuesto = (repuesto) => {
@@ -274,13 +338,39 @@ const Repuestos = () => {
         setRepuesto(_Repuesto);
     }
 
+    const onPriceChange = (e, nombre) => {
+        const val = e.value || 0 || null;
+        let _PrecioHistorico = { ...precioHistorico };
+        _PrecioHistorico[`${nombre}`] = val;
+
+        setPrecioHistorico(_PrecioHistorico);
+    };
+
+    const toggleAll = () => {
+        if (allExpanded) collapseAll();
+        else expandAll();
+    };
+
+    const expandAll = () => {
+        let _expandedRows = {};
+        repuestos.forEach((p) => (_expandedRows[`${p.idRepuesto}`] = true));
+
+        setExpandedRows(_expandedRows);
+        setAllExpanded(true);
+    };
+
+    const collapseAll = () => {
+        setExpandedRows(null);
+        setAllExpanded(false);
+    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedRepuestos || !selectedRepuestos.length} />
+                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
+                    disabled={!repuestos || !repuestos.length} />
                 </div>
             </React.Fragment>
         )
@@ -464,6 +554,31 @@ const Repuestos = () => {
         </>
     );
 
+    const precioBodyTemplate = (rowData) => {
+        return rowData.precio;
+    };
+
+    const rowExpansionTemplate = (data) => {
+        let table = [];
+        precioHistoricos.map((item) => {
+            if (item.idRepuesto == data.idRepuesto) {
+                table.push(item);
+            }
+        });
+        return (
+            <div className="orders-subtable">
+                <h5>Precio Histórico del Repuesto: {data.nombre}</h5>
+                <DataTable value={table} 
+                responsiveLayout="scroll"
+                emptyMessage="No se encontraron precios del repuesto.">
+                    <Column field="fechaInicio" header="Fecha Inicial" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="fechaFinal" header="Fecha Final" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="precio" header="Precio" body={precioBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                </DataTable>
+            </div>
+        );
+    };
+
     return (
         <div className="grid crud-demo">
             <div className="col-12">
@@ -474,8 +589,6 @@ const Repuestos = () => {
                     <DataTable
                         ref={dt}
                         value={repuestos}
-                        selection={selectedRepuestos}
-                        onSelectionChange={(e) => setSelectedRepuestos(e.value)}
                         dataKey="idRepuesto"
                         paginator
                         rows={10}
@@ -487,8 +600,11 @@ const Repuestos = () => {
                         emptyMessage="No se encontraron repuestos."
                         header={header}
                         responsiveLayout="scroll"
+                        expandedRows={expandedRows}
+                        onRowToggle={(e) => setExpandedRows(e.data)}
+                        rowExpansionTemplate={rowExpansionTemplate}
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column expander style={{ width: '3em' }} />
                         <Column field="idRepuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="anio_referenciaInicio" header="Año de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
@@ -504,7 +620,6 @@ const Repuestos = () => {
                     </DataTable>
 
                     <Dialog visible={repuestoDialog} style={{ width: '450px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
-                        {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={repuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.nombre })} />
@@ -523,39 +638,49 @@ const Repuestos = () => {
 
                         <div className="field">
                             <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" options={categorias} value={categoria} onChange={(e) => onInputChange(e, 'idCategoria')} optionLabel={"nombre"} />
+                            <Dropdown id="idCategoria" options={categorias} value={categoria} onChange={(e) => onInputChange(e, 'idCategoria')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idCategoria })} />
+                            {submitted && !repuesto.idCategoria && <small className="p-invalid">La categoría es requerida.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="stockActual">Stock Actual</label>
-                            <InputNumber id="stockActual" value={repuesto.stockActual} onValueChange={(e) => onInputChange(e, 'stockActual')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
+                            <InputText id="stockActual" type="number" value={repuesto.stockActual} onChange={(e) => onInputChange(e, 'stockActual')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
                             {submitted && !repuesto.stockActual && <small className="p-invalid">El stock actual es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="stockMinimo">Stock Mínimo</label>
-                            <InputNumber id="stockMinimo" value={repuesto.stockMinimo} onValueChange={(e) => onInputChange(e, 'stockMinimo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
+                            <InputText id="stockMinimo" type="number" value={repuesto.stockMinimo} onChange={(e) => onInputChange(e, 'stockMinimo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
                             {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="stockMaximo">Stock Máximo</label>
-                            <InputNumber id="stockMaximo" value={repuesto.stockMaximo} onValueChange={(e) => onInputChange(e, 'stockMaximo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
+                            <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} onChange={(e) => onInputChange(e, 'stockMaximo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
                             {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
                         </div>
 
                         <div className="field">
                             <label htmlFor="idProveedor">Proveedor</label>
-                            <Dropdown id="idProveedor" options={proveedores} value={proveedor} onChange={(e) => onInputChange(e, 'idProveedor')} optionLabel={"nombre"} />
+                            <Dropdown id="idProveedor" options={proveedores} value={proveedor} onChange={(e) => onInputChange(e, 'idProveedor')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idProveedor })} />
+                            {submitted && !repuesto.idProveedor && <small className="p-invalid">El proveedor es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idModelo">Modelo</label>
-                            <Dropdown id="idModelo" options={modelos} value={modelo} onChange={(e) => onInputChange(e, 'idModelo')} optionLabel={"nombre"} />
+                            <Dropdown id="idModelo" options={modelos} value={modelo} onChange={(e) => onInputChange(e, 'idModelo')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idModelo })}/>
+                            {submitted && !repuesto.idModelo && <small className="p-invalid">El modelo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idTransmision">Transmisión</label>
-                            <Dropdown id="idTransmision" options={transmisiones} value={transmision} onChange={(e) => onInputChange(e, 'idTransmision')} optionLabel={"nombre"} />
+                            <Dropdown id="idTransmision" options={transmisiones} value={transmision} onChange={(e) => onInputChange(e, 'idTransmision')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idTransmision })} />
+                            {submitted && !repuesto.idTransmision && <small className="p-invalid">La transmisión es requerida.</small>}
+                        </div>
+                        <div className="field">
+                            <label htmlFor="precio">Precio</label>
+                            <InputNumber id="precio" value={precioHistorico.precio} onValueChange={(e) => onPriceChange(e, 'precio')} mode='currency' currency='HNL' locale='en-US' required autoFocus className={classNames({ 'p-invalid': submitted && !precioHistorico.precio })}/>
+                            {submitted && !precioHistorico.precio && <small className="p-invalid">El precio es requerido, no debe ser menor o igual a cero.</small>}
                         </div>
                     </Dialog> 
 
                     <Dialog visible={deleteRepuestoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRepuestoDialogFooter} onHide={hideDeleteRepuestoDialog}>
+
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {repuesto && <span>¿Está seguro de que desea eliminar a <b>{repuesto.nombre}</b>?</span>}
