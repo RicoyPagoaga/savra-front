@@ -2,3 +2,9 @@
     padding-top: 0;
     padding-bottom: 0;
 }
+
+.datatable-style-demo .outofstock {
+    font-weight: 700;
+    color: #FF5252;
+    text-decoration: line-through;
+}

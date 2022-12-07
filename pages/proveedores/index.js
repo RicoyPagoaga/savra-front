@@ -334,46 +334,52 @@ const Proveedores = () => {
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
-                        <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '24%', minWidth: '10rem' }}></Column>
                         <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
                         <Column field="idPais" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
 
                     <Dialog visible={proveedorDialog} style={{ width: '450px' }} header="Detalles de Proveedor" modal className="p-fluid" footer={proveedorDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />
+                            <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
+                            className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />
                             {submitted && !proveedor.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="correo">Correo Electrónico</label>
-                            <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
+                            <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} tooltip="Ingrese correo electrónico del proveedor"
+                            className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
                             {submitted && !proveedor.correo && <small className="p-invalid">El correo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="telefono">Teléfono</label>
-                            <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />                            
+                            <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} tooltip="Indique teléfono sin espacios, puntos o guiones"
+                            className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />                            
                             {submitted && !proveedor.telefono && <small className="p-invalid">El teléfono es requerido.</small>}
                         </div>
 
                         <div className="field">
                             <label htmlFor="cod_iso">Código ISO</label>
-                            <Dropdown id="cod_iso" options={paises} value={codigoISO} onChange={(e) => onInputChange(e, 'idPais')} optionLabel="cod_iso" required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.idPais })}  />
+                            <Dropdown id="cod_iso" options={paises} value={codigoISO} onChange={(e) => onInputChange(e, 'idPais')} optionLabel="cod_iso" emptyMessage="No se encontraron códigos ISO" 
+                            className={classNames({ 'p-invalid': submitted && !proveedor.idPais })}  />
                             {submitted && !proveedor.idPais && <small className="p-invalid">El código ISO es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="nombreContacto">Contacto</label>
-                            <InputText id="nombreContacto" value={proveedor.nombreContacto} onChange={(e) => onInputChange(e, 'nombreContacto')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.nombreContacto })} />
+                            <InputText id="nombreContacto" value={proveedor.nombreContacto} onChange={(e) => onInputChange(e, 'nombreContacto')} tooltip="Debe ingresar más de cinco caracteres"
+                            className={classNames({ 'p-invalid': submitted && !proveedor.nombreContacto })} />
                             {submitted && !proveedor.nombreContacto && <small className="p-invalid">El nombre de contacto es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="sitioWeb">Sitio Web</label>
-                            <InputText id="sitioWeb" value={proveedor.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} required autoFocus className={classNames({ 'p-invalid': submitted && !proveedor.sitioWeb })} />
+                            <InputText id="sitioWeb" value={proveedor.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} tooltip="Ingrese sitio web del proveedor"
+                            className={classNames({ 'p-invalid': submitted && !proveedor.sitioWeb })} />
                             {submitted && !proveedor.sitioWeb && <small className="p-invalid">El sitio web es requerido.</small>}
                         </div>
                     </Dialog> 

@@ -11,11 +11,12 @@ import { InputNumber } from 'primereact/inputnumber';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { RepuestoService } from '../../demo/service/RepuestoService';
-import { RepuestoTemporalService } from '../../demo/service/RepuestoTemporalService';
 import { CategoriaRepuestoService } from '../../demo/service/CategoriaRepuestoService';
 import { ModeloService } from '../../demo/service/ModeloService';
 import { ProveedorService } from '../../demo/service/ProveedorService';
 import { TransmisionService } from '../../demo/service/TransmisionService';
+import { ImpuestoService } from '../../demo/service/ImpuestoService';
+import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 
 const Repuestos = () => {
@@ -26,19 +27,20 @@ const Repuestos = () => {
         anio_referenciaInicio: null,
         anio_referenciaFinal: null,
         idCategoria: null,
-        stockActual: '0',
-        stockMinimo: '0',
-        stockMaximo: '0',
+        stockActual: '',
+        stockMinimo: '',
+        stockMaximo: '',
         idProveedor: null,
         idModelo: null,
         idTransmision: null,
+        idImpuesto: null,
     };
 
     let precioHistoricoVacio = {
         idRepuesto: null,
         fechaInicio: null,
         fechaFinal: null,
-        precio: 0,
+        precio: null,
     };
 
     const [repuestos, setRepuestos] = useState([]);
@@ -51,16 +53,21 @@ const Repuestos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
-    
+
+    //año referencia inicio - final
+    const [refInicio, setRefInicio] = useState(null);
+    const [refFinal, setRefFinal] = useState(null);
+
     //precio historico
     const [allExpanded, setAllExpanded] = useState(false);
     const [precioHistorico, setPrecioHistorico] = useState(precioHistoricoVacio);
     const [precioHistoricos, setPrecioHistoricos] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
     const [minDate, setMinDate] = useState(null);
+    const [minYear, setMinYear] = useState(null);
     const [maxDate, setMaxDate] = useState(null);
 
-    //foraneas categoria, proveedor, modelo, transmision
+    //foraneas categoria, proveedor, modelo, transmision, impuesto
     const [categoria, setCategoria] = useState(null);
     const [categorias, setCategorias] = useState([]);
     const [proveedor, setProveedor] = useState(null);
@@ -69,7 +76,10 @@ const Repuestos = () => {
     const [modelos, setModelos] = useState([]);
     const [transmision, setTransmision] = useState(null);
     const [transmisiones, setTransmisiones] = useState([]);
-
+    const [impuesto, setImpuesto] = useState(null);
+    const [impuestos, setImpuestos] = useState([]);
+    const [impuestoHistoricos, setImpuestoHistoricos] = useState([]);
+    const [dropdownImpuestos, setDropdownImpuestos] = useState([]);
 
     const listarRepuestos = () => {
         const repuestoService = new RepuestoService();
@@ -101,9 +111,20 @@ const Repuestos = () => {
         precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
     };
 
+    const listarImpuestos = () => {
+        const impuestoService = new ImpuestoService();
+        impuestoService.getImpuestos().then(data => setImpuestos(data));
+    };
+
+    const listarImpuestosHistoricos = () => {
+        const impuestoHistoricoService = new ImpuestoHistoricoService();
+        impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
+    };
+
     const setearRangoFechas = () => {
         const fechaActual = Date.now(); //fecha actual
         let fecha = new Date(fechaActual);
+        let min_year = new Date("1970-01-01");
 
         let fechaAyer = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + (fecha.getDate() - 1);
         const [y, m, d] = fechaAyer.split('-');
@@ -111,43 +132,62 @@ const Repuestos = () => {
     
         setMinDate(fechaMin);
         setMaxDate(fecha);
+        setMinYear(min_year);
     };
 
     useEffect(() => {
         listarRepuestos(); 
+        listarPrecios();
         listarCategorias();
         listarProveedores();
         listarModelos();
         listarTransmisiones(); 
-        listarPrecios();
+        listarImpuestos();
+        listarImpuestosHistoricos();
         setearRangoFechas();
     }, []); 
+
+    const setearDropdownImpuestos = () => {
+        let dropdown = []
+        impuestos.map((item) => {
+            if(item.estado === 1) {
+                dropdown.push(item);
+            }
+        });
+        setDropdownImpuestos(dropdown);
+    };
 
     const openNew = () => {
         setRepuesto(repuestoVacio);
         setPrecioHistorico(precioHistoricoVacio);
+        //dropdown impuesto
+        setearDropdownImpuestos();
+        //
         setSubmitted(false);
         setRepuestoDialog(true);
-    }
+    };
 
     const hideDialog = () => {
         setSubmitted(false);
         setRepuestoDialog(false);
         //
+        setRefInicio(null);
+        setRefFinal(null);
         setCategoria(null);
         setProveedor(null);
         setModelo(null);
         setTransmision(null);
+        setImpuesto(null);
         setPrecioHistorico(precioHistoricoVacio);
-    }
+    };
 
     const hideDeleteRepuestoDialog = () => {
         setDeleteRepuestoDialog(false);
-    }
+    };
 
     const hideDeleteRepuestosDialog = () => {
         setDeleteRepuestosDialog(false);
-    }
+    };
 
     const pasoRegistro = () => {
         listarRepuestos();
@@ -156,20 +196,27 @@ const Repuestos = () => {
         setRepuesto(repuestoVacio);
         //
         setPrecioHistorico(precioHistoricoVacio);
+        setRefInicio(null);
+        setRefFinal(null);
         setCategoria(null);
         setProveedor(null);
         setModelo(null);
-        setTransmision(null);   
-    }
+        setTransmision(null); 
+        setImpuesto(null);  
+    };
 
     const saveRepuesto = async () => {
         setSubmitted(true);
-
         if (repuesto.nombre.trim()) {
             if (repuesto.idRepuesto) {
                 try {
+                    const repuestoService = new RepuestoService();
+                    let stockA = (!repuesto.stockActual) ? true : false;
+                    let stockM = (!repuesto.stockMinimo) ? true : false;
+                    let stockMa = (!repuesto.stockMaximo) ? true : false;
+                    let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
+                    await repuestoService.updateRepuesto(repuesto, stockA, stockM, stockMa, precio);
                     const precioHistoricoService = new PrecioHistoricoRepuestoService(); 
-                    
                     if (precioHistorico.idRepuesto == null) {
                         //si es primera vez 
                         precioHistorico.idRepuesto = repuesto.idRepuesto;
@@ -179,9 +226,7 @@ const Repuestos = () => {
                     } else {
                         precioHistorico.fechaFinal = '1822-03-03'
                         await precioHistoricoService.addPrecioHistorico(precioHistorico);
-                    }      
-                    const repuestoService = new RepuestoService();
-                    await repuestoService.updateRepuesto(repuesto);             
+                    }               
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Actualizado', life: 3000 });
                     pasoRegistro();   
                 } catch (error) {
@@ -189,26 +234,14 @@ const Repuestos = () => {
                 }
             }
             else {
-                try {
-                    const repuestoTemporalService = new RepuestoTemporalService();
-                    let repuestoTemporal = {
-                        idRepuesto: null,
-                        nombre: repuesto.nombre,
-                        anio_referenciaInicio: repuesto.anio_referenciaInicio,
-                        anio_referenciaFinal: repuesto.anio_referenciaFinal,
-                        idCategoria: repuesto.idCategoria,
-                        stockActual: repuesto.stockActual,
-                        stockMinimo: repuesto.stockMinimo,
-                        stockMaximo: repuesto.stockMaximo,
-                        idProveedor: repuesto.idProveedor,
-                        idModelo: repuesto.idModelo,
-                        idTransmision: repuesto.idTransmision,
-                        precio: precioHistorico.precio,
-                    };
-                    await repuestoTemporalService.addRepuestoTemporal(repuestoTemporal);
+                try { 
                     //agregar repuesto
                     const repuestoService = new RepuestoService();
-                    await repuestoService.addRepuesto(repuesto);
+                    let stockA = (!repuesto.stockActual) ? true : false;
+                    let stockM = (!repuesto.stockMinimo) ? true : false;
+                    let stockMa = (!repuesto.stockMaximo) ? true : false;
+                    let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
+                    await repuestoService.addRepuesto(repuesto, stockA, stockM, stockMa, precio);
                     //agregar precio historico
                     const precioHistoricoService = new PrecioHistoricoRepuestoService();   
                     precioHistorico.fechaInicio = '1822-01-01';
@@ -222,7 +255,7 @@ const Repuestos = () => {
             }
 
         }
-    }
+    };
 
     const getCategoria = (id) => {
         let categoria = {};
@@ -232,7 +265,7 @@ const Repuestos = () => {
             }
         });
         return categoria;
-    }
+    };
 
     const getProveedor = (id) => {
         let proveedor = {};
@@ -242,7 +275,7 @@ const Repuestos = () => {
             }
         });
         return proveedor;
-    }
+    };
 
     const getModelo = (id) => {
         let modelo = {};
@@ -252,7 +285,7 @@ const Repuestos = () => {
             }
         });
         return modelo;
-    }
+    };
 
     const getTransmision = (id) => {
         let transmision = {};
@@ -262,7 +295,22 @@ const Repuestos = () => {
             }
         });
         return transmision;
-    }
+    };
+
+    const getImpuesto = (id) => {
+        let impuesto = {};
+        impuestos.map((item) => {
+            if (item.idImpuesto == id) {
+                impuesto = item;
+            } 
+        });
+        return impuesto;
+    };
+
+    const setearFecha = (year) => {
+        let fecha = new Date(year, 0, 1);
+        return fecha;
+    };
 
     const editRepuesto = (repuesto) => {
         if (repuesto.stockActual == 0) {
@@ -272,25 +320,30 @@ const Repuestos = () => {
             repuesto.stockMinimo = "0"
         }
         setRepuesto({ ...repuesto });
+        setearDropdownImpuestos();
         //
+        setRefInicio(setearFecha(repuesto.anio_referenciaInicio));
+        setRefFinal(setearFecha(repuesto.anio_referenciaFinal));
         setCategoria(getCategoria(repuesto.idCategoria));
         setProveedor(getProveedor(repuesto.idProveedor));
         setModelo(getModelo(repuesto.idModelo));
         setTransmision(getTransmision(repuesto.idTransmision));
+        setImpuesto(getImpuesto(repuesto.idImpuesto));
         //
-        setRepuestoDialog(true);
 
         precioHistoricos.map((item) => {
             if (item.idRepuesto == repuesto.idRepuesto && item.fechaFinal == null) {
                 setPrecioHistorico(item);
             } 
         });
-    }
+
+        setRepuestoDialog(true);        
+    };
 
     const confirmDeleteRepuesto = (repuesto) => {
         setRepuesto(repuesto);
         setDeleteRepuestoDialog(true);
-    }
+    };
 
     const deleteRepuesto = async () => {
         try {
@@ -302,32 +355,15 @@ const Repuestos = () => {
         } catch (error) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
         }
-    }
+    };
 
 
     const exportCSV = () => {
         dt.current.exportCSV();
     };
 
-    const confirmDeleteSelected = () => {
-        setDeleteRepuestosDialog(true);
-    }
-
-    const deleteSelectedRepuestos = () => {
-        const repuestoService = new RepuestoService();
-        selectedRepuestos.map(async (repuesto) => {
-            await repuestoService.removeRepuesto(repuesto.idRepuesto);
-        });
-        let _repuestos = repuestos.filter(val => !selectedRepuestos.includes(val));
-        setRepuestos(_repuestos);
-        setDeleteRepuestosDialog(false);
-        setSelectedRepuestos(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuestos Eliminados', life: 3000 });
-    }
-
-
     const onInputChange = (e, nombre) => {
-        //categoria, proveedor, modelo, transmision
+        //categoria, proveedor, modelo, transmision, impuesto
         const val = (e.target && e.target.value) || '';
         let _Repuesto = { ...repuesto };
 
@@ -347,9 +383,40 @@ const Repuestos = () => {
             _Repuesto[`${nombre}`]=val.idTransmision;
             setTransmision(e.value);
         } 
+        else if (nombre == 'idImpuesto') {    
+            _Repuesto[`${nombre}`]=val.idImpuesto;
+            setImpuesto(e.value);
+        }
         else {
             _Repuesto[`${nombre}`] = val;
         }
+        console.log(_Repuesto);
+        setRepuesto(_Repuesto);
+    }
+
+    const onYearChange = (e, nombre) => {
+        const val = (e.target && e.target.value) || '';
+        let _Repuesto = { ...repuesto };
+
+        if (nombre == 'anio_referenciaInicio') {
+            _Repuesto[`${nombre}`]=val.getFullYear();
+            setRefInicio(val);
+        }
+        else { //ref Final
+            _Repuesto[`${nombre}`]=val.getFullYear();
+            setRefFinal(val);
+        }
+        setRepuesto(_Repuesto);
+    }
+
+    const onStockChange = (e, nombre) => {
+        const val = (e.target && e.target.value) || '';
+        let _Repuesto = { ...repuesto };
+        let valor = 0;
+        //
+        valor = (val > 1000000 || val=='00') ? '0' : val;
+        _Repuesto[`${nombre}`] = valor;
+    
         setRepuesto(_Repuesto);
     }
 
@@ -420,7 +487,7 @@ const Repuestos = () => {
     const fechaInicioBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Fecha de Referencia Inicial</span>
+                <span className="p-column-title">Año de Referencia Inicial</span>
                 {rowData.anio_referenciaInicio}
             </>
         );
@@ -429,7 +496,7 @@ const Repuestos = () => {
     const fechaFinalBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Fecha de Referencia Final</span>
+                <span className="p-column-title">Año de Referencia Final</span>
                 {rowData.anio_referenciaFinal}
             </>
         );
@@ -451,10 +518,16 @@ const Repuestos = () => {
     }
 
     const stockActualBodyTemplate = (rowData) => {
+        const templateClass = classNames({
+            'outofstock': rowData.stockActual === 0 || rowData.stockActual === "0",
+            '': rowData.stockActual > 0
+        });
         return (
             <>
                 <span className="p-column-title">Stock Actual</span>
-                {rowData.stockActual}
+                <div className={templateClass}>
+                    {rowData.stockActual}
+                </div>
             </>
         );
     }
@@ -522,6 +595,31 @@ const Repuestos = () => {
         )
     }
 
+    const impuestoBodyTemplate = (rowData) => {
+        let impuestoValor = ''; let activo;
+        impuestoHistoricos.map((impuestoHistorico) => {
+            if (rowData.idImpuesto == impuestoHistorico.idImpuesto && impuestoHistorico.fechaFinal == null) {
+                impuestoValor = impuestoHistorico.valor;
+            }
+        });
+        impuestos.map((item) => {
+            if(rowData.idImpuesto===item.idImpuesto)
+                activo=item.estado;
+        })
+        const templateClass = classNames({
+            'outofstock': activo === 0,
+            '': activo === 1
+        });
+        return (
+            <>
+                <span className="p-column-title">Impuesto</span>
+                <div className={templateClass}>
+                    {impuestoValor}%
+                </div>
+            </>
+        )
+    }
+
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
@@ -562,15 +660,12 @@ const Repuestos = () => {
             <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteRepuesto} />
         </>
     );
-    const deleteRepuestosDialogFooter = (
-        <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteRepuestosDialog} />
-            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedRepuestos} />
-        </>
-    );
 
     const precioBodyTemplate = (rowData) => {
-        return rowData.precio;
+        const format = (value) => {
+            return value.toLocaleString('en-US');
+        };
+        return "L." + format(rowData.precio);
     };
 
     const cellEditor = (options) => {
@@ -588,7 +683,13 @@ const Repuestos = () => {
     };
 
     const getFecha = (fecha) => {
-        let _fecha = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + fecha.getDate();
+        const getDay = (day) => {
+            return (day < 10) ? '0'+day : day;
+        };
+        const getMonth = (month) => {
+            return ((month + 1) < 10) ? "0"+(month+1) : (month+1)
+        };
+        let _fecha = fecha.getFullYear() + "-" + getMonth(fecha.getMonth()) + "-" + getDay(fecha.getDate());
         return _fecha;
     };
 
@@ -598,20 +699,33 @@ const Repuestos = () => {
         let max_date = getFecha(maxDate);
         let precio = {...precioHistoricoVacio};
         precio = rowData;
+        let fecha; let fechaActualizar; let valor;
+        if (newValue == precio.fechaFinal) {
+            valor = '' + newValue;
+            const [y, m ,d] = valor.split('-');
+            fecha = new Date(+y,m-1,+d);
+            fechaActualizar = getFecha(fecha);
+        } else {
+            valor = '' + newValue;
+            fecha = new Date(valor);
+            fechaActualizar = getFecha(fecha);
+        }
 
         try {
             
-            if (newValue != null && (precio.fechaFinal == min_date || precio.fechaFinal == max_date)) {
-                let fecha = new Date(newValue);
-                let fechaActualizar = getFecha(fecha);        
+            if (fechaActualizar != precio.fechaFinal &&
+                (fechaActualizar == min_date || fechaActualizar == max_date) && 
+                (precio.fechaFinal == min_date || precio.fechaFinal == max_date)) {
+                     
                 precio[field] = fechaActualizar;
                 //actualizar BD
                 const precioHistoricoService = new PrecioHistoricoRepuestoService();   
                 precioHistoricoService.updatePrecioHistorico(precio);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Fechas Actualizadas', life: 3000 });
+                listarPrecios();
             } else {
                 event.preventDefault();
             }
-            listarPrecios();
         } catch (error) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
         }
@@ -642,7 +756,7 @@ const Repuestos = () => {
     };
 
     return (
-        <div className="grid crud-demo">
+        <div className="grid crud-demo datatable-style-demo">
             <div className="col-12">
                 <div className="card">
                     <Toast ref={toast} />
@@ -678,66 +792,94 @@ const Repuestos = () => {
                         <Column field="idProveedor" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="idModelo" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="idTransmision" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="idImpuesto" header="Impuesto" sortable body={impuestoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={repuestoDialog} style={{ width: '450px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={repuestoDialog} style={{ width: '550px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={repuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.nombre })} />
+                            <InputText id="nombre" value={repuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
+                            className={classNames({ 'p-invalid': submitted && !repuesto.nombre })} />
                             {submitted && !repuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                         </div>
-                        <div className="field">
-                            <label htmlFor="anio_referenciaInicio">Año de Referencia Inicial</label>
-                            <InputText id="anio_referenciaInicio" type="number" value={repuesto.anio_referenciaInicio} onChange={(e) => onInputChange(e, 'anio_referenciaInicio')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaInicio })} />
-                            {submitted && !repuesto.anio_referenciaInicio && <small className="p-invalid">El año de referencia inicial es requerida.</small>}
+                        <div className='formgrid grid'>
+                            <div className="field col">
+                                <label htmlFor="anio_referenciaInicio">Año de Referencia Inicial</label>
+                                <Calendar id="anio_referenciaInicio" value={refInicio} onChange={(e) => onYearChange(e, 'anio_referenciaInicio')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
+                                placeholder="Seleccione año" tooltip="No podrá seleccionar un año anterior a 1970"
+                                readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaInicio })} />
+                                {submitted && !repuesto.anio_referenciaInicio && <small className="p-invalid">El año de referencia inicial es requerida.</small>}
+                            </div>
+                            <div className="field col">
+                                <label htmlFor="anio_referenciaFinal">Año de Referencia Final</label>
+                                <Calendar id="anio_referenciaFinal" value={refFinal} onChange={(e) => onYearChange(e, 'anio_referenciaFinal')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
+                                placeholder="Seleccione año" tooltip="No podrá seleccionar un año posterior al actual"
+                                readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaFinal })} />
+                                {submitted && !repuesto.anio_referenciaFinal && <small className="p-invalid">El año de referencia final es requerida.</small>}
+                            </div>    
                         </div>
-                        <div className="field">
-                            <label htmlFor="anio_referenciaFinal">Año de Referencia Final</label>
-                            <InputText id="anio_referenciaFinal" type="number" value={repuesto.anio_referenciaFinal} onChange={(e) => onInputChange(e, 'anio_referenciaFinal')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaFinal })} />
-                            {submitted && !repuesto.anio_referenciaFinal && <small className="p-invalid">El año de referencia final es requerida.</small>}
-                        </div>
-
                         <div className="field">
                             <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" options={categorias} value={categoria} onChange={(e) => onInputChange(e, 'idCategoria')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idCategoria })} />
+                            <Dropdown id="idCategoria" options={categorias} value={categoria} onChange={(e) => onInputChange(e, 'idCategoria')} emptyMessage="No se encontraron categorías"
+                            optionLabel={"nombre"} className={classNames({ 'p-invalid': submitted && !repuesto.idCategoria })} />
                             {submitted && !repuesto.idCategoria && <small className="p-invalid">La categoría es requerida.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="stockActual">Stock Actual</label>
-                            <InputText id="stockActual" type="number" value={repuesto.stockActual} onChange={(e) => onInputChange(e, 'stockActual')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
+                            <InputText id="stockActual" type="number" min={0} max={1000000} value={repuesto.stockActual} onChange={(e) => onStockChange(e, 'stockActual')} 
+                            tooltip="No se permiten valores mayores a 1,000,000"
+                            className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
                             {submitted && !repuesto.stockActual && <small className="p-invalid">El stock actual es requerido.</small>}
                         </div>
-                        <div className="field">
-                            <label htmlFor="stockMinimo">Stock Mínimo</label>
-                            <InputText id="stockMinimo" type="number" value={repuesto.stockMinimo} onChange={(e) => onInputChange(e, 'stockMinimo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
-                            {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
+                        <div className='formgrid grid'>
+                            <div className="field col">
+                                <label htmlFor="stockMinimo">Stock Mínimo</label>
+                                <InputText id="stockMinimo" type="number" min={0} max={1000000} value={repuesto.stockMinimo} onChange={(e) => onStockChange(e, 'stockMinimo')} 
+                                tooltip="No se permiten valores mayores a 1,000,000"
+                                className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
+                                {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
+                            </div>
+                            <div className="field col">
+                                <label htmlFor="stockMaximo">Stock Máximo</label>
+                                <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} min={0} max={1000000} onChange={(e) => onStockChange(e, 'stockMaximo')} 
+                                tooltip="No se permiten valores mayores a 1,000,000"
+                                className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
+                                {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
+                            </div>
                         </div>
-                        <div className="field">
-                            <label htmlFor="stockMaximo">Stock Máximo</label>
-                            <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} onChange={(e) => onInputChange(e, 'stockMaximo')} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
-                            {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
-                        </div>
-
                         <div className="field">
                             <label htmlFor="idProveedor">Proveedor</label>
-                            <Dropdown id="idProveedor" options={proveedores} value={proveedor} onChange={(e) => onInputChange(e, 'idProveedor')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idProveedor })} />
+                            <Dropdown id="idProveedor" options={proveedores} value={proveedor} onChange={(e) => onInputChange(e, 'idProveedor')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron proveedores" className={classNames({ 'p-invalid': submitted && !repuesto.idProveedor })} />
                             {submitted && !repuesto.idProveedor && <small className="p-invalid">El proveedor es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idModelo">Modelo</label>
-                            <Dropdown id="idModelo" options={modelos} value={modelo} onChange={(e) => onInputChange(e, 'idModelo')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idModelo })}/>
+                            <Dropdown id="idModelo" options={modelos} value={modelo} onChange={(e) => onInputChange(e, 'idModelo')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron modelos" className={classNames({ 'p-invalid': submitted && !repuesto.idModelo })}/>
                             {submitted && !repuesto.idModelo && <small className="p-invalid">El modelo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idTransmision">Transmisión</label>
-                            <Dropdown id="idTransmision" options={transmisiones} value={transmision} onChange={(e) => onInputChange(e, 'idTransmision')} optionLabel={"nombre"} required autoFocus className={classNames({ 'p-invalid': submitted && !repuesto.idTransmision })} />
+                            <Dropdown id="idTransmision" options={transmisiones} value={transmision} onChange={(e) => onInputChange(e, 'idTransmision')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron transmisiones" className={classNames({ 'p-invalid': submitted && !repuesto.idTransmision })} />
                             {submitted && !repuesto.idTransmision && <small className="p-invalid">La transmisión es requerida.</small>}
                         </div>
-                        <div className="field">
-                            <label htmlFor="precio">Precio</label>
-                            <InputNumber id="precio" value={precioHistorico.precio} onValueChange={(e) => onPriceChange(e, 'precio')} mode='currency' currency='HNL' locale='en-US' required autoFocus className={classNames({ 'p-invalid': submitted && !precioHistorico.precio })}/>
-                            {submitted && !precioHistorico.precio && <small className="p-invalid">El precio es requerido, no debe ser menor o igual a cero.</small>}
+                        <div className='formgrid grid'>
+                            <div className="field col">
+                                <label htmlFor="precio">Precio</label>
+                                <InputNumber id="precio" value={precioHistorico.precio} onValueChange={(e) => onPriceChange(e, 'precio')} min={0} max={200000} mode='currency' currency='HNL' locale='en-US' 
+                                tooltip="No se permiten valores mayores a 200,000"
+                                className={classNames({ 'p-invalid': submitted && !precioHistorico.precio })}/>
+                                {submitted && !precioHistorico.precio && <small className="p-invalid">El precio es requerido, no debe ser menor o igual a cero.</small>}
+                            </div>
+                            <div className="field col">
+                                <label htmlFor="idImpuesto">Impuesto</label>
+                                <Dropdown id="idImpuesto" options={dropdownImpuestos} value={impuesto} onChange={(e) => onInputChange(e, 'idImpuesto')} optionLabel={"nombre"} tooltip="Impuestos con estado activo"
+                                emptyMessage="No se encontraron impuestos" className={classNames({ 'p-invalid': submitted && !repuesto.idImpuesto })} />
+                                {submitted && !repuesto.idImpuesto && <small className="p-invalid">El impuesto es requerido.</small>}
+                            </div>
                         </div>
                     </Dialog> 
 
@@ -746,13 +888,6 @@ const Repuestos = () => {
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {repuesto && <span>¿Está seguro de que desea eliminar a <b>{repuesto.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteRepuestosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRepuestosDialogFooter} onHide={hideDeleteRepuestosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {repuesto && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
                         </div>
                     </Dialog>
                 </div>

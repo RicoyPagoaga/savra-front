@@ -277,7 +277,8 @@ const Marcas = () => {
                         {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={marca.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !marca.nombre })} />
+                            <InputText id="nombre" value={marca.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
+                             className={classNames({ 'p-invalid': submitted && !marca.nombre })} />
                             { submitted && !marca.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                         </div>
                     </Dialog> 

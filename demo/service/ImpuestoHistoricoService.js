@@ -1,35 +1,20 @@
 import getConfig from 'next/config';
 
-let url = 'http://localhost:8080/api/v1/impuestos';
+let url = 'http://localhost:8080/api/v1/historico_impuestos';
 
-export class ImpuestoService {
+export class ImpuestoHistoricoService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getImpuestos() {
+    async getImpuestosHistorico() {
         const response = await fetch(url);
         return await response.json();
     }
 
-    async removeImpuesto(id) {
+    async addImpuestoHistorico(impuesto) {
         try {
-            let url_ = url + '/delete/' + id;
-            const response = await fetch(url_, {
-                "method": 'DELETE',
-                "headers": {
-                    "Content-type": 'application/json'
-                }
-            }); 
-            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    async addImpuesto(impuesto, valor, nulo) {
-        try {
-            let url_ = url + '/addImpuesto/' + valor + '/' + nulo;
+            let url_ = url + '/addImpuestoHistorico';
             const response = await fetch(url_, {
                 "method": 'POST',
                 "body": JSON.stringify(impuesto),
@@ -44,10 +29,9 @@ export class ImpuestoService {
         }
     }
 
-    async updateImpuesto(impuesto, valor, nulo) {
-        let url_ = url + '/' + valor + '/' + nulo;
+    async updateImpuestoHistorico(impuesto) {
         try {
-            const response = await fetch(url_, {
+            const response = await fetch(url, {
                 "method":'PUT',
                 "body": JSON.stringify(impuesto),
                 "headers": {

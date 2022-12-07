@@ -1,18 +1,18 @@
 import getConfig from 'next/config';
 
-let url = 'http://localhost:8080/api/v1/repuestos';
+let url = 'http://localhost:8080/api/v1/compras';
 
-export class RepuestoService {
+export class CompraService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getRepuestos() {
+    async getCompras() {
         const response = await fetch(url);
         return await response.json();
     }
 
-    async removeRepuesto(id) {
+    async removeCompra(id) {
         try {
             let url_ = url + '/delete/' + id;
             const response = await fetch(url_, {
@@ -27,12 +27,12 @@ export class RepuestoService {
         }
     }
 
-    async addRepuesto(repuesto, stockA, stockM, stockMa, precio) {
+    async addCompra(compra, detalle) {
         try {
-            let url_ = url + '/addRepuesto/'+stockA+'/'+stockM+'/'+stockMa+'/'+precio;
+            let url_ = url + '/addCompra/' + detalle;
             const response = await fetch(url_, {
                 "method": 'POST',
-                "body": JSON.stringify(repuesto),
+                "body": JSON.stringify(compra),
                 "headers": {
                     "Content-type": 'application/json'
                 }
@@ -44,12 +44,12 @@ export class RepuestoService {
         }
     }
 
-    async updateRepuesto(repuesto, stockA, stockM, stockMa, precio) {
+    async updateCompra(compra, detalle) {
         try {
-            let url_ = url + '/'+stockA+'/'+stockM+'/'+stockMa+'/'+precio;
+            let url_ = url + '/' + detalle;
             const response = await fetch(url_, {
                 "method":'PUT',
-                "body": JSON.stringify(repuesto),
+                "body": JSON.stringify(compra),
                 "headers": {
                     "Content-type": 'application/json'
                 }

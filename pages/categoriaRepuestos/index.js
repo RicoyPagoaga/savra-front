@@ -280,13 +280,15 @@ const categoria_repuestos = () => {
                     <Dialog visible={categoriaDialog} style={{ width: '450px' }} header="Registro Categorías de Repuesto" modal className="p-fluid" footer={categoriaDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={categoria.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !categoria.nombre })} />
+                            <InputText id="nombre" value={categoria.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
+                            className={classNames({ 'p-invalid': submitted && !categoria.nombre })} />
                             { submitted && !categoria.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                         </div>
                         <div className="field">
                             <label htmlFor="descripcion">Descripción</label>
-                            <InputTextarea id="descripcion" value={categoria.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !categoria.descripcion })} />
-                            { submitted && !categoria.descripcion && <small className="p-invalid">La descripción es requerido.</small> }
+                            <InputTextarea id="descripcion" value={categoria.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} tooltip="Debe ingresar más de cinco caracteres" 
+                            className={classNames({ 'p-invalid': submitted && !categoria.descripcion })} />
+                            { submitted && !categoria.descripcion && <small className="p-invalid">La descripción es requerida.</small> }
                         </div>
                     </Dialog> 
 

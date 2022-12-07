@@ -111,6 +111,11 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-shopping-bag',
                     to: '/facturas/'
                 },
+                {
+                    label: 'Compras',
+                    icon: 'pi pi-fw pi-cart-plus',
+                    to: '/compras/'
+                },
             ]
         },
         {

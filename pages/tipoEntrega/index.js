@@ -278,12 +278,14 @@ const tipos_entrega = () => {
                     <Dialog visible={tipoDialog} style={{ width: '450px' }} header="Registro Tipos de Entrega" modal className="p-fluid" footer={tipoDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={tipo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipo.nombre })} />
+                            <InputText id="nombre" value={tipo.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
+                            className={classNames({ 'p-invalid': submitted && !tipo.nombre })} />
                             { submitted && !tipo.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                         </div>
                         <div className="field">
                             <label htmlFor="descripcion">Descripción</label>
-                            <InputTextarea id="descripcion" value={tipo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipo.descripcion })} />
+                            <InputTextarea id="descripcion" value={tipo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} tooltip="Debe ingresar más de cinco caracteres"
+                            className={classNames({ 'p-invalid': submitted && !tipo.descripcion })} />
                             { submitted && !tipo.descripcion && <small className="p-invalid">La descripción es requerida.</small> }
                         </div>
                     </Dialog> 

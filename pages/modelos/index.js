@@ -304,13 +304,15 @@ const Modelos = () => {
                     <Dialog visible={modeloDialog} style={{ width: '450px' }} header="Registro Modelos" modal className="p-fluid" footer={modeloDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={modelo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !modelo.nombre })} />
+                            <InputText id="nombre" value={modelo.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
+                            className={classNames({ 'p-invalid': submitted && !modelo.nombre })} />
                             { submitted && !modelo.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                             
                         </div>
                         <div className="field">
                             <label htmlFor="marca">Marca</label>
-                            <Dropdown id="marca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre" required autoFocus className={classNames({ 'p-invalid': submitted && !modelo.idMarca })}></Dropdown>
+                            <Dropdown id="marca" options={marcas} value={marca} onChange={(e) => onInputChange(e, 'idMarca')} optionLabel="nombre" emptyMessage="No se encontraron marcas"
+                            className={classNames({ 'p-invalid': submitted && !modelo.idMarca })}></Dropdown>
                             {submitted && !modelo.idMarca && <small className="p-invalid">Marca es requerida.</small>}
                         </div>
                     </Dialog> 

@@ -267,7 +267,8 @@ const MetodoPago = () => {
                     <Dialog visible={metodoDialog} style={{ width: '450px' }} header="Registro Métodos de Pago" modal className="p-fluid" footer={metodoDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={metodo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !metodo.nombre })} />
+                            <InputText id="nombre" value={metodo.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
+                            className={classNames({ 'p-invalid': submitted && !metodo.nombre })} />
                             { submitted && !metodo.nombre && <small className="p-invalid">Nombre es requerido.</small> }
                         </div>
                     </Dialog> 
