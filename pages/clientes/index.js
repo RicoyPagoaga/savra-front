@@ -34,7 +34,7 @@ const Clientes = () => {
         errorDetails: ''
     };
 
-    const [clientes, setClientes] = useState(null);
+    const [clientes, setClientes] = useState();
     const [tipoDocumentos,setTipoDocumentos] = useState([]);
     const [tipoDocumento, setTipoDocumento] = useState(null);
     const [categoriaClientes,setCategoriaClientes] = useState([]);
@@ -230,10 +230,11 @@ const Clientes = () => {
     };
 
     const documentoBodyTemplate = (rowData) => {
+        console.log(rowData.documento)
         return (
             <>
                 <span className="p-column-title">Documento</span>
-                {rowData.documento}
+                {rowData.documento==null?' ':rowData.documento}
             </>
         );
     }; 
@@ -271,7 +272,7 @@ const Clientes = () => {
         return (
             <>
                 <span className="p-column-title">Telefono</span>
-                {rowData.telefono}
+                {rowData.telefono==null?' ': rowData.telefono}
             </>
         );
     };
@@ -279,7 +280,7 @@ const Clientes = () => {
         return (
             <>
                 <span className="p-column-title">Direccion</span>
-                {rowData.direccion}
+                {rowData.direccion==null?' ': rowData.direccion}
             </>
         );
     };
@@ -292,14 +293,14 @@ const Clientes = () => {
             return (
                 <>
                     <span className="p-column-title">Id Categoria</span>
-                    {categoria.nombre}
+                    {categoria.nombre==null?' ': categoria.nombre}
                 </>
             );
         }else{
             return (
                 <>
                     <span className="p-column-title">Id Categoria</span>
-                    {rowData.idCategoria}
+                    {rowData.idCategoria==null?' ': rowData.nombre}
                 </>
             );
         }

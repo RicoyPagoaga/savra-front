@@ -24,22 +24,22 @@ const Empleados = () => {
         idEmpleado: null,
         nombre: '',
         documento: '',
-        idTipoDocumento : null,
-        fechaNacimiento:null,
+        idTipoDocumento: null,
+        fechaNacimiento: null,
         telefono: '',
-        fechaIngreso:null,
-        correo:'',
+        fechaIngreso: null,
+        correo: '',
         direccion: ''
     };
 
     let emptyRestApiError = {
-        httpStatus : '',
+        httpStatus: '',
         errorMessage: '',
         errorDetails: ''
     };
 
     const [empleados, setEmpleados] = useState(null);
-    const [tipoDocumentos,setTipoDocumentos] = useState([]);
+    const [tipoDocumentos, setTipoDocumentos] = useState([]);
     const [tipoDocumento, setTipoDocumento] = useState(null);
     const [calendarValueNac, setCalendarValueNac] = useState(null);
     const [calendarValueIn, setCalendarValueIn] = useState(null);
@@ -60,18 +60,18 @@ const Empleados = () => {
         const empleadoservice = new EmpleadoService();
         empleadoservice.getEmpleados().then(data => setEmpleados(data));
     };
-    const listarTipoDocumentos = async() => {
+    const listarTipoDocumentos = async () => {
         const tiposDocumentoService = new TipoDocumentoService();
         await tiposDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
     };
-   
-    
-    useEffect(async() => {
+
+
+    useEffect(async () => {
         listarEmpleados();
         await listarTipoDocumentos();
         await listarEmpleados();
     }, []);
-    
+
 
     const openNew = () => {
         setEmpleado(emptyEmpleado);
@@ -95,48 +95,48 @@ const Empleados = () => {
         setDeleteEmpleadosDialog(false);
     };
 
-    const pasoRegistro = () =>{
+    const pasoRegistro = () => {
         listarEmpleados();
         setEmpleadoDialog(false);
         setEmpleado(emptyEmpleado);
     }
-    
+
     const saveEmpleado = async () => {
         setSubmitted(true);
         const empleadoservice = new EmpleadoService();
-            if (empleado.idEmpleado) {
-                try {
-                    await empleadoservice.updateEmpleado(empleado);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
-            } else {
-                try {
-                    await empleadoservice.addEmpleado(empleado);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Registrado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    console.log(empleado);
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
-            };
+        if (empleado.idEmpleado) {
+            try {
+                await empleadoservice.updateEmpleado(empleado);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+            }
+        } else {
+            try {
+                await empleadoservice.addEmpleado(empleado);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Registrado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                console.log(empleado);
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+            }
+        };
     };
 
-    const editEmpleado= (empleado) => {
+    const editEmpleado = (empleado) => {
         setEmpleado({ ...empleado });
         const fechaN = () => {
             var nacimiento = empleado.fechaNacimiento.toString().split('-');
-            return new Date(nacimiento[0],nacimiento[1]-1,nacimiento[2])
+            return new Date(nacimiento[0], nacimiento[1] - 1, nacimiento[2])
         }
         const fechaI = () => {
             var ingreso = empleado.fechaIngreso.toString().split('-');
-            return new Date(ingreso[0],ingreso[1]-1,ingreso[2])
+            return new Date(ingreso[0], ingreso[1] - 1, ingreso[2])
         }
         const documento = tipoDocumentos.find((item) => {
-            if(item.idTipoDocumento == empleado.idTipoDocumento)
-            return item
+            if (item.idTipoDocumento == empleado.idTipoDocumento)
+                return item
         });
         setTipoDocumento(documento);
         setCalendarValueNac(fechaN)
@@ -146,7 +146,7 @@ const Empleados = () => {
         setEmpleadoDialog(true);
     };
 
-    const deleteEmpleado = async ()=>{
+    const deleteEmpleado = async () => {
         const empleadoservice = new EmpleadoService();
         await empleadoservice.removeEmpleado(empleado.idEmpleado);
         listarEmpleados();
@@ -157,7 +157,7 @@ const Empleados = () => {
         setEmpleado(empleado);
         setDeleteEmpleadoDialog(true);
     };
-   
+
     const exportCSV = () => {
         dt.current.exportCSV();
     };
@@ -175,11 +175,11 @@ const Empleados = () => {
         setSelectedEmpleados(null);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleados Eliminados', life: 3000 });
     };
-    
+
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _empleado = { ...empleado };
-        switch(nombre){
+        switch (nombre) {
             case "idTipoDocumento":
                 _empleado[`${nombre}`] = val.idTipoDocumento;
                 setTipoDocumento(e.value);
@@ -250,36 +250,36 @@ const Empleados = () => {
                 {rowData.documento}
             </>
         );
-    }; 
+    };
 
     const idTipoDocumentoBodyTemplate = (rowData) => {
         const documento = tipoDocumentos.find((item) => {
-            if(item.idTipoDocumento == rowData.idTipoDocumento)
-                 return item;
-            });
-            console.log(documento)
-        if(documento != null){
+            if (item.idTipoDocumento == rowData.idTipoDocumento)
+                return item;
+        });
+        console.log(documento)
+        if (documento != null) {
             return (
                 <>
                     <span className="p-column-title">Id Tipo Documento</span>
                     {
                         documento.nombreDocumento
                     }
-                    
+
                 </>
             );
-        }else{
+        } else {
             return (
                 <>
                     <span className="p-column-title">Id Tipo Documento</span>
                     {
                         rowData.idTipoDocumento
                     }
-                    
+
                 </>
             );
         }
-        
+
     };
     const fechaNacimientoBodyTemplate = (rowData) => {
         var dateDMY = Moment(rowData.fechaNacimiento).format('DD/MM/YYYY');
@@ -324,7 +324,7 @@ const Empleados = () => {
             </>
         );
     };
-    
+
     const actionBodyTemplate = (rowData) => {
         return (
             <>
@@ -387,7 +387,7 @@ const Empleados = () => {
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="idEmpleado" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
@@ -397,7 +397,7 @@ const Empleados = () => {
                         <Column field="fechaIngreso" header="Fecha Ingreso" sortable body={fechaIngresoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="correo" header="Correo electrónico" sortable body={correoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
                     <Dialog visible={empleadoDialog} style={{ width: '450px' }} header="Registro Empleados" modal className="p-fluid" footer={empleadoDialogFooter} onHide={hideDialog}>
@@ -413,12 +413,12 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')}  optionLabel = "nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.idTipoDocumento })}></Dropdown>
+                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.idTipoDocumento })}></Dropdown>
                             {submitted && !empleado.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
-                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e,'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
+                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e, 'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
                             {submitted && !empleado.fechaNacimiento && <small className="p-invalid">Fecha de Nacimiento es requerida.</small>}
                         </div>
                         <div className="field">
@@ -428,7 +428,7 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="fechaIngreso">Fecha Ingreso</label>
-                            <Calendar dateFormat= "dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChange(e,'fechaIngreso')} placeholder="Seleccione una fecha de ingreso"></Calendar>
+                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChange(e, 'fechaIngreso')} placeholder="Seleccione una fecha de ingreso"></Calendar>
                             {submitted && !empleado.fechaIngreso && <small className="p-invalid">Fecha de Ingreso es requerida.</small>}
                         </div>
                         <div className="field">
@@ -436,13 +436,13 @@ const Empleados = () => {
                             <InputText id="correo" value={empleado.correo} onChange={(e) => onInputChange(e, 'correo')} required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.correo })} />
                             {submitted && !empleado.correo && <small className="p-invalid">Correo electrónico es requerido.</small>}
                         </div>
-                       
+
                         <div className="field">
                             <label htmlFor="direccion">Dirección</label>
                             <InputText id="direccion" value={empleado.direccion} onChange={(e) => onInputChange(e, 'direccion')} required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.direccion })} />
                             {submitted && !empleado.direccion && <small className="p-invalid">Dirección es requerido.</small>}
                         </div>
-                        
+
                     </Dialog>
 
                     <Dialog visible={deleteEmpleadoDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteEmpleadoDialogFooter} onHide={hideDeleteEmpleadoDialog}>
