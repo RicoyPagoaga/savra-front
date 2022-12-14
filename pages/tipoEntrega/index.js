@@ -65,26 +65,24 @@ const tipos_entrega = () => {
 
     const saveTipo = async () => {
         setSubmitted(true);
-        if (tipo.nombre.trim()) {
-            if (tipo.idTipoEntrega) {
-               try {
-                    const tipoService = new TipoEntregaService();
-                    await tipoService.updateTipoEntrega(tipo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Entrega Actualizada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
+        if (tipo.idTipoEntrega) {
+            try {
+                const tipoService = new TipoEntregaService();
+                await tipoService.updateTipoEntrega(tipo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Entrega Actualizada', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
-            else {
-                try {
-                    const tipoService = new TipoEntregaService();
-                    await tipoService.addTipoEntrega(tipo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Entrega Creada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-                }
+        }
+        else {
+            try {
+                const tipoService = new TipoEntregaService();
+                await tipoService.addTipoEntrega(tipo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Entrega Creada', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
             }
         }   
         

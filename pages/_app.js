@@ -7,6 +7,7 @@ import 'primeicons/primeicons.css';
 import '../styles/layout/layout.scss';
 import '../styles/demo/Demos.scss';
 import '../pages/repuestos/DataTableDemo.css';
+import '../pages/devolucionesCompra/OverlayPanelDemo.css';
 import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOption, localeOptions } from 'primereact/api';
 
  export default function  MyApp({ Component, pageProps }) {

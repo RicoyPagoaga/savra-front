@@ -81,26 +81,24 @@ const Proveedores = () => {
     const saveProveedor = async () => {
         setSubmitted(true);
 
-        if (proveedor.nombre.trim()) {
-            if (proveedor.idProveedor) {
-                try {
-                    const proveedorService = new ProveedorService();
-                    await proveedorService.updateProveedor(proveedor);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
+        if (proveedor.idProveedor) {
+            try {
+                const proveedorService = new ProveedorService();
+                await proveedorService.updateProveedor(proveedor);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
-            else {
-                try {
-                    const proveedorService = new ProveedorService();
-                    await proveedorService.addProveedor(proveedor);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
+        }
+        else {
+            try {
+                const proveedorService = new ProveedorService();
+                await proveedorService.addProveedor(proveedor);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Proveedor Creado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
         }
     }

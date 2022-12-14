@@ -66,29 +66,26 @@ const categoria_repuestos = () => {
 
     const saveCategoria = async () => {
         setSubmitted(true);
-        if (categoria.nombre.trim()) {
-            if (categoria.idCategoria) {
-               try {
-                    const categoriaService = new CategoriaRepuestoService();
-                    await categoriaService.updateCategoriaRepuesto(categoria);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Actualizada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
-            }
-            else {
-                try {
-                    const categoriaService = new CategoriaRepuestoService();
-                    await categoriaService.addCategoriaRepuesto(categoria);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Creada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-                }
-            }
-        }   
-        
+        if (categoria.idCategoria) {
+            try {
+                 const categoriaService = new CategoriaRepuestoService();
+                 await categoriaService.updateCategoriaRepuesto(categoria);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Actualizada', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+             }
+        }
+        else {
+             try {
+                 const categoriaService = new CategoriaRepuestoService();
+                 await categoriaService.addCategoriaRepuesto(categoria);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Creada', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+             }
+        } 
     }
 
     const editCategoria = (categoria) => {
