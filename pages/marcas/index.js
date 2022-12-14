@@ -68,27 +68,25 @@ const Marcas = () => {
 
     const saveMarca = async () => {
         setSubmitted(true);
-        if (marca.nombre.trim()) {
-            if (marca.idMarca) {
-               try {
-                    const marcaService = new MarcaService();
-                    await marcaService.updateMarca(marca);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Actualizada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
-            }
-            else {
-                try {
-                    const marcaService = new MarcaService();
-                    await marcaService.addMarca(marca);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Creada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-                }
-            }
+        if (marca.idMarca) {
+            try {
+                 const marcaService = new MarcaService();
+                 await marcaService.updateMarca(marca);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Actualizada', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+             }
+        }
+        else {
+             try {
+                 const marcaService = new MarcaService();
+                 await marcaService.addMarca(marca);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Marca Creada', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+             }
         }   
         
     }
@@ -172,7 +170,6 @@ const Marcas = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                {/* <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} label="Importar" chooseLabel="Import" className="mr-2 inline-block" /> */}
                 <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
             </React.Fragment>
         )
@@ -274,7 +271,6 @@ const Marcas = () => {
                     </DataTable>
 
                     <Dialog visible={marcaDialog} style={{ width: '450px' }} header="Registro Marcas" modal className="p-fluid" footer={marcaDialogFooter} onHide={hideDialog}>
-                        {/* {product.image && <img src={`assets/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={marca.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"

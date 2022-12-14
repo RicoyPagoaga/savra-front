@@ -103,51 +103,48 @@ const Impuestos = () => {
     const saveImpuesto = async () => {
         setSubmitted(true);
 
-        if (impuesto.nombre.trim()) {
-            if (impuesto.idImpuesto) {
-                try {
-                    const impuestoService = new ImpuestoService();
-                    if (!impuestoHistorico.valor)
-                        await impuestoService.updateImpuesto(impuesto, 0, true);
-                    else 
-                        await impuestoService.updateImpuesto(impuesto, impuestoHistorico.valor, false);
-                    const impuestoHistoricoService = new ImpuestoHistoricoService();
-                    if (impuestoHistorico.idImpuesto == null) {
-                        //si es primera vez 
-                        impuestoHistorico.idImpuesto = impuesto.idImpuesto;
-                        impuestoHistorico.fechaInicio = '1822-01-01';
-                        impuestoHistorico.fechaFinal = '1822-03-03'
-                        await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
-                    } else {
-                        impuestoHistorico.fechaFinal = '1822-03-03'
-                        await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
-                    }  
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
-            }
-            else {
-                try {
-                    //agregar impuesto
-                    const impuestoService = new ImpuestoService();
-                    if(!impuestoHistorico.valor) 
-                        await impuestoService.addImpuesto(impuesto, 0, true);
-                    else 
-                        await impuestoService.addImpuesto(impuesto, impuestoHistorico.valor, false);
-                    //agregar impuesto historico
-                    const impuestoHistoricoService = new ImpuestoHistoricoService();
+        if (impuesto.idImpuesto) {
+            try {
+                const impuestoService = new ImpuestoService();
+                if (!impuestoHistorico.valor)
+                    await impuestoService.updateImpuesto(impuesto, 0, true);
+                else 
+                    await impuestoService.updateImpuesto(impuesto, impuestoHistorico.valor, false);
+                const impuestoHistoricoService = new ImpuestoHistoricoService();
+                if (impuestoHistorico.idImpuesto == null) {
+                    //si es primera vez 
+                    impuestoHistorico.idImpuesto = impuesto.idImpuesto;
                     impuestoHistorico.fechaInicio = '1822-01-01';
                     impuestoHistorico.fechaFinal = '1822-03-03'
                     await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
-                }
+                } else {
+                    impuestoHistorico.fechaFinal = '1822-03-03'
+                    await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
+                }  
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
-
+        }
+        else {
+            try {
+                //agregar impuesto
+                const impuestoService = new ImpuestoService();
+                if(!impuestoHistorico.valor) 
+                    await impuestoService.addImpuesto(impuesto, 0, true);
+                else 
+                    await impuestoService.addImpuesto(impuesto, impuestoHistorico.valor, false);
+                //agregar impuesto historico
+                const impuestoHistoricoService = new ImpuestoHistoricoService();
+                impuestoHistorico.fechaInicio = '1822-01-01';
+                impuestoHistorico.fechaFinal = '1822-03-03'
+                await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Creado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
+            }
         }
     }
 
@@ -480,7 +477,7 @@ const Impuestos = () => {
                             <span className='p-float-label p-input-icon-left'>
                                 <i className='pi pi-percentage' />
                                 <InputText id="valor" type="number" value={impuestoHistorico.valor} onChange={(e) => onValorChange(e, 'valor')} tooltip="Escribe solamente el número (sin su tanto porciento) del valor del impuesto"
-                                className={classNames({ 'p-invalid': submitted && !impuestoHistorico.valor })} />
+                                keyfilter={/[0-9]+/} className={classNames({ 'p-invalid': submitted && !impuestoHistorico.valor })} />
                                 {submitted && !impuestoHistorico.valor && <small className="p-invalid">El valor es requerido.</small>}     
                             </span>        
                         </div>

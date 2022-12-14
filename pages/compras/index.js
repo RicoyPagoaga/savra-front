@@ -14,6 +14,7 @@ import { CompraService } from '../../demo/service/CompraService';
 import { CompraDetalleService } from '../../demo/service/CompraDetalleService';
 import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { RepuestoService } from '../../demo/service/RepuestoService';
+import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 
 const Compras = () => {
 
@@ -32,6 +33,7 @@ const Compras = () => {
     const [compra, setCompra] = useState(compraVacia);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
+    const [detalleFilter, setDetalleFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
     const [detalles, setDetalles] = useState([]);
@@ -46,7 +48,9 @@ const Compras = () => {
     const [empleados, setEmpleados] = useState([]);
     const [repuesto, setRepuesto] = useState(null);
     const [repuestos, setRepuestos] = useState([]);
+    const [precioHistoricos, setPrecioHistoricos] = useState([]);
     const [inputNumberValue, setInputNumberValue] = useState(null);
+    const [precioValue, setPrecioValue] = useState(null);
 
     //detalle de compra
     const [allExpanded, setAllExpanded] = useState(false);
@@ -73,11 +77,17 @@ const Compras = () => {
         repuestoService.getRepuestos().then(data => setRepuestos(data));
     };
 
+    const listarPrecioHistoricos = () => {
+        const precioHistoricoService = new PrecioHistoricoRepuestoService();
+        precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
+    };
+
     useEffect(() => {
         listarCompras();
         listarDetallesCompra();
         listarEmpleados();
         listarRepuestos();
+        listarPrecioHistoricos();
     }, []); 
 
 
@@ -95,6 +105,7 @@ const Compras = () => {
         setEmpleado(null);
         setRepuesto(null);
         setInputNumberValue(null);
+        setPrecioValue(null);
         setFechaCompra_(null);
         setFechaDespacho_(null);
         setFechaRecibido_(null);
@@ -113,6 +124,7 @@ const Compras = () => {
         setEmpleado(null);
         setRepuesto(null);
         setInputNumberValue(null);
+        setPrecioValue(null);
         setFechaCompra_(null);
         setFechaDespacho_(null);
         setFechaRecibido_(null);
@@ -121,38 +133,35 @@ const Compras = () => {
     const saveCompra = async () => {
         setSubmitted(true);
 
-        if (compra.idEmpleado) {
-            if (compra.idCompra) {
-                try {
-                    //actualizar
-                    const compraService = new CompraService();
-                    let x = (!detalles || !detalles.length) ? false : true;
-                    await compraService.updateCompra(compra, x);
-                    //actualizar detalle 
-                    const detalleService = new CompraDetalleService();
-                    await detalleService.updateDetallesCompra(detalles);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Compra Actualizada', life: 3000 });
-                    pasoRegistro();  
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
+        if (compra.idCompra) {
+            try {
+                //actualizar
+                const compraService = new CompraService();
+                let x = (!detalles || !detalles.length) ? false : true;
+                await compraService.updateCompra(compra, x);
+                //actualizar detalle 
+                const detalleService = new CompraDetalleService();
+                await detalleService.updateDetallesCompra(detalles);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Compra Actualizada', life: 3000 });
+                pasoRegistro();  
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
-            else {
-                try {
-                    //agregar compra
-                    const compraService = new CompraService();
-                    let x = (!detalles || !detalles.length) ? false : true;
-                    await compraService.addCompra(compra, x);
-                    //agregar detalle 
-                    const detalleService = new CompraDetalleService();
-                    await detalleService.addDetallesCompra(detalles);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Compra Creada', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
-                }
+        }
+        else {
+            try {
+                //agregar compra
+                const compraService = new CompraService();
+                let x = (!detalles || !detalles.length) ? false : true;
+                await compraService.addCompra(compra, x);
+                //agregar detalle 
+                const detalleService = new CompraDetalleService();
+                await detalleService.addDetallesCompra(detalles);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Compra Creada', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
             }
-
         }
     }
 
@@ -231,9 +240,28 @@ const Compras = () => {
             _Compra[`${nombre}`] = val;
         }
         setCompra(_Compra);
-        console.log(_Compra);
     }
 
+    const onInputDetalleChange = (e, nombre, rowData) => {
+        const findIndexById = (id) => {
+            let index = -1;
+            for (let i = 0; i < detalles.length; i++) {
+                if (detalles[i].idCompraDetalle === id) {
+                    index = i;
+                    break;
+                }
+            }
+            return index;
+        };
+        const val = (e.target && e.target.value) || '';
+        let _detalles = [...detalles];
+        let _detalle = {...rowData};
+        _detalle[`${nombre}`]=val;
+
+        let index = findIndexById(_detalle.idCompraDetalle);
+        _detalles[index]=_detalle;
+        setDetalles(_detalles);
+    }
 
     const toggleAll = () => {
         if (allExpanded) collapseAll();
@@ -307,19 +335,33 @@ const Compras = () => {
     }
 
     const fechaDespachoBodyTemplate = (rowData) => {
+        let despacho = (!rowData.fechaDespacho) ? 'Pendiente' : rowData.fechaDespacho; 
+        const templateClass = classNames({
+            'outofstock': !rowData.fechaDespacho,
+            '': rowData.fechaDespacho
+        });
         return (
             <>
                 <span className="p-column-title">Fecha de Despacho</span>
-                {rowData.fechaDespacho}
+                <div className={templateClass}>
+                    {despacho}
+                </div>
             </>
         );
     }
 
     const fechaRecibidoBodyTemplate = (rowData) => {
+        let entrega = (!rowData.fechaRecibido) ? 'Pendiente' : rowData.fechaRecibido; 
+        const templateClass = classNames({
+            'outofstock': !rowData.fechaRecibido,
+            '': rowData.fechaRecibido
+        });
         return (
             <>
                 <span className="p-column-title">Fecha de Entrega</span>
-                {rowData.fechaRecibido}
+                <div className={templateClass}>
+                    {entrega}
+                </div>
             </>
         );
     }
@@ -341,8 +383,27 @@ const Compras = () => {
                 x=(item.stockMaximo-item.stockActual);
             }
         });
-        return <InputNumber value={rowData.cantidad} onValueChange={(e) => rowData.cantidad=e.value} showButtons mode="decimal" min={1} max={x}
+        return <InputNumber value={rowData.cantidad} onValueChange={(e) => onInputDetalleChange(e, "cantidad", rowData)} showButtons mode="decimal" min={1} max={x}
         tooltip="No podrá colocar un valor que supere al Stock Máximo del Repuesto"/>
+    };
+
+    const precioBodyTemplate = (rowData) => {
+        let x = 1;
+        let _precios=[...precioHistoricos];
+        _precios.map((item)=>{
+            if(item.idRepuesto===rowData.idRepuesto && item.fechaFinal===null) {
+                x = item.precio-1;
+            }
+        });
+        return <InputNumber value={rowData.precio} onValueChange={(e) => onInputDetalleChange(e, "precio", rowData)} min={1} max={x} mode='currency' currency='HNL' locale='en-US' 
+        tooltip="No podrá colocar un valor mayor o igual al del Precio de Venta del repuesto"/>
+    };
+
+    const precioDetalleBodyTemplate = (rowData) => {
+        const format = (value) => {
+            return value.toLocaleString('en-US');
+        };
+        return "L." + format(rowData.precio);
     };
 
     const actionBodyTemplate = (rowData) => {
@@ -388,6 +449,24 @@ const Compras = () => {
         </div>
     );
 
+    const d_filter = (e) => {
+        let x = e.target.value;
+        if(x.trim() != '') 
+            setDetalleFilter(x);
+        else    
+            setDetalleFilter(' ');
+    }
+
+    const headerDetalle = (
+        <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
+            <span className="block mt-2 md:mt-0 p-input-icon-left">
+                <i className="pi pi-search" />
+                <InputText type="search" onInput={(e) => d_filter(e)} placeholder="Buscar Detalle de la Compra..."
+                disabled={!detalles || !detalles.length} />
+            </span>
+        </div>
+    );
+
     const compraDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
@@ -427,8 +506,10 @@ const Compras = () => {
                 className="editable-cells-table"
                 responsiveLayout="scroll"
                 emptyMessage="No se encontraron detalles de la compra.">
+                    <Column field="idCompraDetalle" header="Código de Detalle" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="idRepuesto" header="Repuesto" sortable body={repBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="cantidad" header="Cantidad" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="precio" header="Precio" sortable body={precioDetalleBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                 </DataTable>
             </div>
         );
@@ -437,6 +518,14 @@ const Compras = () => {
     const agregarDetalle = () => {
         const Toast = (message) => {
             toast.current.show({ severity: 'warn', summary: 'Error', detail: message, life: 3000 });
+        };
+        const crearId = () => {
+            let id = '';
+            let chars = '0123456789';
+            for (let i = 0; i < 5; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
         };
         if (repuesto) {
             //evitar que agregue repuesto repetido al detalle
@@ -455,35 +544,49 @@ const Compras = () => {
                         }
                     });
                     if(!x) {
-                        //agregar detalle
-                        let idCompra = (!compra.idCompra) ? undefined : compra.idCompra;
-                        let detalleVacio = {
-                            idCompraDetalle: 0,
-                            idCompra: idCompra,
-                            idRepuesto: repuesto.idRepuesto,
-                            cantidad: inputNumberValue,
-                        };
-                        _detalles.push(detalleVacio);
-                        setDetalles(_detalles);
-                        setRepuesto(null);
-                        setInputNumberValue(null);
+                        if(precioValue) {
+                            //validar que no compre a un precio menor del de venta
+                            let y=false;
+                            let _precios=[...precioHistoricos];
+                            _precios.map((item)=>{
+                                if(item.idRepuesto===repuesto.idRepuesto && item.fechaFinal===null &&
+                                    precioValue>=item.precio) {
+                                        y=true;
+                                }
+                            });
+                            if(!y) {
+                                //agregar detalle
+                                let id = crearId();
+                                let idCompra = (!compra.idCompra) ? undefined : compra.idCompra;
+                                let detalleVacio = {
+                                    idCompraDetalle: -id,
+                                    idCompra: idCompra,
+                                    idRepuesto: repuesto.idRepuesto,
+                                    cantidad: inputNumberValue,
+                                    precio: precioValue
+                                };
+                                _detalles.push(detalleVacio);
+                                setDetalles(_detalles);
+                                setRepuesto(null);
+                                setInputNumberValue(null);
+                                setPrecioValue(null);
 
-                    } else {
+                            } else 
+                                Toast("Precio de compra del repuesto no puede ser mayor o igual al precio de venta");
+                        } else 
+                            Toast("Indique el precio, no puede ser igual a cero");
+                    } else 
                         Toast("Cantidad no puede ser mayor a la del Stock Máximo del Repuesto");
-                    }
-                } else {
+                } else 
                     Toast("Indique cantidad");
-                }
-            } else {
+            } else 
                 Toast('El repuesto: ' + repuesto.nombre + ' ya ha sido agregado al detalle!');
-            }
-        } else {
+        } else 
             Toast("Debe seleccionar el repuesto a agregar");
-        }
     }; 
 
     return (
-        <div className="grid crud-demo">
+        <div className="grid crud-demo datatable-style-demo">
             <div className="col-12">
                 <div className="card">
                     <Toast ref={toast} />
@@ -528,7 +631,7 @@ const Compras = () => {
                             <div className="field">
                                 <label htmlFor="fechaCompra">Fecha de Compra</label>
                                 <Calendar inputId="fechaCompra" value={fechaCompra_} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fechaCompra')} dateFormat="yy-mm-dd"
-                                placeholder='Seleccione fecha de compra'  className={classNames({ 'p-invalid': submitted && !compra.fechaCompra })}
+                                readOnlyInput placeholder='Seleccione fecha de compra'  className={classNames({ 'p-invalid': submitted && !compra.fechaCompra })}
                                 tooltip="Utiliza la fecha de hoy"></Calendar>                
                                 {submitted && !compra.fechaCompra && <small className="p-invalid">La fecha de compra es requerida.</small>}
                             </div>
@@ -537,13 +640,13 @@ const Compras = () => {
                                 <div className="field col">
                                     <label htmlFor="fechaDespacho">Fecha de Despacho</label>
                                     <Calendar inputId="fechaDespacho" value={fechaDespacho_} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fechaDespacho')} dateFormat="yy-mm-dd"
-                                    placeholder='Seleccione fecha de despacho' 
+                                     placeholder='Seleccione fecha de despacho' 
                                     tooltip="Fecha de despacho no puede ser una fecha anterior a la fecha de compra"></Calendar>                
                                 </div>
                                 <div className="field col">
                                     <label htmlFor="fechaRecibido">Fecha de Entrega</label>
                                     <Calendar inputId="fechaRecibido" value={fechaRecibido_} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fechaRecibido')} dateFormat="yy-mm-dd"
-                                    placeholder='Seleccione fecha de entrega'  
+                                     placeholder='Seleccione fecha de entrega'  
                                     tooltip="Fecha de Entrega no puede ser una fecha anterior a la fecha de despacho"></Calendar>                
                                 </div>
                             </div>
@@ -559,22 +662,29 @@ const Compras = () => {
                             <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
                                 <h5 className="m-20">Detalle de Compra</h5>
                             </div>
-                            
                             <div className='formgrid grid'>
                                 <div className='field col'>
                                     <hr></hr>
-                                    <Dropdown id="idRepuesto" options={repuestos} value={repuesto} onChange={(e) => onInputChange(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="nombre" 
-                                    emptyMessage="No se encontraron repuestos."
+                                    <Dropdown id="idRepuesto" options={repuestos} value={repuesto} onChange={(e) => onInputChange(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="idRepuesto" 
+                                    emptyMessage="No se encontraron repuestos." emptyFilterMessage="No hay opciones disponibles."
                                     placeholder="Seleccione un repuesto a agregar"></Dropdown>
                                 </div>
                                 <div className='field col'>
                                     <hr></hr>
-                                    <InputNumber value={inputNumberValue} onValueChange={(e) => setInputNumberValue(e.value)} showButtons mode="decimal"
+                                    <InputNumber id='cantidad' value={inputNumberValue} onValueChange={(e) => setInputNumberValue(e.value)} showButtons mode="decimal"
                                     min={1} placeholder='#' tooltip='Indique cantidad'></InputNumber>
                                 </div>
-                                <div className='field col-3'>
+                            </div>
+                           
+                            <div className='formgrid grid'>
+                                <div className='field col'>
+                                    <InputNumber id="precio" value={precioValue} onValueChange={(e) => setPrecioValue(e.value)} min={0} max={200000} mode='currency' currency='HNL' locale='en-US' 
+                                    placeholder='Precio' tooltip="No se permiten valores mayores a 200,000"/>
                                     <hr></hr>
+                                </div>
+                                <div className='field col-3'>
                                     <Button type='button' label="Agregar" icon="pi pi-plus" className="p-button-outlined p-button-primary ml-auto" onClick={agregarDetalle} />
+                                    <hr></hr>
                                 </div>
                             </div>
 
@@ -585,13 +695,17 @@ const Compras = () => {
                             paginator
                             rows={10}
                             rowsPerPageOptions={[5, 10, 25]}
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} detalles" 
                             className="datatable-responsive editable-cells-table"
                             emptyMessage="No se han agregado detalles de la compra."
-                            editMode='cell'
+                            header={headerDetalle}
+                            globalFilter={detalleFilter}
                             responsiveLayout="scroll"
                             >
                                 <Column field="idRepuesto" header="Repuesto" body={repBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                                 <Column field="cantidad" header="Cantidad" body={cantidadBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                <Column field="precio" header="Precio" body={precioBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                                 <Column header="Eliminar" body={actionDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '3em' }} bodyStyle={{ textAlign: 'center' }}></Column>                
                             </DataTable>
                         </div>

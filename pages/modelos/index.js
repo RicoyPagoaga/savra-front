@@ -77,28 +77,25 @@ const Modelos = () => {
 
     const saveModelo = async () => {
         setSubmitted(true);
-        if (modelo.nombre.trim()) {
-            if (modelo.idModelo) {
-                try {
-                    const modeloService = new ModeloService();
-                    await modeloService.updateModelo(modelo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Modelo Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
+        if (modelo.idModelo) {
+            try {
+                const modeloService = new ModeloService();
+                await modeloService.updateModelo(modelo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Modelo Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
-            else {
-                try {
-                    const modeloService = new ModeloService();
-                    await modeloService.addModelo(modelo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Modelo Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }    
-            }
-            
+        }
+        else {
+            try {
+                const modeloService = new ModeloService();
+                await modeloService.addModelo(modelo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Modelo Creado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+            }    
         }
     }
 

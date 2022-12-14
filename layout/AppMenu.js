@@ -116,6 +116,12 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-cart-plus',
                     to: '/compras/'
                 },
+                {
+                    label: 'Devolución de Compras',
+                    icon: 'pi pi-fw pi-undo',
+                    to: '/devolucionesCompra/'
+                },
+                
             ]
         },
         {

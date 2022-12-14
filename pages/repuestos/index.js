@@ -207,53 +207,50 @@ const Repuestos = () => {
 
     const saveRepuesto = async () => {
         setSubmitted(true);
-        if (repuesto.nombre.trim()) {
-            if (repuesto.idRepuesto) {
-                try {
-                    const repuestoService = new RepuestoService();
-                    let stockA = (!repuesto.stockActual) ? true : false;
-                    let stockM = (!repuesto.stockMinimo) ? true : false;
-                    let stockMa = (!repuesto.stockMaximo) ? true : false;
-                    let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
-                    await repuestoService.updateRepuesto(repuesto, stockA, stockM, stockMa, precio);
-                    const precioHistoricoService = new PrecioHistoricoRepuestoService(); 
-                    if (precioHistorico.idRepuesto == null) {
-                        //si es primera vez 
-                        precioHistorico.idRepuesto = repuesto.idRepuesto;
-                        precioHistorico.fechaInicio = '1822-01-01';
-                        precioHistorico.fechaFinal = '1822-03-03'
-                        await precioHistoricoService.addPrecioHistorico(precioHistorico);
-                    } else {
-                        precioHistorico.fechaFinal = '1822-03-03'
-                        await precioHistoricoService.addPrecioHistorico(precioHistorico);
-                    }               
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Actualizado', life: 3000 });
-                    pasoRegistro();   
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
-            }
-            else {
-                try { 
-                    //agregar repuesto
-                    const repuestoService = new RepuestoService();
-                    let stockA = (!repuesto.stockActual) ? true : false;
-                    let stockM = (!repuesto.stockMinimo) ? true : false;
-                    let stockMa = (!repuesto.stockMaximo) ? true : false;
-                    let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
-                    await repuestoService.addRepuesto(repuesto, stockA, stockM, stockMa, precio);
-                    //agregar precio historico
-                    const precioHistoricoService = new PrecioHistoricoRepuestoService();   
+        if (repuesto.idRepuesto) {
+            try {
+                const repuestoService = new RepuestoService();
+                let stockA = (!repuesto.stockActual) ? true : false;
+                let stockM = (!repuesto.stockMinimo) ? true : false;
+                let stockMa = (!repuesto.stockMaximo) ? true : false;
+                let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
+                await repuestoService.updateRepuesto(repuesto, stockA, stockM, stockMa, precio);
+                const precioHistoricoService = new PrecioHistoricoRepuestoService(); 
+                if (precioHistorico.idRepuesto == null) {
+                    //si es primera vez 
+                    precioHistorico.idRepuesto = repuesto.idRepuesto;
                     precioHistorico.fechaInicio = '1822-01-01';
                     precioHistorico.fechaFinal = '1822-03-03'
                     await precioHistoricoService.addPrecioHistorico(precioHistorico);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
-                }
+                } else {
+                    precioHistorico.fechaFinal = '1822-03-03'
+                    await precioHistoricoService.addPrecioHistorico(precioHistorico);
+                }               
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Actualizado', life: 3000 });
+                pasoRegistro();   
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
             }
-
+        }
+        else {
+            try { 
+                //agregar repuesto
+                const repuestoService = new RepuestoService();
+                let stockA = (!repuesto.stockActual) ? true : false;
+                let stockM = (!repuesto.stockMinimo) ? true : false;
+                let stockMa = (!repuesto.stockMaximo) ? true : false;
+                let precio = (!precioHistorico.precio) ? 0 : precioHistorico.precio;
+                await repuestoService.addRepuesto(repuesto, stockA, stockM, stockMa, precio);
+                //agregar precio historico
+                const precioHistoricoService = new PrecioHistoricoRepuestoService();   
+                precioHistorico.fechaInicio = '1822-01-01';
+                precioHistorico.fechaFinal = '1822-03-03'
+                await precioHistoricoService.addPrecioHistorico(precioHistorico);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Repuesto Creado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
+            }
         }
     };
 
@@ -390,7 +387,6 @@ const Repuestos = () => {
         else {
             _Repuesto[`${nombre}`] = val;
         }
-        console.log(_Repuesto);
         setRepuesto(_Repuesto);
     }
 
@@ -416,7 +412,7 @@ const Repuestos = () => {
         //
         valor = (val > 1000000 || val=='00') ? '0' : val;
         _Repuesto[`${nombre}`] = valor;
-    
+        console.log(_Repuesto);
         setRepuesto(_Repuesto);
     }
 
@@ -828,7 +824,7 @@ const Repuestos = () => {
                         <div className="field">
                             <label htmlFor="stockActual">Stock Actual</label>
                             <InputText id="stockActual" type="number" min={0} max={1000000} value={repuesto.stockActual} onChange={(e) => onStockChange(e, 'stockActual')} 
-                            tooltip="No se permiten valores mayores a 1,000,000"
+                            tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
                             className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
                             {submitted && !repuesto.stockActual && <small className="p-invalid">El stock actual es requerido.</small>}
                         </div>
@@ -836,14 +832,14 @@ const Repuestos = () => {
                             <div className="field col">
                                 <label htmlFor="stockMinimo">Stock Mínimo</label>
                                 <InputText id="stockMinimo" type="number" min={0} max={1000000} value={repuesto.stockMinimo} onChange={(e) => onStockChange(e, 'stockMinimo')} 
-                                tooltip="No se permiten valores mayores a 1,000,000"
+                                tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
                                 className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
                                 {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
                             </div>
                             <div className="field col">
                                 <label htmlFor="stockMaximo">Stock Máximo</label>
                                 <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} min={0} max={1000000} onChange={(e) => onStockChange(e, 'stockMaximo')} 
-                                tooltip="No se permiten valores mayores a 1,000,000"
+                                tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
                                 className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
                                 {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
                             </div>

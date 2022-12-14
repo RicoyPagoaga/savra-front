@@ -62,27 +62,25 @@ const MetodoPago = () => {
 
     const saveMetodo = async () => {
         setSubmitted(true);
-        if (metodo.nombre.trim()) {
-            if (metodo.idMetodo) {
-               try {
-                    const metodoService = new MetodoPagoService();
-                    await metodoService.updateMetodoPago(metodo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Método de Pago Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
-            }
-            else {
-                try {
-                    const metodoService = new MetodoPagoService();
-                    await metodoService.addMetodoPago(metodo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Método de Pago Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-                }
-            }
+        if (metodo.idMetodo) {
+            try {
+                 const metodoService = new MetodoPagoService();
+                 await metodoService.updateMetodoPago(metodo);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Método de Pago Actualizado', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+             }
+        }
+        else {
+             try {
+                 const metodoService = new MetodoPagoService();
+                 await metodoService.addMetodoPago(metodo);
+                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Método de Pago Creado', life: 3000 });
+                 pasoRegistro();
+             } catch (error) {
+                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+             }
         }   
         
     }
