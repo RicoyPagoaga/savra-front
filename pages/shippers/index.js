@@ -112,11 +112,16 @@ const Shippers = () => {
     }
 
     const deleteShipper = async () => {
-        const shipperService = new ShipperService();
-        await shipperService.removeShipper(shipper.idShipper);
-        listarShippers();
-        setDeleteShipperDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shipper Eliminado', life: 3000 });
+        try {
+            const shipperService = new ShipperService();
+            await shipperService.removeShipper(shipper.idShipper);
+            listarShippers();
+            setDeleteShipperDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shipper Eliminado', life: 3000 });
+
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     }
 
     const exportCSV = () => {
@@ -318,17 +323,17 @@ const Shippers = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="telefono">Telefono</label>
-                            <InputText id="telefono" value={shipper.telefono} onChange={(e) => onInputChange(e, 'telefono')}  className={classNames({ 'p-invalid': submitted && !shipper.telefono })} />
+                            <InputText id="telefono" value={shipper.telefono} onChange={(e) => onInputChange(e, 'telefono')} className={classNames({ 'p-invalid': submitted && !shipper.telefono })} />
                             {submitted && !shipper.telefono && <small className="p-invalid">Telefono shipper es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="correo">Correo</label>
-                            <InputText id="correo" value={shipper.correo} onChange={(e) => onInputChange(e, 'correo')}  className={classNames({ 'p-invalid': submitted && !shipper.correo })} />
+                            <InputText id="correo" value={shipper.correo} onChange={(e) => onInputChange(e, 'correo')} className={classNames({ 'p-invalid': submitted && !shipper.correo })} />
                             {submitted && !shipper.correo && <small className="p-invalid">Correo de shipper es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="sitioWeb">SitioWeb</label>
-                            <InputText id="sitioWeb" value={shipper.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')}  className={classNames({ 'p-invalid': submitted && !shipper.sitioWeb })} />
+                            <InputText id="sitioWeb" value={shipper.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} className={classNames({ 'p-invalid': submitted && !shipper.sitioWeb })} />
                             {submitted && !shipper.sitioWeb && <small className="p-invalid">Sitio Web shipper es requerido.</small>}
                         </div>
                         <div className="field">

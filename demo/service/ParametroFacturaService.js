@@ -13,13 +13,18 @@ export class ParametroFacturaService {
     }
 
     async removeParametroFactura(id) {
-        let url_ = url + '/delete/' + id;
-        const response = await fetch(url_, {
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        }); 
+        try {
+            let _url = url + '/delete/' + id;
+            const response = await fetch(_url, {
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            });
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
+        } catch (error) {
+            throw error;
+        }
     }
 
     async addParametroFactura(parametrofactura) {
@@ -33,7 +38,7 @@ export class ParametroFacturaService {
                 }
             });
             const result = await response.json();
-            if (response.status !== 201)throw result;
+            if (response.status !== 201) throw result;
         } catch (error) {
             throw error;
         }
@@ -42,14 +47,14 @@ export class ParametroFacturaService {
     async updateParametroFactura(parametrofactura) {
         try {
             const response = await fetch(url, {
-                "method":'PUT',
+                "method": 'PUT',
                 "body": JSON.stringify(parametrofactura),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if (response.status !== 200)throw result;
+            if (response.status !== 200) throw result;
         } catch (error) {
             throw error;
         }

@@ -8,17 +8,18 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { CargoService } from '../../demo/service/CargoService';
+import { InputNumber } from 'primereact/inputnumber';
 
 const Cargos = () => {
     let cargoVacio = {
         idCargo: null,
         nombre: '',
-        descripcion:'',
-        salario: null
+        salarioBase: null,
+        descripcion: ''
     };
 
     let emptyRestApiError = {
-        httpStatus : '',
+        httpStatus: '',
         errorMessage: '',
         errorDetails: ''
     };
@@ -66,39 +67,36 @@ const Cargos = () => {
     const pasoRegistro = () => {
         listarCargos();
         setCargoDialog(false);
-        setCargo(cargoVacio); 
+        setCargo(cargoVacio);
     }
 
     const saveCargo = async () => {
         setSubmitted(true);
-        if (cargo.nombre.trim()) {
-            if (cargo.idCargo) {
-               try {
-                    const cargoService = new CargoService();
-                    await cargoService.updateCargo(cargo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Actualizado (^‿^)', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
+        if (cargo.idCargo) {
+            try {
+                const cargoService = new CargoService();
+                await cargoService.updateCargo(cargo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Actualizado (^‿^)', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
-            else {
-                try {
-                    const cargoService = new CargoService();
-                    await cargoService.addCargo(cargo);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Registrado (^‿^)', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-    
-                }
+        }
+        else {
+            try {
+                const cargoService = new CargoService();
+                await cargoService.addCargo(cargo);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Registrado (^‿^)', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+
             }
-        }   
-        
+        }
     }
 
     const editCargo = (cargo) => {
-        setCargo({ ...cargo});
+        setCargo({ ...cargo });
         setCargoDialog(true);
     }
 
@@ -108,11 +106,15 @@ const Cargos = () => {
     }
 
     const deleteCargo = async () => {
-        const cargoService = new CargoService();
-        await cargoService.removeCargo(cargo.idCargo);
-        listarCargos();
-        setDeleteCargoDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Eliminado', life: 3000 });
+        try {
+            const cargoService = new CargoService();
+            await cargoService.removeCargo(cargo.idCargo);
+            listarCargos();
+            setDeleteCargoDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Eliminado', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     }
 
     const exportCSV = () => {
@@ -135,7 +137,6 @@ const Cargos = () => {
         setSelectedCargos(null);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargos Eliminados ', life: 3000 });
     }
-
 
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
@@ -182,6 +183,14 @@ const Cargos = () => {
             </>
         );
     }
+    const salarioBaseBodyTemplate = (rowData) => {
+        return (
+            <>
+                <span className="p-column-title">Salario Base</span>
+                {rowData.salarioBase}
+            </>
+        );
+    }
     const descripcionBodyTemplate = (rowData) => {
         return (
             <>
@@ -190,14 +199,7 @@ const Cargos = () => {
             </>
         );
     }
-    const salarioBodyTemplate = (rowData) => {
-        return (
-            <>
-                <span className="p-column-title">salario</span>
-                {rowData.salario}
-            </>
-        );
-    }
+
 
     const actionBodyTemplate = (rowData) => {
         return (
@@ -221,13 +223,13 @@ const Cargos = () => {
     const cargoDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveCargo}/>
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveCargo} />
         </>
     );
     const deleteCargoDialogFooter = (
         <>
             <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteCargoDialog} />
-            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteCargo}   />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteCargo} />
         </>
     );
     const deleteCargosDialogFooter = (
@@ -255,37 +257,38 @@ const Cargos = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cargos" 
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cargos"
                         globalFilter={globalFilter}
                         emptyMessage="No se encontraron Cargos."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="idCargo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column field="salario" header="Salario" sortable body={salarioBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                        <Column field="salarioBase" header="Salario Base" sortable body={salarioBaseBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
                     <Dialog visible={cargoDialog} style={{ width: '450px' }} header="Registro de Cargos" modal className="p-fluid" footer={cargoDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={cargo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.nombre })} />
-                            { submitted && !cargo.nombre && <small className="p-invalid">Nombre cargo es requerido.</small> }
+                            <InputText id="nombre" value={cargo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.nombre })} tooltip="Ingrese un nombre de cargo 🖊️📋" />
+                            {submitted && !cargo.nombre && <small className="p-invalid">Nombre cargo es requerido.</small>}
                         </div>
+                        <div className="field">
+                            <label htmlFor="salarioBase">Salario Base</label>
+                            <InputNumber id="salarioBase" value={cargo.salarioBase} onValueChange={(e) => onInputChange(e, 'salarioBase')} mode='currency' currency='HNL' locale='en-US' max={150000} className={classNames({ 'p-invalid': submitted && !cargo.salarioBase })} tooltip="Ingrese un salario en números, no debe ser mayor de L. 150,000.00 🖊️📋" />
+                            {submitted && !cargo.salarioBase && <small className="p-invalid">El salario base es requerido, no debe ser menor o igual a cero.</small>}
+                        </div>
+
                         <div className="field">
                             <label htmlFor="descripcion">Descripción</label>
-                            <InputText id="descripcion" value={cargo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.descripcion })} />
-                            { submitted && !cargo.descripcion && <small className="p-invalid">Descripcion cargo es requerido.</small> }
+                            <InputText id="descripcion" value={cargo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} className={classNames({ 'p-invalid': submitted && !cargo.descripcion })} tooltip="Ingrese una descripción relacionada al cargo 🖊️📋" />
+                            {submitted && !cargo.descripcion && <small className="p-invalid">Descripcion cargo es requerido.</small>}
                         </div>
-                        <div className="field">
-                            <label htmlFor="salario">Salario</label>
-                            <InputText id="salario" type="number" value={cargo.salario} onChange={(e) => onInputChange(e, 'salario')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.salario })} />
-                            {submitted && !cargo.salario && <small className="p-invalid">Salario es requerido.</small>}
-                        </div>
-                    </Dialog> 
+                    </Dialog>
 
                     <Dialog visible={deleteCargoDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteCargoDialogFooter} onHide={hideDeleteCargoDialog}>
                         <div className="flex align-items-center justify-content-center">

@@ -5,54 +5,60 @@ if (!response.ok) {
           }
 */
 
-export class CategoriaClienteService{
+export class CategoriaClienteService {
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getCategoriaClientes(){
+    async getCategoriaClientes() {
         const response = await fetch('http://localhost:8080/api/v1/categoriaClientes');
         return await response.json();
     }
 
-    async removeCategoriaCliente(id){
-        const response = await fetch('http://localhost:8080/api/v1/categoriaClientes/delete/'+id,{
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        });
-    }
-
-    async addCategoriaCliente(categoriaCliente){
+    async removeCategoriaCliente(id) {
         try {
-            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes/addCategoriaCliente',{
-            "method": 'POST',
-            "body": JSON.stringify(categoriaCliente),
-            "headers": {
-                "Content-type": 'application/json'
+            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes/delete/' + id, {
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
                 }
             });
-            
-            const result = await response.json();
-            if(response.status !== 201)throw result;
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
         } catch (error) {
             throw error;
         }
-        
+
     }
 
-    async updateCategoriaCliente(categoriaCliente){
+    async addCategoriaCliente(categoriaCliente) {
         try {
-            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes',{
-            "method": 'PUT',
-            "body": JSON.stringify(categoriaCliente),
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        });
-        const result = await response.json();
-        if(response.status !== 200)throw result;
+            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes/addCategoriaCliente', {
+                "method": 'POST',
+                "body": JSON.stringify(categoriaCliente),
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (response.status !== 201) throw result;
+        } catch (error) {
+            throw error;
+        }
+
+    }
+
+    async updateCategoriaCliente(categoriaCliente) {
+        try {
+            const response = await fetch('http://localhost:8080/api/v1/categoriaClientes', {
+                "method": 'PUT',
+                "body": JSON.stringify(categoriaCliente),
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (response.status !== 200) throw result;
         } catch (error) {
             throw error;
         }

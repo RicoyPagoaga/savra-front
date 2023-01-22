@@ -9,6 +9,7 @@ import '../styles/demo/Demos.scss';
 import '../pages/repuestos/DataTableDemo.css';
 import '../pages/devolucionesCompra/OverlayPanelDemo.css';
 import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOption, localeOptions } from 'primereact/api';
+import View from './ReciboView';
 
  export default function  MyApp({ Component, pageProps }) {
     addLocale('es', {
@@ -19,9 +20,12 @@ import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOptio
         monthNames: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
         monthNamesShort: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
         today: 'Hoy',
-        clear: 'Limpiar'
+        clear: 'Limpiar',
+        emptyFilterMessage: 'No hay opciones disponibles',
+        emptyMessage: 'No se encontrarón resultados'
     });
     
+
     locale('es');
     if (Component.getLayout) {
         return (
@@ -39,7 +43,6 @@ import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOptio
         );
     }
 
-
-    
+   
 }
 

@@ -69,7 +69,7 @@ const Paises = () => {
                try {
                     const paisService = new PaisService();
                     await paisService.updatePais(pais);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Actualizado', life: 3000 });
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Actualizado', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
@@ -79,7 +79,7 @@ const Paises = () => {
                 try {
                     const paisService = new PaisService();
                     await paisService.addPais(pais);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Creado', life: 3000 });
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Creado', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
@@ -101,11 +101,16 @@ const Paises = () => {
     }
 
     const deletePais = async () => {
-        const paisService = new PaisService();
-        await paisService.removePais(pais.idPais);
-        listarPaiss();
-        setDeletePaisDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Pais Eliminado', life: 3000 });
+        try {
+            const paisService = new PaisService();
+            await paisService.removePais(pais.idPais);
+            listarPaiss();
+            setDeletePaisDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Eliminado', life: 3000 });
+    
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+            }
     }
 
     const exportCSV = () => {
@@ -203,7 +208,7 @@ const Paises = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Paiss</h5>
+            <h5 className="m-0">Listado de Países</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />

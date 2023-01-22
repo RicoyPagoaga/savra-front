@@ -14,13 +14,18 @@ export class ShipperService{
     }
     
     async removeShipper(id){
-        let url_ = url + '/delete/' + id;
-        const response = await fetch(url_ ,{
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        });
+        try {
+            let url = url + '/delete/' + id;
+            const response = await fetch(url ,{
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            });
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
+         } catch (error) {
+             throw error;
+         }
     }
 
     async addShipper(shipper){
