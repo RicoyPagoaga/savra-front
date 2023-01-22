@@ -140,12 +140,17 @@ const Arqueos = () => {
     };
     
     const deleteArqueo = async ()=>{
+        try {
         const arqueoservice = new ArqueoService();
         await arqueoservice.removeArqueo(arqueo.idArqueo);
         listarArqueos();
         setDeleteArqueoDialog(false);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Arqueo Eliminado', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });  
+        }
     };
+
     const confirmDeleteArqueo = (arqueo) => {
         setArqueo(arqueo);
         setDeleteArqueoDialog(true);
@@ -257,7 +262,7 @@ const Arqueos = () => {
         return (
             <>
                 <span className="p-column-title">totalRecuento</span>
-                {rowData.totalRecuento}
+                L. {rowData.totalRecuento}
             </>
         );
     };
@@ -335,11 +340,11 @@ const Arqueos = () => {
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
-                        <Column field="idArqueo" header="Id Arqueo" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="idArqueo" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="fecha" header="Fecha Arqueo" sortable body={fechaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="idEmpleado" header="Empleado" sortable body={idEmpleadoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="totalRecuento" header="Total Recuento" sortable body={totalRecuentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="observacion" header="Observacion" sortable body={observacionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="observacion" header="Observación" sortable body={observacionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -355,12 +360,12 @@ const Arqueos = () => {
                             {submitted && !arqueo.idEmpleado && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="totalRecuento">Total Recuento</label>
-                            <InputNumber id="totalRecuento" value={arqueo.totalRecuento} onValueChange={(e) => onInputChange(e, 'totalRecuento')} prefix="L." className={classNames({ 'p-invalid': submitted && !arqueo.totalRecuento })} />
-                            {submitted && !arqueo.totalRecuento && <small className="p-invalid">Total Recuento es requerido.</small>}
+                            <label htmlFor="precio">Total Recuento</label>
+                            <InputNumber id="precio" value={arqueo.totalRecuento} onValueChange={(e) => onInputChange(e, 'totalRecuento')} mode='currency' currency='HNL' locale='en-US' required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.totalRecuento })}/>
+                            {submitted && !arqueo.totalRecuento && <small className="p-invalid">El recuento total es requerido, no debe ser menor o igual a cero.</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="observacion">Observacion</label>
+                            <label htmlFor="observacion">Observación</label>
                             <InputText id="observacion" value={arqueo.observacion} onChange={(e) => onInputChange(e, 'observacion')} required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.observacion })} />
                             {submitted && !arqueo.observacion && <small className="p-invalid">Observacion es requerido.</small>}
                         </div>
@@ -390,4 +395,3 @@ const Arqueos = () => {
 };
 
 export default Arqueos;
-

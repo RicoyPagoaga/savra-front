@@ -107,8 +107,8 @@ const ParametrosFactura = () => {
             }
         } else {
             try {
-                
-                parametrofactura.ultimaFactura = valorU-1;
+
+                parametrofactura.ultimaFactura = valorU - 1;
                 await parametrofacturaservice.addParametroFactura(parametrofactura);
                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Parámetro Factura Registrado', life: 3000 });
                 pasoRegistro();
@@ -138,11 +138,15 @@ const ParametrosFactura = () => {
     };
 
     const deleteParametroFactura = async () => {
-        const parametrofacturaservice = new ParametroFacturaService();
-        await parametrofacturaservice.removeParametroFactura(parametrofactura.idParametro);
-        listarParametrosFactura();
-        setDeleteParametroFacturaDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Parámetro Factura Eliminado', life: 3000 });
+        try {
+            const parametrofacturaservice = new ParametroFacturaService();
+            await parametrofacturaservice.removeParametroFactura(parametrofactura.idParametro);
+            listarParametrosFactura();
+            setDeleteParametroFacturaDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Parámetro Factura Eliminado', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     };
     const confirmDeleteParametroFactura = (parametrofactura) => {
         setParametroFactura(parametrofactura);

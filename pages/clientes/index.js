@@ -22,22 +22,22 @@ const Clientes = () => {
         idCliente: null,
         nombre: '',
         documento: '',
-        idTipoDocumento : null,
+        idTipoDocumento: null,
         telefono: '',
         direccion: '',
         idCategoria: null
     };
 
     let emptyRestApiError = {
-        httpStatus : '',
+        httpStatus: '',
         errorMessage: '',
         errorDetails: ''
     };
 
     const [clientes, setClientes] = useState();
-    const [tipoDocumentos,setTipoDocumentos] = useState([]);
+    const [tipoDocumentos, setTipoDocumentos] = useState([]);
     const [tipoDocumento, setTipoDocumento] = useState(null);
-    const [categoriaClientes,setCategoriaClientes] = useState([]);
+    const [categoriaClientes, setCategoriaClientes] = useState([]);
     const [categoriaCliente, setCategoriaCliente] = useState(null);
     const [clienteDialog, setClienteDialog] = useState(false);
     const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
@@ -56,16 +56,16 @@ const Clientes = () => {
         const clienteservice = new ClienteService();
         clienteservice.getClientes().then(data => setClientes(data));
     };
-    const listarTipoDocumentos = async() => {
+    const listarTipoDocumentos = async () => {
         const tiposDocumentoService = new TipoDocumentoService();
         await tiposDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
     };
-    const listarCategoriasClientes =async () => {
+    const listarCategoriasClientes = async () => {
         const categoriaservice = new CategoriaClienteService();
         await categoriaservice.getCategoriaClientes().then(data => setCategoriaClientes(data));
     };
-    
-    useEffect(async() => {
+
+    useEffect(async () => {
         listarClientes();
         await listarTipoDocumentos();
         await listarCategoriasClientes();
@@ -94,68 +94,68 @@ const Clientes = () => {
         setDeleteClientesDialog(false);
     };
 
-    const pasoRegistro = () =>{
+    const pasoRegistro = () => {
         listarClientes();
         setClienteDialog(false);
         setCliente(emptyCliente);
     }
-    
+
     const saveCliente = async () => {
         setSubmitted(true);
 
-        if (cliente.nombre.trim()) {
-            if (cliente.idCliente) {
-                try {
-                    const clienteservice = new ClienteService();
-                    await clienteservice.updateCliente(cliente);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                    //console.log(apiError.errorDetails);
-                }
-            } else {
-                try {
-                    const clienteservice = new ClienteService();
-                    await clienteservice.addCliente(cliente);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Registrado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    console.log(cliente);
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
-                }
-            };
-            
-        }
+        if (cliente.idCliente) {
+            try {
+                const clienteservice = new ClienteService();
+                await clienteservice.updateCliente(cliente);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+                //console.log(apiError.errorDetails);
+            }
+        } else {
+            try {
+                const clienteservice = new ClienteService();
+                await clienteservice.addCliente(cliente);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Registrado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+            }
+        };
     };
 
-    const editCliente= (cliente) => {
+    const editCliente = (cliente) => {
         setCliente({ ...cliente });
         console.log(tipoDocumentos);
         const documento = tipoDocumentos.find((item) => {
-            if(item.idTipoDocumento == cliente.idTipoDocumento)
-            return item
+            if (item.idTipoDocumento == cliente.idTipoDocumento)
+                return item
         });
         setTipoDocumento(documento);
         const categoria = categoriaClientes.find((item) => {
-            if(item.idCategoria == cliente.idCategoria)
-            return item
+            if (item.idCategoria == cliente.idCategoria)
+                return item
         });
         setCategoriaCliente(categoria);
         setClienteDialog(true);
     };
-    const deleteCliente = async ()=>{
-        const clienteservice = new ClienteService();
-        await clienteservice.removeCliente(cliente.idCliente);
-        listarClientes();
-        setDeleteClienteDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
+    const deleteCliente = async () => {
+        try {
+            const clienteservice = new ClienteService();
+            await clienteservice.removeCliente(cliente.idCliente);
+            listarClientes();
+            setDeleteClienteDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cliente Eliminado', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     };
     const confirmDeleteCliente = (cliente) => {
         setCliente(cliente);
         setDeleteClienteDialog(true);
     };
-   
+
     const exportCSV = () => {
         dt.current.exportCSV();
     };
@@ -173,7 +173,7 @@ const Clientes = () => {
         setSelectedClientes(null);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
     };
-    
+
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _cliente = { ...cliente };
@@ -234,45 +234,45 @@ const Clientes = () => {
         return (
             <>
                 <span className="p-column-title">Documento</span>
-                {rowData.documento==null?' ':rowData.documento}
+                {rowData.documento == null ? ' ' : rowData.documento}
             </>
         );
-    }; 
+    };
 
     const idTipoDocumentoBodyTemplate = (rowData) => {
         const documento = tipoDocumentos.find((item) => {
-            if(item.idTipoDocumento == rowData.idTipoDocumento)
-                 return item;
-            });
-            console.log(documento)
-        if(documento != null){
+            if (item.idTipoDocumento == rowData.idTipoDocumento)
+                return item;
+        });
+        console.log(documento)
+        if (documento != null) {
             return (
                 <>
                     <span className="p-column-title">Id Tipo Documento</span>
                     {
                         documento.nombreDocumento
                     }
-                    
+
                 </>
             );
-        }else{
+        } else {
             return (
                 <>
                     <span className="p-column-title">Id Tipo Documento</span>
                     {
                         rowData.idTipoDocumento
                     }
-                    
+
                 </>
             );
         }
-        
+
     };
     const telefonoBodyTemplate = (rowData) => {
         return (
             <>
                 <span className="p-column-title">Telefono</span>
-                {rowData.telefono==null?' ': rowData.telefono}
+                {rowData.telefono == null ? ' ' : rowData.telefono}
             </>
         );
     };
@@ -280,37 +280,41 @@ const Clientes = () => {
         return (
             <>
                 <span className="p-column-title">Direccion</span>
-                {rowData.direccion==null?' ': rowData.direccion}
+                {rowData.direccion == null ? ' ' : rowData.direccion}
             </>
         );
     };
     const idCategoriaBodyTemplate = (rowData) => {
         const categoria = categoriaClientes.find((item) => {
-            if(item.idCategoria == rowData.idCategoria)
-            return item
+            if (item.idCategoria == rowData.idCategoria)
+                return item
         });
-        if(categoria != null ){
+        if (categoria != null) {
             return (
                 <>
                     <span className="p-column-title">Id Categoria</span>
-                    {categoria.nombre==null?' ': categoria.nombre}
+                    {categoria.nombre == null ? ' ' : categoria.nombre}
                 </>
             );
-        }else{
+        } else {
             return (
                 <>
                     <span className="p-column-title">Id Categoria</span>
-                    {rowData.idCategoria==null?' ': rowData.nombre}
+                    {rowData.idCategoria == null ? ' ' : rowData.nombre}
                 </>
             );
         }
     };
 
     const actionBodyTemplate = (rowData) => {
+        const clientefinal = false;
+        if(rowData.idCliente === 1){
+            clientefinal = true;
+        }
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCliente(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCliente(rowData)} />
+                <Button icon="pi pi-pencil" disabled={clientefinal} className="p-button-rounded p-button-success mr-2" onClick={() => editCliente(rowData)} />
+                <Button icon="pi pi-trash" disabled={clientefinal} className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCliente(rowData)} />
             </>
         );
     };
@@ -368,17 +372,17 @@ const Clientes = () => {
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="idCliente" header="Id Cliente" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="idTipoDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="idCategoria"header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="idCategoria" header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
-                    
+
                     <Dialog visible={clienteDialog} style={{ width: '450px' }} header="Registro Clientes" modal className="p-fluid" footer={clienteDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
@@ -392,7 +396,7 @@ const Clientes = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')}  optionLabel = "nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento })}></Dropdown>
+                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento })}></Dropdown>
                             {submitted && !cliente.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
@@ -407,7 +411,7 @@ const Clientes = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" value={categoriaCliente} onChange={(e) => onInputChange(e, 'idCategoria')} options={categoriaClientes} optionLabel = "nombre" placeholder="Seleccione una Categoría" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria })} ></Dropdown>
+                            <Dropdown id="idCategoria" value={categoriaCliente} onChange={(e) => onInputChange(e, 'idCategoria')} options={categoriaClientes} optionLabel="nombre" placeholder="Seleccione una Categoría" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria })} ></Dropdown>
                             {submitted && !cliente.idCategoria && <small className="p-invalid">Categoría es requerida.</small>}
                         </div>
                     </Dialog>

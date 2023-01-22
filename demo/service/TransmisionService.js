@@ -14,13 +14,18 @@ export class TransmisionService {
     }
 
     async removeTransmision(id) {
-        let url_ = url + '/delete/' + id;
-        const response = await fetch(url_, {
-            "method": 'DELETE',
-            "headers": {
-                "Content-type": 'application/json'
-            }
-        }); 
+        try {
+            let url_ = url + '/delete/' + id;
+            const response = await fetch(url_, {
+                "method": 'DELETE',
+                "headers": {
+                    "Content-type": 'application/json'
+                }
+            });
+            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
+        } catch (error) {
+            throw error;
+        }
     }
 
     async addTransmision(transmision) {
@@ -34,7 +39,7 @@ export class TransmisionService {
                 }
             });
             const result = await response.json();
-            if (response.status !== 201)throw result;
+            if (response.status !== 201) throw result;
         } catch (error) {
             throw error;
         }
@@ -43,14 +48,14 @@ export class TransmisionService {
     async updateTransmision(transmision) {
         try {
             const response = await fetch(url, {
-                "method":'PUT',
+                "method": 'PUT',
                 "body": JSON.stringify(transmision),
                 "headers": {
                     "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
-            if (response.status !== 200)throw result;
+            if (response.status !== 200) throw result;
         } catch (error) {
             throw error;
         }

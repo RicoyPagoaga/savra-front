@@ -1,56 +1,52 @@
 import getConfig from 'next/config';
 
+let url='http://localhost:8080/api/v1/empleado_cargos';
 
-let url='http://localhost:8080/api/v1/cargos';
-
-export class CargoService{
+export class EmpleadoCargoService{
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getCargos(){
+    async getEmpleadoCargos(){
         const response = await fetch(url);
         return await response.json();
     }
-    
-    async removeCargo(id){
-        try {
-            let _url = url + '/delete/' + id;
-            const response = await fetch(_url ,{
-                "method": 'DELETE',
-                "headers": {
-                    "Content-type": 'application/json'
-                }
-            });
-            if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
-        } catch (error) {
-            throw error;
-        }
+
+    async removeEmpleadoCargo(id){
+        let url_ = url + '/delete/' + id;
+        const response = await fetch(url_,{
+            "method": 'DELETE',
+            "headers": {
+                "Content-type": 'application/json'
+            }
+        });
+        if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
     }
 
-    async addCargo(cargo){
+    async addEmpleadoCargo(empleadoCargo){
         try {
-            let url_ = url + '/addCargo';
+            let url_ = url + '/addEmpleadoCargo';
             const response = await fetch(url_,{
             "method": 'POST',
-            "body": JSON.stringify(cargo),
+            "body": JSON.stringify(empleadoCargo),
             "headers": {
                 "Content-type": 'application/json'
                 }
             });
             const result = await response.json();
             if(response.status !== 201)throw result;
+            return result;
         } catch (error) {
             throw error;
         }
         
     }
 
-    async updateCargo(cargo){
+    async updateEmpleadoCargo(empleadoCargo){
         try {
             const response = await fetch(url,{
             "method": 'PUT',
-            "body": JSON.stringify(cargo),
+            "body": JSON.stringify(empleadoCargo),
             "headers": {
                 "Content-type": 'application/json'
             }

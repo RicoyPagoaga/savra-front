@@ -48,7 +48,7 @@ const Facturas = () => {
         fechaFactura: new Date(),
         idMetodoPago: null,
         efectivo: null,
-        tarjeta: '',
+        tarjeta: null,
         idCupon: null,
         idTipoEntrega: null,
         idShipper: null,
@@ -71,28 +71,32 @@ const Facturas = () => {
         precio: 0,
         importe: 0
     }
-    let facturaRecibo = {
-        encabezadoRecibo: facturaVacia,
+    let encabezadoRecibo = {
         cai: '',
-        fechaLimite: null,
+        noFactura: '',
+        fechaLimite: '',
         cliente: '',
+        fechaFactura: '',
         empleado: '',
         tipoEntrega: '',
-        shipper: null,
+        shipper: '',
         costoEnvio: null,
-        fechaDespacho: null,
+        fechaDespacho: '',
+        fechaEntrega: '',
+        metodoPago: '',
+        tarjeta: null,
+        efectivo: null,
+        rangoInicial: '',
+        rangoFinal: '',
+    }
+    let facturaReciboVacio = {
+        encabezado: {},
+        detallesRecibo: [],
         subTotal: 0,
         totalImpuestos: 0,
-        descuentos: null,
-        total: 0,
-        totalItems: 0,
-        formaPago: '',
-        tarjeta: 0,
-        cambio: 0,
-        ahorro: 0,
-        rangoDesde: '',
-        rangoHasta: '',
-        detallesRecibo: [detalleRecibo]
+        totalDescuento: 0,
+        totalItem: 0,
+        total: 0
     }
     const [inputNumberValue, setInputNumberValue] = useState(null);
     const [facturas, setFacturas] = useState();
@@ -100,6 +104,7 @@ const Facturas = () => {
     const [activarDesactivarCuponDialog, setActivarDesactivarCuponDialog] = useState(false);
     const [activarDesactivarCuponsDialog, setActivarDesactivarCuponsDialog] = useState(false);
     const [factura, setFactura] = useState(facturaVacia);
+
     const [checked, setChecked] = useState(false); //estado para el checkbox
     const [parametros, setParametros] = useState([]);
     const [parametro, setParametro] = useState(null);
@@ -113,11 +118,12 @@ const Facturas = () => {
     const [tipoEntrega, setTipoEntrega] = useState(null);
     const [shippers, setShippers] = useState([]);
     const [shipper, setShipper] = useState(null);
+    const [costoEnvio, setCostoEnvio] = useState(0);
     const [fechaDes, setFechaDes] = useState(null);
     const [fechaEn, setFechaEn] = useState(null);
     const [cupones, setCupones] = useState([]);
     const [cupon, setCupon] = useState(null);
-    const [impuestos,setImpuestos] = useState(null);
+    const [impuestos, setImpuestos] = useState(null);
     const [selectedCupons, setSelectedCupons] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
@@ -128,11 +134,13 @@ const Facturas = () => {
     const [efectivo, setEfectivo] = useState(false);
     const [envio, setEnvio] = useState(false);
     const [tarjeta, setTarjeta] = useState(false);
+    const [correlativo, setCorrelativo] = useState(0);
     const [cuponChek, setCuponChek] = useState(false);
 
     //recibo
     const [verRecibo, setVerRecibo] = useState(false);
-    const [infoFactura, setInfoFactura] = useState();
+    const [reciboFactura, setReciboFactura] = useState(facturaReciboVacio);
+    const [detallesRecibo, setDetallesRecibo] = useState([]);
 
 
     //detalle
@@ -142,20 +150,23 @@ const Facturas = () => {
     const [detalle, setDetalle] = useState(detalleVacio);
     const [precioHistoricos, setPrecioHistoricos] = useState([]);
     const [impuestoHistoricos, setImpuestoHistoricos] = useState([]);
-    const [subTotal, setSubTotal] = useState(0);
-    const [impuestoTotal, setImpuestoTotal] = useState(0);
-    const [descuentoTotal, setDescuentoTotal] = useState(0);
-    const [total, setTotal] = useState(0);
+
     //dropdownRepuestos
     const [filterValue, setFilterValue] = useState('');
     const filterInputRef = useRef();
 
+    const [dropdownCupones, setDropdownCupones] = useState([]);
+
     const toast = useRef(null);
     const dt = useRef(null);
 
-    let cantidadInicialDetalle = 1;
-    //let subTotal = 0.0;
-    
+    //ValoresDetalle
+    const [cantidadDetalle, setCantidadDetalle] = useState(null);
+    const [subTotal, setSubTotal] = useState(0);
+    const [impuestoTotal, setImpuestoTotal] = useState(0);
+    const [descuentoTotal, setDescuentoTotal] = useState(0);
+    const [total, setTotal] = useState(0);
+
     const listarFacturas = () => {
         const facturaservice = new FacturaService();
         facturaservice.getFacturas().then(data => setFacturas(data));
@@ -215,6 +226,12 @@ const Facturas = () => {
         impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
     };
 
+    //detalleRecibo
+    const listarDetallesRecibo = (id) => {
+        const detalle = new FacturaDetalleService();
+        detalle.getDetalleRecibo(id).then(data => setDetallesRecibo(data));
+    }
+
     useEffect(() => {
         setValor(true)
         listarFacturas();
@@ -230,11 +247,13 @@ const Facturas = () => {
         listarImpuestos();
         listarPrecios();
         listarImpuestosHistoricos();
-        console.log(precioHistoricos);
+        //console.log(precioHistoricos);
     }, []);
 
     const openNew = () => {
+        setearDropdownCupones()
         setFactura(facturaVacia);
+        setReciboFactura(facturaReciboVacio);
         setDetalle(detalleVacio);
         setDetalles([]);
         setParametro(null);
@@ -271,40 +290,88 @@ const Facturas = () => {
 
     const pasoRegistro = () => {
         listarFacturas();
+        listarParametrosFactura();
         setFacturaDialog(false);
         setFactura(facturaVacia);
-        setVerRecibo(true);
     }
-    const obtenerNoFactura = (factura) => {
+    const obtenerNoFactura = (parametroFactura) => {
         const parametro = parametros.find((item) => {
-            if (item.idParametro == factura.idParametroFactura)
+            if (item.idParametro == parametroFactura)
                 return item;
         });
         var noFacts = parametro.rangoInicial.split('-')
         var noFactura = noFacts[0] + '-' + noFacts[1] + '-' + noFacts[2] + '-' + (1 + parametro.ultimaFactura).toString();
         return noFactura
     }
-    
-    const saveFactura = async () => {
-
-        setSubmitted(true);
-
+    const setearDropdownCupones = () => {
+        let dropdown = []
+        cupones.map((item) => {
+            if(item.activo === 1) {
+                dropdown.push(item);
+            }
+        });
+        setDropdownCupones(dropdown);
+    };
+    const actualizarCorrelativo = async (factura) => {
+        const parametro = parametros.find((item) => {
+            if (item.idParametro == factura.idParametroFactura)
+                return item;
+        });
         try {
-            factura.noFactura = obtenerNoFactura(factura);
-            factura.fechaFactura = new Date();
-            const facturaService = new FacturaService();
-            //const response = facturaService.addFactura(factura);
-            facturaRecibo.encabezadoRecibo = factura;
-            facturaRecibo.detallesRecibo = detalles;
-            console.log(facturaRecibo);
-            // detalles.forEach(function(detalle){
-            //     detalle.idFactura = response.idFactura;
-            // })
-            const facturaDetalleService = new FacturaService();
-            //facturaDetalleService.addFactura(factura)
-            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Factura Creada', life: 3000 });
-            //pasoRegistro();
+            console.log(parametro.ultimaFactura + 1);
+            parametro.ultimaFactura = (parametro.ultimaFactura + 1);
+            console.log(parametro);
+            const parametrofacturaservice = new ParametroFacturaService();
+            await parametrofacturaservice.updateParametroFactura(parametro);
         } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.details, life: 3000 });
+        }
+    }
+    const saveFactura = async () => {
+        setSubmitted(true);
+        try {
+            //factura.fechaFactura = new Date();
+            const facturaService = new FacturaService();
+            console.log(factura);
+            if (detalles.length === 0) {
+                let error = { errorDetails: 'Agregue un repuesto antes de facturar!' }
+                throw (error);
+            }
+            if (factura.idMetodoPago === 1 && factura.efectivo < total) {
+                let error = { errorDetails: 'Efectivo digitado insuficiente!' }
+                throw (error);
+            }
+            if (factura.idMetodoPago === 3) {
+                if (!factura.efectivo) {
+                    let error = { errorDetails: 'Efectivo está vacío!' }
+                    throw (error);
+                }
+                if (factura.efectivo >= total) {
+                    let error = { errorDetails: 'Efectivo no puede ser igual o mayor al total!' }
+                throw (error);
+                }
+            }
+            if (cuponChek === false && cupon === null) {
+                let error = { errorDetails: 'Selecciona un cupón para aplicar, de lo contrario desmarca la casilla' }
+                throw (error);
+            }
+            console.log(factura);
+            if(factura.idParametroFactura){
+                factura.noFactura = obtenerNoFactura(factura.idParametroFactura);
+            }
+            const response = await facturaService.addFactura(factura);
+            detalles.forEach(function (detalle) {
+                detalle.idFactura = response.idFactura;
+            })
+            const facturaDetalleService = new FacturaDetalleService();
+            console.log(detalles);
+            await facturaDetalleService.addFacturaDetalles(detalles);
+            actualizarCorrelativo(factura);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Factura Creada', life: 3000 });
+            pasoRegistro(factura);
+            
+        } catch (error) {
+            console.log(error);
             toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
         }
     }
@@ -324,14 +391,54 @@ const Facturas = () => {
         setCuponDialog(true);
     }
 
-    const visualizarRecibo = () => {
-        //setInfoFactura();
-        setVerRecibo(true);
+    const visualizarRecibo = async (factura) => {
+        let _detalles = []
+        let subTotal1 = 0;
+        let impuestos1 = 0;
+        let descuentos1 = 0;
+        let totalItems1 = 0;
+        let valorCupon = 0;
+        let valorDescCupon = 0
+        const recibo = new FacturaService();
+        const response = await recibo.getRecibo(factura.idFactura);
+        const detalle = new FacturaDetalleService();
+        const datos = await detalle.getDetalleRecibo(factura.idFactura)
+        _detalles = datos;
+        console.log(_detalles);
+        let _recibo = { ...reciboFactura };
+        _detalles.forEach(element => {
+            subTotal1 += element.importe;
+            impuestos1 += element.impuesto;
+            descuentos1 += element.descuento;
+            totalItems1 += element.cantidad;
+        });
+        _recibo.encabezado = response
+        //buscar cupon si es que aplico.
+        if (_recibo.encabezado.cupon != 'N/A') {
+            const miCupon = cupones.find((item) => {
+                if (item.codigo == _recibo.encabezado.cupon) {
+                    return item;
+                }
+            });
+            valorCupon = miCupon.porcentajeDescuento;
+        }
+        _recibo.detallesRecibo = _detalles;
+        _recibo.subTotal = subTotal1.toFixed(2);
+        valorDescCupon = (subTotal1 * (valorCupon / 100));
         
+        descuentos1 = descuentos1 + valorDescCupon;
+        _recibo.totalImpuestos = impuestos1.toFixed(2);
+        _recibo.totalDescuento = descuentos1.toFixed(2);
+        _recibo.totalItem = totalItems1;
+        _recibo.total = (subTotal1 + impuestos1 - descuentos1 + _recibo.encabezado.costoEnvio).toFixed(2);
+        setReciboFactura(_recibo);
+        console.log(_recibo);
+        setVerRecibo(true);
     }
     const cerrarRecibo = () => {
         setVerRecibo(false);
-        //setInfoFactura();
+        setReciboFactura(facturaReciboVacio);
+        console.log(reciboFactura);
     }
 
     const exportCSV = () => {
@@ -351,7 +458,7 @@ const Facturas = () => {
     }
     //limpiar valores si es escogio por envio;
     const nuevoTipoEntrega = () => {
-        factura.costoEnvio = null;
+        setCostoEnvio(0);
         setShipper(null);
         setFechaDes(null);
         setFechaEn(null);
@@ -364,6 +471,7 @@ const Facturas = () => {
             case "idParametroFactura":
                 _factura[`${nombre}`] = val.idParametro;
                 setParametro(e.value)
+                //console.log(_factura.idParametroFactura);
                 break;
             case "idCliente":
                 _factura[`${nombre}`] = val.idCliente;
@@ -407,6 +515,10 @@ const Facturas = () => {
             case "fechaEntrega":
                 _factura[`${nombre}`] = val;
                 setFechaEn(e.value)
+                break;
+            case "costoEnvio":
+                _factura[`${nombre}`] = val;
+                setCostoEnvio(e.value)
                 break;
             default:
                 _factura[`${nombre}`] = val
@@ -475,8 +587,8 @@ const Facturas = () => {
         return (
             <React.Fragment>
 
-                <Button icon="pi pi-print" className="p-button-rounded p-button-secondary mt-2  mr-2" onClick={() => visualizarRecibo()} />
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help " onClick={() => visualizarRecibo()} />
+
+                <Button label="Exportar" icon="pi pi-upload" className="p-button-help " onClick={() => exportCSV()} />
             </React.Fragment>
         )
     }
@@ -519,7 +631,7 @@ const Facturas = () => {
                 </>
             );
         }
-        
+
     }
     const noFacturaBodyTemplate = (rowData) => {
         return (
@@ -553,7 +665,7 @@ const Facturas = () => {
                 </>
             );
         }
-        
+
     }
     const empleadoBodyTemplate = (rowData) => {
         const empleado = empleados.find((item) => {
@@ -613,13 +725,13 @@ const Facturas = () => {
                 </>
             );
         }
-        
+
     }
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
                 {/* <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCupon(rowData)} /> */}
-                <Button icon="pi pi-print" className="p-button-rounded p-button-secondary mt-2" onClick={() => visualizarRecibo()} />
+                <Button icon="pi pi-print" className="p-button-rounded p-button-secondary mt-2" onClick={() => visualizarRecibo(rowData)} />
             </div>
         );
     }
@@ -643,39 +755,20 @@ const Facturas = () => {
             let hasRepuesto = _detalles.some((item) => {
                 return item.idRepuesto === repuesto.idRepuesto;
             });
-            setInputNumberValue(1);
-            if (hasRepuesto === false) {
-                if (cantidadInicialDetalle>0) {
-                    //validar cuanta cantidad se puede comprar
-                    let x = false;
-                    let _repuestos = [...repuestos];
-                    _repuestos.map((item) => {
-                        if (item.idRepuesto === repuesto.idRepuesto && inputNumberValue > (item.stockMaximo - item.stockActual)) {
-                            x = true;
-                        }
-                    });
-                    if (!x) {
-                        //agregar detalle
-                        let idFactura = (!factura.idFactura) ? null : factura.idFactura;
-                        let detalleVacio = {
-                            idFacturaDetalle: null,
-                            idFactura: idFactura,
-                            idRepuesto: repuesto.idRepuesto,
-                            cantidad: 1,
-                            descuento:0.0,
-                        };
-                        _detalles.push(detalleVacio);
-                        setDetalles(_detalles);
-                        setRepuesto(null);
-                        setInputNumberValue(null);
-
-                    } else {
-                        Toast("Cantidad no puede ser mayor a la del Stock Máximo del Repuesto");
-                    }
-                } else {
-                    Toast("Indique cantidad");
-                    console.log(cantidadInicialDetalle);
-                }
+            if (!hasRepuesto) {
+                //IdFactura Siempre sera null al inicio de la facturacion, igual se deja la siguiente validacion
+                let idFactura = (!factura.idFactura) ? null : factura.idFactura;
+                let detalleVacio = {
+                    idFacturaDetalle: null,
+                    idFactura: idFactura,
+                    idRepuesto: repuesto.idRepuesto,
+                    cantidad: 1,
+                    descuento: 0.0,
+                };
+                _detalles.push(detalleVacio);
+                //console.log(_detalles);
+                setDetalles(_detalles);
+                setRepuesto(null);
             } else {
                 Toast('El repuesto: ' + repuesto.nombre + ' ya ha sido agregado al detalle!');
             }
@@ -683,23 +776,20 @@ const Facturas = () => {
             Toast("Debe seleccionar el repuesto a agregar");
         }
     };
+    const eliminarDetalle = (detalle) => {
+        let _detalles = detalles.filter((val) => val.idRepuesto !== detalle.idRepuesto);
+        setDetalles(_detalles);
+        calcularValoresDetalle();
+        toast.current.show({ severity: 'info', summary: 'Éxito', detail: 'Detalle eliminado', life: 3000 });
+    };
     const repBodyTemplate = (rowData) => {
         let nombre = '';
         repuestos.map((item) => {
             if (item.idRepuesto == rowData.idRepuesto) {
-                nombre = item.idRepuesto + '- ' + item.nombre;
+                nombre = item.nombre;
             }
         });
         return nombre;
-    };
-    const eliminarDetalle = (detalle) => {
-        let _detalles = detalles.filter((val) => val.idFacturaDetalle !== detalle.idFacturaDetalle);
-        setDetalles(_detalles);
-        toast.current.show({ severity: 'info', summary: 'Éxito', detail: 'Detalle eliminado', life: 3000 });
-        setSubTotal(0);
-        setImpuestos(0);
-        setDescuentoTotal(0)
-        setTotal(0);
     };
     const cantidadBodyTemplate = (rowData) => {
         let x = 2;
@@ -709,47 +799,61 @@ const Facturas = () => {
                 x = (item.stockActual - item.stockMinimo);
             }
         });
-       
+        //setCantidadDetalle(rowData.cantidad);
+        //console.log(cantidadDetalle);
         return <InputNumber value={rowData.cantidad} onValueChange={(e) => rowData.cantidad = e.value} showButtons mode="decimal" min={1} max={x}
             tooltip="No podrá colocar un valor que supere al Stock Disponible del Repuesto" />
     };
     const descuentoBodyTemplate = (rowData) => {
-        return <InputNumber value={rowData.descuento} onValueChange={(e) => rowData.descuento = e.value} showButtons mode="decimal" min={0} max={50}
+        return <InputNumber value={rowData.descuento} suffix='%' onValueChange={(e) => rowData.descuento = e.value} showButtons mode="decimal" min={0} max={50}
             tooltip="No podrá colocar más del 50% de descuento" />
     };
-    let valorSub= 0;
-    let valorDesc = 0;
-    let ValorImp = 0;
+
     const precioBodyTemplate = (rowData) => {
         const precioHistoric = precioHistoricos.find((item) => {
-            if (item.idRepuesto === rowData.idRepuesto && item.fechaFinal==null)
-                return item;  
+            if (item.idRepuesto === rowData.idRepuesto && item.fechaFinal == null)
+                return item;
         });
-        const repuesto1 = repuestos.find((item) => {
-            if (item.idRepuesto === rowData.idRepuesto)
-                return item;  
-        });
-        const impuesto = impuestos.find((item) => {
-            if (item.idImpuesto === repuesto1.idImpuesto)
-                return item;  
-        });
-        const impuestoHistoric = impuestoHistoricos.find((item) => {
-            if (item.idImpuesto === impuesto.idImpuesto && item.fechaFinal==null)
-                return item;  
-        });
-        valorSub+=rowData.cantidad*precioHistoric.precio;
-        valorDesc+=rowData.cantidad*precioHistoric.precio*(rowData.descuento/100);
-        ValorImp+=rowData.cantidad*precioHistoric.precio*(impuestoHistoric.valor/100);
-        setSubTotal(valorSub);
-        setDescuentoTotal(valorDesc);
-        setImpuestoTotal(ValorImp);
-        setDetalles(detalles);
-        console.log(precioHistoric);
-        if(precioHistoric!=null){
+        calcularValoresDetalle();
+        if (precioHistoric != null) {
             return <h5>L. {precioHistoric.precio}</h5>
-        }else{
+        } else {
             return <h5>L. {rowData.cantidad}</h5>
         }
+
+    };
+    const calcularValoresDetalle = () => {
+        //let _detalles = [...detalles];
+        //console.log(detalles);
+        let totalPrecioH = 0;
+        let descuentoT = 0;
+        let impT = 0;
+        detalles.forEach(item => {
+            const precioHistoric = precioHistoricos.find((vPh) => {
+                if (vPh.idRepuesto === item.idRepuesto && vPh.fechaFinal == null) {
+                    totalPrecioH += vPh.precio * item.cantidad;
+                    return vPh;
+                }
+            });
+            const repuesto1 = repuestos.find((rep) => {
+                if (rep.idRepuesto === item.idRepuesto)
+                    return rep;
+            });
+            const impuesto = impuestos.find((imp) => {
+                if (imp.idImpuesto === repuesto1.idImpuesto)
+                    return imp;
+            });
+            descuentoT += (item.cantidad * precioHistoric.precio) * (item.descuento / 100);
+            const impuestoHistoric = impuestoHistoricos.find((impH) => {
+                if (impH.idImpuesto === impuesto.idImpuesto && impH.fechaFinal == null)
+                    return impH;
+            });
+            impT += (item.cantidad * precioHistoric.precio) * (impuestoHistoric.valor / 100);
+        });
+        setSubTotal(totalPrecioH);
+        setDescuentoTotal(descuentoT);
+        setImpuestoTotal(impT);
+        setTotal(subTotal + impuestoTotal - descuentoT)
     };
     const actionDetalleBodyTemplate = (rowData) => {
         return (
@@ -765,7 +869,7 @@ const Facturas = () => {
             <Button label="Facturar" icon="pi pi-check" className="p-button-text" onClick={saveFactura} />
         </>
     );
-    
+
     const ventaPorEnvio = () => (
         <>
             <div className='p-fluid formgrid grid'>
@@ -776,7 +880,7 @@ const Facturas = () => {
                 </div>
                 <div className="field col-4">
                     <label htmlFor="costoEnvio">Costo Envío:</label>
-                    <InputNumber id="costoEnvio" value={factura.costoEnvio} max={10000} onValueChange={(e) => onInputChange(e, 'costoEnvio')} prefix="L. " tooltip="Escribe el costo de envío que se estima con el shipper, maximo L. 10,000" className={classNames({ 'p-invalid': submitted && !factura.costoEnvio })} />
+                    <InputNumber id="costoEnvio" value={costoEnvio} max={10000} onValueChange={(e) => onInputChange(e, 'costoEnvio')} prefix="L. " tooltip="Escribe el costo de envío que se estima con el shipper, maximo L. 10,000" className={classNames({ 'p-invalid': submitted && !factura.costoEnvio })} />
                     {submitted && !factura.costoEnvio && <small className="p-invalid">Costo de Envío es requerido.</small>}
                 </div>
 
@@ -794,14 +898,16 @@ const Facturas = () => {
             </div>
         </>
     );
-    
+
     const footer = `SubTotal: L. ${subTotal.toFixed(2)}`;
+
     if (verRecibo) {
+        console.log(reciboFactura);
         return (
             <div>
                 <Toolbar className="mb-4" right={reciboToolbarTemplate}></Toolbar>
                 <PDFViewer style={{ width: "100%", height: "80vh" }}>
-                    <ReciboPDF facturaRecibo={facturaRecibo} />
+                    <ReciboPDF facturaRecibo={reciboFactura} />
                 </PDFViewer>
             </div>
 
@@ -809,6 +915,7 @@ const Facturas = () => {
     } else {
         return (
             <div className="grid crud-demo">
+
                 <div className="col-12">
                     <div className="card">
                         <Toast ref={toast} />
@@ -925,8 +1032,8 @@ const Facturas = () => {
                                 </div>
                                 <div className="field col-5">
                                     <label htmlFor="tarjeta">No. Tarjeta:</label>
-                                    <InputText id="tarjeta" value={factura.tarjeta} onChange={(e) => onInputChange(e, 'tarjeta')} minLength={13} maxLength={18} disabled={tarjeta} tooltip="Digite el número de la tarjeta del cliente sin utilizar espacios ni guiones" className={classNames({ 'p-invalid': submitted && !tarjeta && !factura.tarjeta })} />
-                                    {submitted && !tarjeta && !factura.tarjeta && <small className="p-invalid">No. Tarejta es requerida.</small>}
+                                    <InputText id="tarjeta" value={factura.tarjeta} onChange={(e) => onInputChange(e, 'tarjeta')} minLength={13} maxLength={18} disabled={tarjeta} tooltip="Digite el número de la tarjeta del cliente sin utilizar espacios ni guiones debe ser mayor de 13 digitos" className={classNames({ 'p-invalid': submitted && !tarjeta && !factura.tarjeta })} />
+                                    {submitted && !tarjeta && !factura.tarjeta && <small className="p-invalid">No. Tarjeta es requerida.</small>}
                                 </div>
                             </div>
                             <div className='p-fluid formgrid grid'>
@@ -937,7 +1044,7 @@ const Facturas = () => {
                                     </div>
                                 </div>
                                 <div className="field col-7">
-                                    <Dropdown id="idCupon" disabled={cuponChek} options={cupones} value={cupon} onChange={(e) => onInputChange(e, 'idCupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.idCupon })}></Dropdown>
+                                    <Dropdown id="idCupon" disabled={cuponChek} options={dropdownCupones} value={cupon} onChange={(e) => onInputChange(e, 'idCupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.idCupon })}></Dropdown>
                                     {submitted && !cuponChek && !factura.idCupon && <small className="p-invalid">Cúpon es requerido.</small>}
                                 </div>
                             </div>
@@ -949,13 +1056,14 @@ const Facturas = () => {
                             {/* si es por envio: */}
                             {envio ? ventaPorEnvio() : <hr></hr>}
                             <div >
-                                <div className='card, col-5' style={{ paddingLeft: '15%', width: '430px', paddingRight:'0%' }}>
-                                    <div  style={{ textAlign: 'right' ,paddingRight:'1%' }}>
+                                <div className='card, col-5' style={{ paddingLeft: '15%', width: '430px', paddingRight: '0%' }}>
+                                    <div style={{ textAlign: 'right', paddingRight: '1%' }}>
                                         <h5>SubTotal:                   L. {subTotal.toFixed(2)}</h5>
                                         <h5>Total Impuestos:            L. {impuestoTotal.toFixed(2)}</h5>
                                         <h5>Total Descuentos y Rebajas: L. {descuentoTotal.toFixed(2)}</h5>
-                                        <h5>Total:                      L. {(subTotal-impuestoTotal-descuentoTotal).toFixed(2)}</h5>
-                                        
+
+                                        <h5>Total:                      L. {total.toFixed(2)}</h5>
+
                                     </div>
                                 </div>
                             </div>

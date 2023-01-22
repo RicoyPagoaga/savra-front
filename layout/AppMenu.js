@@ -57,7 +57,7 @@ const AppMenu = () => {
                     to: '/modelos/'
                 },
                 {
-                    label: 'Trasmisiones Automotrices',
+                    label: 'Transmisiones Automotrices',
                     icon: 'pi pi-fw pi-sliders-v',
                     to: '/transmisiones/'
                 },
@@ -124,18 +124,18 @@ const AppMenu = () => {
                 
             ]
         },
-        {
-            label: 'Utilidades',
-            icon: 'pi pi-fw pi-briefcase',
-            to: '/pages',
-            items: [
-                {
-                    label: 'Calendario',
-                    icon: 'pi pi-fw pi-calendar',
-                    to: ''
-                }
-            ] 
-        },
+        // {
+        //     label: 'Utilidades',
+        //     icon: 'pi pi-fw pi-briefcase',
+        //     to: '/pages',
+        //     items: [
+        //         {
+        //             label: 'Calendario',
+        //             icon: 'pi pi-fw pi-calendar',
+        //             to: ''
+        //         }
+        //     ] 
+        // },
         {
             label: 'Administración',
             icon: 'pi pi-fw pi-briefcase',
@@ -152,10 +152,15 @@ const AppMenu = () => {
                     to: '/cargos/'
                 },
                 {
-                    label: 'Permisos',
-                    icon: 'pi pi-lock" pi-lock',
-                    to: '/permisos/'
-                }
+                    label: 'Roles',
+                    icon: 'pi pi-building ',
+                    to: '/rol/'
+                },
+                // {
+                //     label: 'Permisos',
+                //     icon: 'pi pi-lock" pi-lock',
+                //     to: '/permisos/'
+                // }
             ] 
         }
         

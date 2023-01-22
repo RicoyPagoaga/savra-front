@@ -82,7 +82,7 @@ const CategoriaCliente = () => {
                 try {
                     const categoriaClienteService = new CategoriaClienteService();
                     await categoriaClienteService.updateCategoriaCliente(CategoriaCliente);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Actualizada', life: 3000 });
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Actualizada', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     //console.log(error);
@@ -93,7 +93,7 @@ const CategoriaCliente = () => {
                 try {
                     const categoriaClienteService = new CategoriaClienteService();
                     await categoriaClienteService.addCategoriaCliente(CategoriaCliente);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Registrada', life: 3000 });
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Registrada', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
                     //setApiError(error);
@@ -116,11 +116,15 @@ const CategoriaCliente = () => {
     };
 
     const deleteCategoriaCliente = async ()=>{
-        const categoriaClienteService = new CategoriaClienteService();
-        await categoriaClienteService.removeCategoriaCliente(CategoriaCliente.idCategoria);
-        listarCategoriaClientes();
-        setDeleteCategoriaClienteDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoria Eliminada', life: 3000 });
+        try {
+            const categoriaClienteService = new CategoriaClienteService();
+            await categoriaClienteService.removeCategoriaCliente(CategoriaCliente.idCategoria);
+            listarCategoriaClientes();
+            setDeleteCategoriaClienteDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categoría Eliminada', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     };
     const confirmDeleteSelected = () => {
         setDeleteCategoriasClientesDialog(true);
@@ -140,7 +144,7 @@ const CategoriaCliente = () => {
         setCategoriaClientes(categoriaCientes);
         setDeleteCategoriasClientesDialog(false);
         setSelectedCategoriaClientes(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Paises Eliminados', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Categorías Eliminadas', life: 3000 });
     };
 
     

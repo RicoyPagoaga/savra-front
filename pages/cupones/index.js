@@ -19,8 +19,8 @@ const Cupones = () => {
         codigo: '',
         fechaEmision: null,
         fechaCaducidad: null,
-        cantidadMaxima: null,
-        cantidadDisponible: null,
+        cantidadMaxima: 1,
+        cantidadDisponible: 1,
         activo: 1,
         porcentajeDescuento: null,
     };
@@ -346,8 +346,8 @@ const Cupones = () => {
                         <Column field="codigo" header="Código" sortable body={codigoBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
                         <Column field="fechaEmision" header="Fecha Emisión" sortable body={fechaEmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
                         <Column field="fechaCaducidad" header="Fecha Caducidad" sortable body={fechaCaducidadBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                        <Column field="cantidadMaxima" header="Cantidad Máxima" sortable body={cantidadMaximaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="cantidadDisponible" header="Cantidad Disponible" sortable body={cantidadDisponibleDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        {/* <Column field="cantidadMaxima" header="Cantidad Máxima" sortable body={cantidadMaximaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="cantidadDisponible" header="Cantidad Disponible" sortable body={cantidadDisponibleDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column> */}
                         <Column field="porcentaDescuento" header="Porcentaje Descuento" sortable body={porcentaDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="activo" header="Estado" sortable body={estadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
@@ -369,7 +369,7 @@ const Cupones = () => {
                             <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaC} onChange={(e) => onInputChange(e, 'fechaCaducidad')} placeholder="Seleccione una fecha de caducidad"></Calendar>
                             {submitted && !cupon.fechaCaducidad && <small className="p-invalid">Fecha de Caducidad es requerida.</small>}
                         </div>
-                        <div className="field">
+                        {/* <div className="field">
                             <label htmlFor="cantidadMaxima">Cantidad Máxima</label>
                             <InputNumber id="cantidadMaxima" value={cupon.cantidadMaxima} onValueChange={(e) => onInputChange(e, 'cantidadMaxima')} max={150} tooltip="Digita la cantidad máxima apropiada que tendras de este cupón " className={classNames({ 'p-invalid': submitted && !cupon.cantidadMaxima })} />
                             {submitted && !cupon.cantidadMaxima && <small className="p-invalid">Cantidad Máxima es requerida.</small>}
@@ -378,7 +378,7 @@ const Cupones = () => {
                             <label htmlFor="cantidadDisponible">Cantidad Disponible</label>
                             <InputNumber id="cantidadDisponible" disabled={cantidadDefault} value={cupon.cantidadDisponible} max={150} onValueChange={(e) => onInputChange(e, 'cantidadDisponible')} tooltip="Al crear este cupon por defecto tendrá su cantidad máxima, si quieres cambiar el valor editalo una vez creado" className={classNames({ 'p-invalid': submitted && !cupon.cantidadDisponible })} />
                             {submitted && !cupon.cantidadDisponible && <small className="p-invalid">Cantidad Disponible es requerida.</small>}
-                        </div>
+                        </div> */}
                         <div className="field">
                             <label htmlFor="porcentaDescuento">Porcentaje Descuento</label>
                             <InputNumber id="porcentajeDescuento" value={cupon.porcentajeDescuento} onValueChange={(e) => onInputChange(e, 'porcentajeDescuento')} suffix="%" tooltip="Escribe solamente el número (sin su tanto porciento) del porcentaje que deseas aplicar" className={classNames({ 'p-invalid': submitted && !cupon.porcentajeDescuento })} />

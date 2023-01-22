@@ -11,7 +11,11 @@ export class FacturaService{
         const response = await fetch(url);
         return await response.json();
     }
-
+    
+    async getRecibo(id){
+        const response = await fetch(url+'/idFactura/'+id);
+        return await response.json();
+    }
     // async removeFactura(id){
     //     let url_ = url + '/delete/' + id;
     //     const response = await fetch(url_,{
@@ -34,6 +38,7 @@ export class FacturaService{
                 }
             });
             const result = await response.json();
+            console.log(result);
             if(response.status !== 201)throw result;
             return result;
         } catch (error) {

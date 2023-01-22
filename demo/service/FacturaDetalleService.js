@@ -12,7 +12,7 @@ export class FacturaDetalleService {
         return await response.json();
     }
     async getFacturaDetallesByIdFactura(id) {
-        let url_ = url + '/idFactura/' + id;
+        let url_ = url + '/idFacturaNormal/' + id;
         const response = await fetch(url_, {
             "method": 'GET',
             "headers": {
@@ -20,6 +20,11 @@ export class FacturaDetalleService {
             }
         });
         //if (response.status != 200) throw 'No es posible eliminar el registro, se encuentra en uso';
+        return await response.json();
+    }
+
+    async getDetalleRecibo(id){
+        const response = await fetch(url+'/idFactura/'+id);
         return await response.json();
     }
     // async removeFacturaDetalle(id){

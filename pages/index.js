@@ -12,7 +12,6 @@ import { Toast } from 'primereact/toast';
 import { UsuarioService } from '../demo/service/UsuarioService';
 
 const LoginPage = () => {
-    const [click, setClick] = useState(false);
     const [checked, setChecked] = useState(false);
     const { layoutConfig } = useContext(LayoutContext);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
@@ -22,15 +21,17 @@ const LoginPage = () => {
 
     let usuarioVacio = {
         username: '',
-        password: ''
+        password: '',
+        intentos:0
     }
 
+    const [listaUsuarios, setListaUsuarios] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [usuario, setUsuario] = useState(usuarioVacio);
 
     const listarUsuarios = () => {
         const usuarioService = new UsuarioService();
-        usuarioService.getUsuarios().then(data => setUsuarios(data));
+        usuarioService.getUsuarios().then(data => setListaUsuarios(data));
     };
 
     useEffect(() => {
@@ -44,25 +45,89 @@ const LoginPage = () => {
         let _usuario = { ...usuario };
         _usuario[`${nombre}`] = val;
 
-        console.log(_usuario);
         setUsuario(_usuario);
     }
 
-    const validarLogin = (usuario) => {
-        console.log('click');
-        console.log(usuario);
+    const validarLogin = async (usuario) => {
         if ( usuario.username.trim()=='' || usuario.password.trim()=='' ) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: 'No deje campos vacíos', life: 3000 }); 
         } else {
-            usuarios.map((item) => {    
-                if (usuario.username == item.username && usuario.password == item.password) {
-                    router.push('/dashboard/')
+            
+            try {
+                let y;
+                const usuarioService = new UsuarioService();
+                await usuarioService.validarUsuarioBloqueado(usuario.username).then(data => y=data);
+
+                if(y==true) {
+                    setUsuario(usuarioVacio);
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'No puede acceder, el Usuario está bloqueado', life: 3000 });
                 } else {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });   
+                    //validar password y username
+                    let x;
+                    await usuarioService.validarLogin(usuario.username, usuario.password).then(data => x=data);
+
+                    switch(x) {
+                        case true:
+                            router.push('/dashboard/');
+                            setUsuarios([]);
+                            break;
+
+                        case false:
+                            let existe=false;
+                            listaUsuarios.map((item) => {
+                                if(item.username===usuario.username) 
+                                    existe=true
+                            });
+                            
+                            if(existe===true && usuario.username!=='admin') { //si el usuario existe, se cuenta intentos fallidos
+                                let _usuario={...usuario};
+                                let _usuarios = [...usuarios];
+                                const index = findByUsername(usuario.username);
+                                let intentos=0;
+                                if(index==-1) {
+                                    _usuario.intentos++;
+                                    _usuarios.push(_usuario);
+                                    intentos=_usuario.intentos;
+                                } else {
+                                    let u = _usuarios[index];
+                                    u.intentos++;
+                                    _usuarios[index] = u;
+                                    intentos=u.intentos;
+                                }
+                                if(intentos>=3) {
+                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario bloqueado', life: 3000 }); 
+                                    await usuarioService.bloquearUsuario(1, usuario.username);
+                                } else 
+                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });                             
+                                
+                                setUsuarios(_usuarios);
+                                setUsuario(usuarioVacio);    
+                            } else {
+                                setUsuario(usuarioVacio);
+                                toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });
+                            }
+                    }
                 }
-            });
+                
+
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+            }
+            
         }
              
+    }
+
+    const findByUsername = (username) => {
+        let index=-1;
+        for (let i = 0; i < usuarios.length; i++) {
+            if (usuarios[i].username === username) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
     }
 
     return (
@@ -73,7 +138,7 @@ const LoginPage = () => {
                         <Toast ref={toast} />
                         <div className="text-center mb-5">
                             <img src={`${contextPath}/demo/images/login/img_login_01.png`} alt="hyper" height="100" className="mb-3" />
-                            <div className="text-900 text-3xl font-medium mb-3">Bienvenido(a)!</div>
+                            <div className="text-900 text-3xl font-medium mb-3">¡Bienvenido(a)!</div>
                             <span className="text-600 font-medium">Inicia Sesión Para Continuar</span>
                         </div>
 
@@ -81,14 +146,14 @@ const LoginPage = () => {
                             <label htmlFor="username" className="block text-900 text-xl font-medium mb-2">
                                 Usuario
                             </label>
-                            <InputText inputid="username" type="text" placeholder="Username" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }} 
+                            <InputText inputid="username" type="text" placeholder="Nombre de Usuario" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }} 
                             value={usuario.username} onChange={(e) => onInputChange(e, 'username')}  />
                             
                             <label htmlFor="password" className="block text-900 font-medium text-xl mb-2">
-                                Password
+                                Contraseña
                             </label>
-                            <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')} placeholder="Password" 
-                            toggleMask className="w-full mb-5" inputClassName='w-full p-3 md:w-30rem'></Password>
+                            <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')} placeholder="Contraseña" 
+                            toggleMask feedback={false} className="w-full mb-5" inputClassName='w-full p-3 md:w-30rem'></Password>
 
                             <div className="flex align-items-center justify-content-between mb-5 gap-5">
                                 <div className="flex align-items-center">
@@ -98,7 +163,7 @@ const LoginPage = () => {
                                     </label>
                                 </div>
                                 <a className="font-medium no-underline ml-2 text-right cursor-pointer" style={{ color: 'var(--primary-color)' }}>
-                                    Olvidó su contraseña?
+                                    ¿Olvidó su contraseña?
                                 </a>
                             </div>
                             <Button label="Acceder" className="w-full p-3 text-xl" onClick={() => validarLogin(usuario)}></Button>
