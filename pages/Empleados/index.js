@@ -148,7 +148,7 @@ const Empleados = () => {
         const empleadoCargoService = new EmpleadoCargoService();
         //
         var fechaHoy = new Date();
-        let fechaActual = `${fechaHoy.getFullYear()}-${fechaHoy.getMonth() + 1}-${fechaHoy.getDate()}`;
+        //let fechaActual = `${fechaHoy.getFullYear()}-${fechaHoy.getMonth() + 1}-${fechaHoy.getDate()}`;
         //_empleadoCargo.fechaInicio = new Date();
         empleadoCargo.fechaInicio = new Date();
         if (empleado.idEmpleado) {
@@ -161,40 +161,43 @@ const Empleados = () => {
 
             // });
             //console.log(miCargo.fechaInicio);
-            console.log(fechaActual);
+            //console.log(fechaActual);
             try {
-                console.log(cambioCargo);
-                console.log(_valorAct.idCargo);
-                if (cambioCargo) {
-                    if (cargo.idCargo == _valorAct.idCargo) {
-                        toast.current.show({ severity: 'info', summary: 'Aviso', detail: "Se detectó un cambio en el cargo pero no se actualizará el mismo", life: 3000 });
-                    } else {
-                        if (miCargo.fechaInicio == fechaActual) {
-                            toast.current.show({ severity: 'error', summary: 'Error', detail: "Se ha actualizado o registrado recientemente un cargo a este empleado, modificar despues de 24hrs", life: 3000 });
-                        } else {
-                            const getfecha = () => {
-                                var fec = miCargo.fechaInicio.toString().split('-');
-                                return new Date(fec[0], fec[1] - 1, fec[2])
-                            }
-                            miCargo.fechaInicio = getfecha();
-                            miCargo.fechaFinal = new Date(); //arrgalr cambio de fecha!
-                            console.log(miCargo);
-                            console.log(empleado);
-                            //await empleadoCargoService.updateEmpleadoCargo(miCargo)
-                            //await empleadoservice.updateEmpleado(empleado);
-                            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado y Cargo Actualizado', life: 3000 });
-                            console.log("Ahorita lo asciendo perro");
-                        }
-                        console.log("Lo cambiaste puto");
-                    }
-                } else {
-                    await empleadoservice.updateEmpleado(empleado);
+                await empleadoservice.updateEmpleado(empleado);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
                     pasoRegistro();
-                }
-
-
-            } catch (error) {
+                //console.log(cambioCargo);
+                //console.log(_valorAct.idCargo);
+                //if (cambioCargo) {
+                    // if (cargo.idCargo == _valorAct.idCargo) {
+                    //     toast.current.show({ severity: 'info', summary: 'Aviso', detail: "Se detectó un cambio en el cargo pero no se actualizará el mismo", life: 3000 });
+                    // } else {
+                    //     if (miCargo.fechaInicio == fechaActual) {
+                    //         toast.current.show({ severity: 'error', summary: 'Error', detail: "Se ha actualizado o registrado recientemente un cargo a este empleado, modificar despues de 24hrs", life: 3000 });
+                    //     } else {
+                    //         const getfecha = () => {
+                    //             var fec = miCargo.fechaInicio.toString().split('-');
+                    //             return new Date(fec[0], fec[1] - 1, fec[2])
+                    //         }
+                    //         miCargo.fechaInicio = getfecha();
+                    //         miCargo.fechaFinal = new Date(); //arrgalr cambio de fecha!
+                    //         console.log(miCargo);
+                    //         console.log(empleado);
+                    //         //await empleadoCargoService.updateEmpleadoCargo(miCargo)
+                    //         //await empleadoservice.updateEmpleado(empleado);
+                    //         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado y Cargo Actualizado', life: 3000 });
+                    //         console.log("Ahorita lo asciendo perro");
+                    //     }
+                    //     console.log("Lo cambiaste puto");
+                    //}
+                 //} //else {
+                //     await empleadoservice.updateEmpleado(empleado);
+                //     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
+                //     pasoRegistro();
+                // }
+            } 
+            catch (error) {
+                console.log(error);
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
         } else {
@@ -544,13 +547,22 @@ const Empleados = () => {
             </div>
         );
     };
+    const filter = (e) => {
+        let x = e.target.value;
+
+        if (x.trim() != '') 
+            setGlobalFilter(x);
+        else
+            setGlobalFilter(' ');
+    }
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Empleados</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
+                <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
+                
             </span>
         </div>
     );
@@ -623,7 +635,7 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="documento">Documento</label>
-                            <InputText id="documento" value={empleado.documento} onChange={(e) => onInputChange(e, 'documento')} className={classNames({ 'p-invalid': submitted && !empleado.documento })} tooltip="Ingrese una descripción relacionada al permiso 🖊️📋" />
+                            <InputText id="documento" value={empleado.documento} onChange={(e) => onInputChange(e, 'documento')} className={classNames({ 'p-invalid': submitted && !empleado.documento })} tooltip="Ingrese un numero de documento valido 🖊️📋" />
                             {submitted && !empleado.documento && <small className="p-invalid">Documento es requerido.</small>}
                         </div>
                         <div className="field">
