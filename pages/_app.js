@@ -10,8 +10,9 @@ import '../pages/repuestos/DataTableDemo.css';
 import '../pages/devolucionesCompra/OverlayPanelDemo.css';
 import { locale, addLocale, updateLocaleOption, updateLocaleOptions, localeOption, localeOptions } from 'primereact/api';
 import View from './ReciboView';
+import { SessionProvider } from 'next-auth/react';
 
- export default function  MyApp({ Component, pageProps }) {
+export default function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     addLocale('es', {
         firstDayOfWeek: 1,
         dayNames: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
@@ -24,25 +25,30 @@ import View from './ReciboView';
         emptyFilterMessage: 'No hay opciones disponibles',
         emptyMessage: 'No se encontrarón resultados'
     });
-    
+
 
     locale('es');
     if (Component.getLayout) {
         return (
-            <LayoutProvider>
-                {Component.getLayout(<Component {...pageProps} />)}
-            </LayoutProvider>
+            <SessionProvider session={session}>
+                <LayoutProvider>
+                    {Component.getLayout(<Component {...pageProps} />)}
+                </LayoutProvider>
+            </SessionProvider>
+
         )
     } else {
         return (
-            <LayoutProvider>
-                <Layout>
-                    <Component {...pageProps} />
-                </Layout>
-            </LayoutProvider>
+            <SessionProvider session={session}>
+                <LayoutProvider>
+                    <Layout>
+                        <Component {...pageProps} />
+                    </Layout>
+                </LayoutProvider>
+            </SessionProvider>
         );
     }
 
-   
+
 }
 

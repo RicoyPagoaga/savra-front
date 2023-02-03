@@ -7,12 +7,20 @@ import { Menu } from 'primereact/menu';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { ProductService } from '../../demo/service/ProductService';
 import { LayoutContext } from '../../layout/contex/layoutcontext';
+import { FacturaService } from '../../demo/service/FacturaService';
 import Link from 'next/link';
+import { RepuestoService } from '../../demo/service/RepuestoService';
+import { ClienteService } from '../../demo/service/clienteservice';
+import { getSession, useSession } from "next-auth/react"
+import { redirect } from 'next/dist/server/api-utils';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { UsuarioService } from '../../demo/service/UsuarioService';
+
 const lineData = {
-    labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+    labels: ['Enero', 'Febreo', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio'],
     datasets: [
         {
-            label: 'First Dataset',
+            label: 'Primer Línea de Datos',
             data: [65, 59, 80, 81, 56, 55, 40],
             fill: false,
             backgroundColor: '#2f4860',
@@ -20,7 +28,7 @@ const lineData = {
             tension: 0.4
         },
         {
-            label: 'Second Dataset',
+            label: 'Segunda Línea de Datos',
             data: [28, 48, 40, 19, 86, 27, 90],
             fill: false,
             backgroundColor: '#00bb7e',
@@ -31,12 +39,56 @@ const lineData = {
 };
 
 const Dashboard = () => {
+    let usuarioVacio = {
+        idUsuario: null,
+        username: '',
+        password: '',
+        activo: 1,
+        bloqueado: 0,
+        idRol: null,
+        nombre: '',
+        apellido: '',
+        clientesVista: 0,
+        ultimaVisita: null
+    };
+    const { data: session } = useSession();
     const [products, setProducts] = useState(null);
     const menu1 = useRef(null);
     const menu2 = useRef(null);
     const [lineOptions, setLineOptions] = useState(null);
     const { layoutConfig } = useContext(LayoutContext);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const [ventas, setVentas] = useState([]);
+    const [repuestos, setRepuestos] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const [usuarios, setUsuarios] = useState([]);
+    const [usuario, setUsuario] = useState(usuarioVacio);
+    const [nuevosClientes, setNuevosClientes] = useState(0);
+
+    const listarFacturas = () => {
+        const facturaservice = new FacturaService();
+        facturaservice.getFacturas().then(data => setVentas(data));
+    };
+    const listarRepuestos = () => {
+        const repuestoService = new RepuestoService();
+        repuestoService.getRepuestos().then(data => setRepuestos(data));
+    };
+    const listarClientes = () => {
+        const clienteservice = new ClienteService();
+        clienteservice.getClientes().then(data => setClientes(data));
+    };
+    const listarUsuarios = () => {
+        const usuarioService = new UsuarioService();
+        usuarioService.getUsuarios().then(data => setUsuarios(data));
+    };
+    const encontrarUsuario = async () => {
+        listarUsuarios();
+        const user = usuarios.find((item) => {
+            if (item.username === session.user.email) {
+                setUsuario(item);
+            }
+        });
+    }
 
     const applyLightTheme = () => {
         const lineOptions = {
@@ -105,6 +157,12 @@ const Dashboard = () => {
     useEffect(() => {
         const productService = new ProductService();
         productService.getProductsSmall().then((data) => setProducts(data));
+        listarFacturas()
+        listarRepuestos();
+        listarClientes();
+        //listarUsuarios();
+        encontrarUsuario();
+        setNuevosClientes(clientes.length-usuario.clientesVista);
     }, []);
 
     useEffect(() => {
@@ -118,6 +176,23 @@ const Dashboard = () => {
     const formatCurrency = (value) => {
         return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     };
+    const templateclientesNuevos = () => {
+        return (
+            <>
+                <span className="text-green-500 font-medium">{nuevosClientes}</span>
+                <span className="text-500"> Nuevos clientes</span>
+            </>
+        )
+    }
+    const templateultimaVisita = () => {
+        let _usuario = {...usuario}
+
+        return (
+            <>
+                <span className="block text-500 font-medium mb-3">Última Visita: {_usuario.ultimaVisita == null ? `Bienvenido` : _usuario.ultimaVisita.toLocaleString()}</span>
+            </>
+        )
+    }
 
     return (
         <div className="grid">
@@ -126,30 +201,14 @@ const Dashboard = () => {
                     <div className="flex justify-content-between mb-3">
                         <div>
                             <span className="block text-500 font-medium mb-3">Ventas</span>
-                            <div className="text-900 font-medium text-xl">152</div>
+                            <div className="text-900 font-medium text-xl">{ventas.length}</div>
                         </div>
                         <div className="flex align-items-center justify-content-center bg-blue-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
                             <i className="pi pi-shopping-cart text-blue-500 text-xl" />
                         </div>
                     </div>
-                    <span className="text-green-500 font-medium">24  </span>
-                    <span className="text-500"> nuevas</span>
-                </div>
-            </div>
-            
-            <div className="col-12 lg:col-6 xl:col-3">
-                <div className="card mb-0">
-                    <div className="flex justify-content-between mb-3">
-                        <div>
-                            <span className="block text-500 font-medium mb-3">Clientes</span>
-                            <div className="text-900 font-medium text-xl">28441</div>
-                        </div>
-                        <div className="flex align-items-center justify-content-center bg-cyan-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
-                            <i className="pi pi-inbox text-cyan-500 text-xl" />
-                        </div>
-                    </div>
-                    <span className="text-green-500 font-medium">520 </span>
-                    <span className="text-500">Nuevos clientes</span>
+                    {/* <span className="text-green-500 font-medium">24  </span>
+                    <span className="text-500"> nuevas</span> */}
                 </div>
             </div>
 
@@ -157,15 +216,30 @@ const Dashboard = () => {
                 <div className="card mb-0">
                     <div className="flex justify-content-between mb-3">
                         <div>
-                            <span className="block text-500 font-medium mb-3">Cotizaciones</span>
-                            <div className="text-900 font-medium text-xl">15 Pendientes</div>
+                            <span className="block text-500 font-medium mb-3">Clientes</span>
+                            <div className="text-900 font-medium text-xl">{clientes.length}</div>
                         </div>
-                        <div className="flex align-items-center justify-content-center bg-purple-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
-                            <i className="pi pi-comment text-purple-500 text-xl" />
+                        <div className="flex align-items-center justify-content-center bg-cyan-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
+                            <i className="pi pi-inbox text-cyan-500 text-xl" />
                         </div>
                     </div>
-                    <span className="text-green-500 font-medium">85 </span>
-                    <span className="text-500">resueltas</span>
+                    {templateclientesNuevos()}
+                </div>
+            </div>
+
+            <div className="col-12 lg:col-6 xl:col-3">
+                <div className="card mb-0">
+                    <div className="flex justify-content-between mb-3">
+                        <div>
+                            <span className="block text-500 font-medium mb-3">Repuestos</span>
+                            <div className="text-900 font-medium text-xl">{repuestos.length}</div>
+                        </div>
+                        <div className="flex align-items-center justify-content-center bg-purple-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
+                            <i className="pi pi-wrench text-purple-500 text-xl" />
+                        </div>
+                    </div>
+                    {/* <span className="text-green-500 font-medium">85 </span>
+                    <span className="text-500">resueltas</span> */}
                 </div>
             </div>
 
@@ -179,8 +253,8 @@ const Dashboard = () => {
                                 ref={menu1}
                                 popup
                                 model={[
-                                    { label: 'Add New', icon: 'pi pi-fw pi-plus' },
-                                    { label: 'Remove', icon: 'pi pi-fw pi-minus' }
+                                    { label: 'Añadir nuevo', icon: 'pi pi-fw pi-plus', to: '/facturas/' }
+                                    // { label: 'Remove', icon: 'pi pi-fw pi-minus' }
                                 ]}
                             />
                         </div>
@@ -269,12 +343,33 @@ const Dashboard = () => {
                 </div>
 
                 <div className="card">
-                
+                    {templateultimaVisita()}
                 </div>
             </div>
         </div>
     );
 };
+
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+    // const session = await getSession({req})
+    // console.log(session);
+    // if(!session){
+    //     return{
+    //         redirect:{
+    //             destination:'/',
+    //             permanent:false
+    //         }
+    //     }
+    // }
+    // return {
+    //     props:{session}
+    // }
+}
 
 export default Dashboard;
 

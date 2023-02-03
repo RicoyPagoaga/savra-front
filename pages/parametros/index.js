@@ -153,8 +153,56 @@ const ParametrosFactura = () => {
         setDeleteParametroFacturaDialog(true);
     };
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idParametro', header: 'ID' },
+        { field: 'cai', header: 'CAI' },
+        { field: 'rangoInicial', header: 'Rango Inicial' },
+        { field: 'rangoFinal', header: 'Rango Final' },
+        { field: 'fechaLimiteEmision', header: 'Fecha Límite Emisión' },
+        { field: 'fechaInicio', header: 'Fecha Inicio' },
+        { field: 'ultimaFactura', header: 'Última Factura' },
+    ];
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default(0, 0);
+
+                doc.autoTable(exportColumns,parametrosFactura);
+                doc.save('Reporte_Parámetros.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(parametrosFactura);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Parámetros');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
     const confirmDeleteSelected = () => {
         setDeleteParametrosFacturaDialog(true);
@@ -217,7 +265,9 @@ const ParametrosFactura = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
             </React.Fragment>
         );
     };
@@ -346,7 +396,7 @@ const ParametrosFactura = () => {
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idParametroFactura" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="idParametro" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column field="cai" header="CAI" sortable body={caiBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="rangoInicial" header="Rango Inicial" sortable body={rangoInicialBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="rangoFinal" header="Rango Final" sortable body={rangoFinalBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>

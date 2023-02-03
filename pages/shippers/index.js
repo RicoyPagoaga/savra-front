@@ -80,7 +80,7 @@ const Shippers = () => {
             try {
                 const shipperService = new ShipperService();
                 await shipperService.updateShipper(shipper);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shipper Actualizado (^‿^)', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Transportista Actualizado (^‿^)', life: 3000 });
                 pasoRegistro();
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
@@ -90,7 +90,7 @@ const Shippers = () => {
             try {
                 const shipperService = new ShipperService();
                 await shipperService.addShipper(shipper);
-                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shipper Creado (^‿^)', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Transportista Creado (^‿^)', life: 3000 });
                 pasoRegistro();
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
@@ -117,7 +117,7 @@ const Shippers = () => {
             await shipperService.removeShipper(shipper.idShipper);
             listarShippers();
             setDeleteShipperDialog(false);
-            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shipper Eliminado', life: 3000 });
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Transportista Eliminado', life: 3000 });
 
         } catch (error) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
@@ -142,7 +142,7 @@ const Shippers = () => {
         setShippers(_shippers);
         setDeleteShippersDialog(false);
         setSelectedShippers(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Shippers Eliminados ', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Transportistas Eliminados ', life: 3000 });
     }
 
 
@@ -254,7 +254,7 @@ const Shippers = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Listado de Shippers:</h5>
+            <h5 className="m-0">Listado de Transportistas:</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -301,7 +301,7 @@ const Shippers = () => {
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Shippers"
                         globalFilter={globalFilter}
-                        emptyMessage="No se encontraron Shippers."
+                        emptyMessage="No se encontraron Transportistas."
                         header={header}
                         responsiveLayout="scroll"
                     >
@@ -315,7 +315,7 @@ const Shippers = () => {
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
                     </DataTable>
 
-                    <Dialog visible={shipperDialog} style={{ width: '450px' }} header="Registro de Shippers" modal className="p-fluid" footer={shipperDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={shipperDialog} style={{ width: '450px' }} header="Registro de Trasnportistas" modal className="p-fluid" footer={shipperDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={shipper.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !shipper.nombre })} />
@@ -344,7 +344,7 @@ const Shippers = () => {
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteShipperDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteShipperDialogFooter} onHide={hideDeleteShipperDialog}>
+                    <Dialog visible={deleteShipperDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteShipperDialogFooter} onHide={hideDeleteShipperDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {shipper && <span>¿Está seguro de que desea eliminar a <b>{shipper.nombre}</b>?</span>}

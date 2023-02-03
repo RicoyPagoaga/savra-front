@@ -28,7 +28,7 @@ import View from '../ReciboView';
 //import 'bootstrap/dist/css/bootstrap.min.css';
 import ReciboPDF from '../ReciboPDF';
 import { PDFViewer } from '@react-pdf/renderer';
-import Moment from 'moment';
+import Moment, { now } from 'moment';
 import Router from 'next/router';
 import dynamic from "next/dynamic";
 
@@ -45,7 +45,7 @@ const Facturas = () => {
         noFactura: '',
         idCliente: null,
         idEmpleado: null,
-        fechaFactura: new Date(),
+        fechaFactura: null,
         idMetodoPago: null,
         efectivo: null,
         tarjeta: null,
@@ -332,6 +332,7 @@ const Facturas = () => {
         try {
             //factura.fechaFactura = new Date();
             const facturaService = new FacturaService();
+
             console.log(factura);
             if (detalles.length === 0) {
                 let error = { errorDetails: 'Agregue un repuesto antes de facturar!' }
@@ -359,6 +360,10 @@ const Facturas = () => {
             if(factura.idParametroFactura){
                 factura.noFactura = obtenerNoFactura(factura.idParametroFactura);
             }
+            const dateM = Date.now();
+            factura.fechaFactura = dateM;//new Date(dateM.toLocaleString("en-US",'America/El_Salvador'));
+            console.log(factura.fechaFactura);
+            //Aqui se guarda la factura
             const response = await facturaService.addFactura(factura);
             detalles.forEach(function (detalle) {
                 detalle.idFactura = response.idFactura;
@@ -874,8 +879,8 @@ const Facturas = () => {
         <>
             <div className='p-fluid formgrid grid'>
                 <div className="field col">
-                    <label htmlFor="idShipper">Shipper:</label>
-                    <Dropdown id="idShipper" options={shippers} value={shipper} onChange={(e) => onInputChange(e, 'idShipper')} optionLabel="nombre" placeholder="Seleccione un Shipper" required autoFocus className={classNames({ 'p-invalid': submitted && !factura.idShipper })}></Dropdown>
+                    <label htmlFor="idShipper">Transportista:</label>
+                    <Dropdown id="idShipper" options={shippers} value={shipper} onChange={(e) => onInputChange(e, 'idShipper')} optionLabel="nombre" placeholder="Seleccione un Transportista" required autoFocus className={classNames({ 'p-invalid': submitted && !factura.idShipper })}></Dropdown>
                     {submitted && !factura.idShipper && <small className="p-invalid">Shipper es requerido.</small>}
                 </div>
                 <div className="field col-4">
@@ -960,7 +965,7 @@ const Facturas = () => {
                                 </div>
                                 <div className="field col-3">
                                     <label htmlFor="fechaFactura">Fecha:</label>
-                                    <InputText id="fechaFactura" value={Moment(factura.fechaFactura).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
+                                    <InputText id="fechaFactura" value={Moment(new Date()).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
                                 </div>
                             </div>
                             <div className='p-fluid formgrid grid'>

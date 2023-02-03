@@ -112,8 +112,52 @@ const TipoDocumentos = () => {
         
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idTipoDocumento', header: 'ID' },
+        { field: 'nombreDocumento', header: 'Nombre del Documento' },
+    ];
+    
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default(0, 0);
+
+                doc.autoTable(exportColumns,tipoDocumentos);
+                doc.save('Reporte_Tipos de Documentos.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(tipoDocumentos);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Tipos de Documentos');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const confirmDeleteSelected = () => {
@@ -130,7 +174,7 @@ const TipoDocumentos = () => {
         setTipoDocumentos(_tipoDocumentos);
         setDeleteTipoDocumentosDialog(false);
         setSelectedTipoDocumentos(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'TipoDocumentoes Eliminados 🚨', life: 3000 });
+        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Documentos Eliminados', life: 3000 });
     }
 
 
@@ -157,7 +201,9 @@ const TipoDocumentos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
             </React.Fragment>
         )
     }
@@ -192,7 +238,7 @@ const TipoDocumentos = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Tipo Documentos</h5>
+            <h5 className="m-0">Tipos de Documentos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
@@ -257,14 +303,14 @@ const TipoDocumentos = () => {
                         </div>
                     </Dialog> 
 
-                    <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
+                    <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {tipoDocumento && <span>¿Está seguro de que desea eliminar a <b>{tipoDocumento.nombreDocumento}</b>?</span>}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteTipoDocumentosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTipoDocumentosDialogFooter} onHide={hideDeleteTipoDocumentosDialog}>
+                    <Dialog visible={deleteTipoDocumentosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentosDialogFooter} onHide={hideDeleteTipoDocumentosDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {tipoDocumento && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}

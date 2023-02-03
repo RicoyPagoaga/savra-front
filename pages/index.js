@@ -10,6 +10,7 @@ import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
 import { Toast } from 'primereact/toast';
 import { UsuarioService } from '../demo/service/UsuarioService';
+import { signIn} from 'next-auth/react';
 
 const LoginPage = () => {
     const [checked, setChecked] = useState(false);
@@ -17,27 +18,38 @@ const LoginPage = () => {
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const router = useRouter();
     const toast = useRef(null);
-    const containerClassName = classNames('surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden', {'p-input-filled': layoutConfig.inputStyle === 'filled'});
+    const containerClassName = classNames('surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden', { 'p-input-filled': layoutConfig.inputStyle === 'filled' });
+    
 
     let usuarioVacio = {
         username: '',
         password: '',
-        intentos:0
+        intentos: 0
     }
-
+    
     const [listaUsuarios, setListaUsuarios] = useState([]);
     const [usuarios, setUsuarios] = useState([]);
     const [usuario, setUsuario] = useState(usuarioVacio);
-
+    const [miUsuario,setMiUsuario] = useState(null);
     const listarUsuarios = () => {
         const usuarioService = new UsuarioService();
         usuarioService.getUsuarios().then(data => setListaUsuarios(data));
     };
-
+    async function IniciarSesion(usuario){
+        const status = await signIn('credentials',{
+            redirect:false,
+            nombre:  usuario.nombre,
+            username:usuario.username,
+            apellido:usuario.apellido,
+            callbackUrl:'/dashboard/'
+        })
+        //console.log(status);
+        if(status.ok) router.push(status.url); 
+    }
     useEffect(() => {
-        listarUsuarios();  
+        listarUsuarios();
         setUsuario(usuarioVacio);
-    }, []); 
+    }, []);
 
 
     const onInputChange = (e, nombre) => {
@@ -47,79 +59,82 @@ const LoginPage = () => {
 
         setUsuario(_usuario);
     }
+    
 
     const validarLogin = async (usuario) => {
-        if ( usuario.username.trim()=='' || usuario.password.trim()=='' ) {
-            toast.current.show({ severity: 'error', summary: 'Error', detail: 'No deje campos vacíos', life: 3000 }); 
+        if (usuario.username.trim() == '' || usuario.password.trim() == '') {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: 'No deje campos vacíos', life: 3000 });
         } else {
-            
             try {
                 let y;
                 const usuarioService = new UsuarioService();
-                await usuarioService.validarUsuarioBloqueado(usuario.username).then(data => y=data);
+                await usuarioService.validarUsuarioBloqueado(usuario.username).then(data => y = data);
 
-                if(y==true) {
+                if (y == true) {
                     setUsuario(usuarioVacio);
                     toast.current.show({ severity: 'error', summary: 'Error', detail: 'No puede acceder, el Usuario está bloqueado', life: 3000 });
                 } else {
                     //validar password y username
                     let x;
-                    await usuarioService.validarLogin(usuario.username, usuario.password).then(data => x=data);
-
-                    switch(x) {
+                    await usuarioService.validarLogin(usuario.username, usuario.password).then(data => x = data);
+                    //console.log(x);
+                    switch (x) {
                         case true:
-                            router.push('/dashboard/');
                             setUsuarios([]);
-                            break;
-
-                        case false:
-                            let existe=false;
-                            listaUsuarios.map((item) => {
-                                if(item.username===usuario.username) 
-                                    existe=true
+                            const user = listaUsuarios.find((item) => {
+                                if (item.username === usuario.username)
+                                    return item;
                             });
-                            
-                            if(existe===true && usuario.username!=='admin') { //si el usuario existe, se cuenta intentos fallidos
-                                let _usuario={...usuario};
+                            IniciarSesion(user);
+                            break;
+                        case false:
+                            let existe = false;
+                            listaUsuarios.map((item) => {
+                                if (item.username === usuario.username)
+                                    existe = true
+                            });
+
+                            if (existe === true && usuario.username !== 'admin') { //si el usuario existe, se cuenta intentos fallidos
+                                let _usuario = { ...usuario };
                                 let _usuarios = [...usuarios];
                                 const index = findByUsername(usuario.username);
-                                let intentos=0;
-                                if(index==-1) {
+                                let intentos = 0;
+                                if (index == -1) {
                                     _usuario.intentos++;
                                     _usuarios.push(_usuario);
-                                    intentos=_usuario.intentos;
+                                    intentos = _usuario.intentos;
                                 } else {
                                     let u = _usuarios[index];
                                     u.intentos++;
                                     _usuarios[index] = u;
-                                    intentos=u.intentos;
+                                    intentos = u.intentos;
                                 }
-                                if(intentos>=3) {
-                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario bloqueado', life: 3000 }); 
+                                if (intentos >= 3) {
+                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario bloqueado', life: 3000 });
                                     await usuarioService.bloquearUsuario(1, usuario.username);
-                                } else 
-                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });                             
-                                
+                                } else
+                                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });
+
                                 setUsuarios(_usuarios);
-                                setUsuario(usuarioVacio);    
+                                setUsuario(usuarioVacio);
                             } else {
                                 setUsuario(usuarioVacio);
                                 toast.current.show({ severity: 'error', summary: 'Error', detail: 'Usuario o contraseña incorrectos', life: 3000 });
                             }
                     }
                 }
-                
+
 
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
-            
+
         }
-             
+
     }
 
     const findByUsername = (username) => {
-        let index=-1;
+        let index = -1;
         for (let i = 0; i < usuarios.length; i++) {
             if (usuarios[i].username === username) {
                 index = i;
@@ -131,6 +146,7 @@ const LoginPage = () => {
     }
 
     return (
+        
         <div className={containerClassName}>
             <div className="flex flex-column align-items-center justify-content-center">
                 <div style={{ borderRadius: '56px', padding: '0.3rem', background: 'linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)' }}>
@@ -146,14 +162,14 @@ const LoginPage = () => {
                             <label htmlFor="username" className="block text-900 text-xl font-medium mb-2">
                                 Usuario
                             </label>
-                            <InputText inputid="username" type="text" placeholder="Nombre de Usuario" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }} 
-                            value={usuario.username} onChange={(e) => onInputChange(e, 'username')}  />
-                            
+                            <InputText inputid="username" type="text" placeholder="Nombre de Usuario" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }}
+                                value={usuario.username} onChange={(e) => onInputChange(e, 'username')} />
+
                             <label htmlFor="password" className="block text-900 font-medium text-xl mb-2">
                                 Contraseña
                             </label>
-                            <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')} placeholder="Contraseña" 
-                            toggleMask feedback={false} className="w-full mb-5" inputClassName='w-full p-3 md:w-30rem'></Password>
+                            <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')} placeholder="Contraseña"
+                                toggleMask feedback={false} className="w-full mb-5" inputClassName='w-full p-3 md:w-30rem'></Password>
 
                             <div className="flex align-items-center justify-content-between mb-5 gap-5">
                                 <div className="flex align-items-center">
