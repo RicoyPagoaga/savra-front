@@ -4,11 +4,7 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
-import { RadioButton } from 'primereact/radiobutton';
-import { Rating } from 'primereact/rating';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
@@ -163,15 +159,23 @@ const Clientes = () => {
         setDeleteClientesDialog(true);
     }
     const deleteSelectedClientes = () => {
+        let x=' ';
         const clienteService = new ClienteService();
         selectedClientes.map(async (cliente) => {
-            await clienteService.removeCliente(cliente.idCliente);
+            try {
+                await clienteService.removeCliente(cliente.idCliente);   
+            } catch (error) {
+                x = x + 'error'; 
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error + ` ${cliente.nombre}`, life: 3000 }); 
+            }
         });
-        let _clientes = clientes.filter((val) => !selectedClientes.includes(val));
-        setClientes(_clientes);
-        setDeleteClientesDialog(false);
-        setSelectedClientes(null);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
+        if (x=='') {
+            let _clientes = clientes.filter((val) => !selectedClientes.includes(val));
+            setClientes(_clientes);
+            setDeleteClientesDialog(false);
+            setSelectedClientes(null);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Clientes Eliminados', life: 3000 });
+        }
     };
 
     const onInputChange = (e, nombre) => {
@@ -319,12 +323,21 @@ const Clientes = () => {
         );
     };
 
+    const filter = (e) => {
+        let x = e.target.value;
+
+        if (x.trim() != '') 
+            setGlobalFilter(x);
+        else
+            setGlobalFilter(' ');
+    }
+
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Clientes</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
+                <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
             </span>
         </div>
     );
@@ -421,7 +434,7 @@ const Clientes = () => {
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {cliente && (
                                 <span>
-                                    Esta seguro que desea eliminar a <b>{cliente.nombre}</b>?
+                                    ¿Está seguro que desea eliminar a <b>{cliente.nombre}</b>?
                                 </span>
                             )}
                         </div>
@@ -430,7 +443,7 @@ const Clientes = () => {
                     <Dialog visible={deleteClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteClientesDialogFooter} onHide={hideDeleteClientesDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {cliente && <span>Esta seguro que desea eliminar los siguientes Clientes?</span>}
+                            {cliente && <span>¿Está seguro que desea eliminar los siguientes Clientes?</span>}
                         </div>
                     </Dialog>
                 </div>
