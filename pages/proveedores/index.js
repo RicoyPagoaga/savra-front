@@ -11,6 +11,8 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { ProveedorService } from '../../demo/service/ProveedorService';
 import { PaisService } from '../../demo/service/PaisService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const Proveedores = () => {
     let proveedorVacio = {
@@ -18,12 +20,12 @@ const Proveedores = () => {
         nombre: '',
         correo: '',
         telefono: '',
-        idPais: null,
+        pais: null,
         nombreContacto: '',
-        sitioWeb: '',
+        sitioWeb: ''
     };
 
-    const [proveedores, setProveedores] = useState(null);
+    const [proveedores, setProveedores] = useState([]);
     const [proveedorDialog, setProveedorDialog] = useState(false);
     const [deleteProveedorDialog, setDeleteProveedorDialog] = useState(false);
     const [deleteProveedoresDialog, setDeleteProveedoresDialog] = useState(false);
@@ -35,6 +37,7 @@ const Proveedores = () => {
     const dt = useRef(null);
     const [paises, setPaises] = useState([]);
     const [codigoISO, setCodigoISO] = useState(false);
+    const { data: session } = useSession();
 
     const listarProveedores = () => {
         const proveedorService = new ProveedorService();
@@ -115,7 +118,6 @@ const Proveedores = () => {
 
     const editProveedor = (proveedor) => {
         setProveedor({ ...proveedor });
-        setCodigoISO(getCodIso(proveedor.idPais));
         setProveedorDialog(true);
     }
 
@@ -136,9 +138,86 @@ const Proveedores = () => {
         }
     }
 
+    const cols = [
+        { field: 'idProveedor', header: 'ID' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'correo', header: 'Correo' },
+        { field: 'pais', header: 'País' },
+        { field: 'telefono', header: 'Teléfono' },
+        { field: 'nombreContacto', header: 'Contacto' },
+        { field: 'sitioWeb', header: 'Sitio Web' }
+    ];
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    let objModificado = proveedores.map(function (element) {
+        return {
+            idProveedor: element.idProveedor,
+            nombre: element.nombre,
+            correo: element.correo,
+            telefono: element.telefono,
+            pais: element.pais.nombre,
+            nombreContacto: element.nombreContacto,
+            sitioWeb: element.sitioWeb,
+        };
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('PROVEEDORES') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('PROVEEDORES', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Proveedores: ' + proveedores.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Proveedores.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Proveedores');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const confirmDeleteSelected = () => {
@@ -162,7 +241,7 @@ const Proveedores = () => {
         const val = (e.target && e.target.value) || '';
         let _proveedor = { ...proveedor };
         if (nombre == 'idPais') {
-            _proveedor[`${nombre}`] = val.idPais;
+            _proveedor[`${nombre}`] = val;
             setCodigoISO(e.value);
         } else {
             _proveedor[`${nombre}`] = val;
@@ -186,7 +265,9 @@ const Proveedores = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -228,16 +309,10 @@ const Proveedores = () => {
     }
 
     const paisBodyTemplate = (rowData) => {
-        let codIso = '';
-        paises.map((pais) => {
-            if (rowData.idPais == pais.idPais) {
-                codIso = pais.cod_iso;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Código ISO</span>
-                {codIso}
+                <span className="p-column-title">Pais</span>
+                {rowData.pais.nombre}
             </>
         );
     }
@@ -336,7 +411,7 @@ const Proveedores = () => {
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '24%', minWidth: '10rem' }}></Column>
                         <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
-                        <Column field="idPais" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="pais.nombre" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
@@ -363,10 +438,10 @@ const Proveedores = () => {
                         </div>
 
                         <div className="field">
-                            <label htmlFor="cod_iso">Código ISO</label>
-                            <Dropdown id="cod_iso" options={paises} value={codigoISO} onChange={(e) => onInputChange(e, 'idPais')} optionLabel="cod_iso" emptyMessage="No se encontraron códigos ISO" 
-                            className={classNames({ 'p-invalid': submitted && !proveedor.idPais })}  />
-                            {submitted && !proveedor.idPais && <small className="p-invalid">El código ISO es requerido.</small>}
+                            <label htmlFor="pais">País del Proveedor</label>
+                            <Dropdown id="pais" options={paises} value={proveedor.pais} onChange={(e) => onInputChange(e, 'pais')} optionLabel="nombre" emptyMessage="No se encontraron códigos ISO" 
+                            className={classNames({ 'p-invalid': submitted && !proveedor.pais })}  />
+                            {submitted && !proveedor.pais && <small className="p-invalid">El País es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="nombreContacto">Contacto</label>
@@ -400,5 +475,12 @@ const Proveedores = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Proveedores;

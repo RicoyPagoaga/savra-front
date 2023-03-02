@@ -74,6 +74,15 @@ export class UsuarioService {
             }
         });      
     }
+    async cerrarSesion(clientes,fecha,username) {
+        let url_ = url + '/cerrarSesion/'+clientes+'/'+ fecha+'/'+username;
+        const response = await fetch(url_, {
+            "method": 'PUT',
+            "headers": {
+                "Content-type": 'application/json'
+            }
+        });      
+    }
 
     async validarLogin(username, password) {
         try {

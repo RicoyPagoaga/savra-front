@@ -8,28 +8,58 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Menu } from 'primereact/menu';
 import { UsuarioService } from '../demo/service/UsuarioService';
+import { ClienteService } from '../demo/service/clienteservice';
+import { Toast } from 'primereact/toast';
+import { signOut, useSession } from 'next-auth/react'
+import { FacturaService } from '../demo/service/FacturaService';
+import { RepuestoService } from '../demo/service/RepuestoService';
 
 const AppTopbar = forwardRef((props, ref) => {
-    const { layoutConfig, layoutState, onMenuToggle, showProfileSidebar,setLayoutConfig } = useContext(LayoutContext);
+    let usuarioVacio = {
+        idUsuario: null,
+        username: '',
+        password: '',
+        activo: 1,
+        bloqueado: 0,
+        idRol: null,
+        nombre: '',
+        apellido: '',
+        clientesVista: 0,
+        ultimaVisita: null
+    };
+    const { layoutConfig, layoutState, onMenuToggle, showProfileSidebar, setLayoutConfig } = useContext(LayoutContext);
     const menubuttonRef = useRef(null);
     const topbarmenuRef = useRef(null);
     const topbarmenubuttonRef = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const menuPerfil = useRef(null);
     const menuConfig = useRef(null);
-    const [usuario, setUsuario] = useState("Usuario");
+    const [usuario, setUsuario] = useState(usuarioVacio);
     const [saludoHora, setSaludoHora] = useState("");
     const [cerrarSesionDialog, setCerrarSesionDialog] = useState(false);
-    const [usuarios, setUsuarios] = useState();
-    const router = useRouter();
+    const [user, setUser] = useState([]);
+    const [ventas, setVentas] = useState([]);
+    const [repuestos, setRepuestos] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const toast = useRef(null);
+    const { data: session } = useSession();
 
     const confirmarCerrarSesion = () => {
         setCerrarSesionDialog(true);
     }
-    const listarUsuarios = () => {
-        const usuarioService = new UsuarioService();
-        usuarioService.getUsuarios().then(data => setUsuarios(data));
+    const listarFacturas = () => {
+        const facturaservice = new FacturaService();
+        facturaservice.getFacturas().then(data => setVentas(data));
     };
+    const listarRepuestos = () => {
+        const repuestoService = new RepuestoService();
+        repuestoService.getRepuestos().then(data => setRepuestos(data));
+    };
+    const listarClientes = () => {
+        const clienteservice = new ClienteService();
+        clienteservice.getClientes().then(data => setClientes(data));
+    };
+
     const saludarHora = () => {
         var hora = new Date().getHours()
         var saludo = '';
@@ -41,14 +71,47 @@ const AppTopbar = forwardRef((props, ref) => {
             saludo = 'Buenas Noches';
         }
         setSaludoHora(saludo);
-        console.log(saludoHora);
+    }
+    const obtenerUsuario = async () => {
+        try {
+            var info = session.user.email.split('/');
+            const usuarioService = new UsuarioService();
+            await usuarioService.getUsuarioByUsername(info[3]).then(data => setUser(data));
+        } catch {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.details, life: 3000 });
+        }
+
     }
 
     useEffect(() => {
+        obtenerUsuario();
+        listarFacturas();
+        listarRepuestos();
+        listarClientes();
         saludarHora()
-        listarUsuarios();
     }, [])
-
+    const actualizarUsuario = async () => {
+        try {
+            let _user = { ...user };
+            let date = null;
+            let pClientes = 0
+            let pVentas = 0
+            let pRepuestos = 0
+            date = new Date(Date.now())
+            pClientes = clientes.length;
+            pVentas = ventas.length;
+            pRepuestos = repuestos.length;
+            _user.clientesVista = pClientes;
+            _user.repuestosVista = pRepuestos;
+            _user.ultimaVisita = date;
+            _user.ventasVista = pVentas;
+            const usuarioService = new UsuarioService();
+            await usuarioService.updateUsuario(_user,true);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Sesión Finalizada', life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.details, life: 3000 });
+        }
+    }
     useImperativeHandle(ref, () => ({
         menubutton: menubuttonRef.current,
         topbarmenu: topbarmenuRef.current,
@@ -70,41 +133,42 @@ const AppTopbar = forwardRef((props, ref) => {
         }
 
         const id = linkElement.getAttribute('id');
-            const cloneLinkElement = linkElement.cloneNode(true);
+        const cloneLinkElement = linkElement.cloneNode(true);
 
-            cloneLinkElement.setAttribute('href', href);
-            cloneLinkElement.setAttribute('id', id + '-clone');
+        cloneLinkElement.setAttribute('href', href);
+        cloneLinkElement.setAttribute('id', id + '-clone');
 
-            linkElement.parentNode.insertBefore(cloneLinkElement, linkElement.nextSibling);
+        linkElement.parentNode.insertBefore(cloneLinkElement, linkElement.nextSibling);
 
-            cloneLinkElement.addEventListener('load', () => {
-                linkElement.remove();
+        cloneLinkElement.addEventListener('load', () => {
+            linkElement.remove();
 
-                const element = document.getElementById(id); // re-check
-                element && element.remove();
+            const element = document.getElementById(id); // re-check
+            element && element.remove();
 
-                cloneLinkElement.setAttribute('id', id);
-                onComplete && onComplete();
-            });
+            cloneLinkElement.setAttribute('id', id);
+            onComplete && onComplete();
+        });
     };
     //
     const ocultarCerrarSesionDialog = () => {
         setCerrarSesionDialog(false);
     };
-    const cerrarSesion = () => {
-        router.push('/')
+    function cerrarSesion() {
+        actualizarUsuario()
+        signOut({ redirect: '/' })
     }
     let itemsPerfil = [
         {
             label: 'Sesión',
-            items: [{ label: 'Cerrar Sesión', icon: 'pi pi-fw pi-power-off',command:(e) => {confirmarCerrarSesion()}}]
+            items: [{ label: 'Cerrar Sesión', icon: 'pi pi-fw pi-power-off', command: (e) => { confirmarCerrarSesion() } }]
         }
     ]
     let itemsConfig = [
         {
             label: 'Tema',
-            items: [{ label: 'Oscuro', icon: 'pi pi-fw pi-moon', command: () => {changeTheme('lara-dark-indigo', 'dark')} },
-            { label: 'Claro', icon: 'pi pi-fw pi-sun', command: () => {changeTheme('lara-light-indigo', 'light')}}]
+            items: [{ label: 'Oscuro', icon: 'pi pi-fw pi-moon', command: () => { changeTheme('lara-dark-indigo', 'dark') } },
+            { label: 'Claro', icon: 'pi pi-fw pi-sun', command: () => { changeTheme('lara-light-indigo', 'light') } }]
         }
     ]
 
@@ -117,7 +181,8 @@ const AppTopbar = forwardRef((props, ref) => {
 
     return (
         <div className="layout-topbar">
-            <Link href="/">
+            <Toast ref={toast} />
+            <Link href="/dashboard/">
                 <a className="layout-topbar-logo">
                     <>
                         <img src={`${contextPath}/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} widt={'true'} alt="logo" />
@@ -133,7 +198,7 @@ const AppTopbar = forwardRef((props, ref) => {
             <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-menu-button layout-topbar-button" onClick={showProfileSidebar}>
                 <i className="pi pi-ellipsis-v" />
             </button>
-            <span className="font-medium ml-2">{saludoHora} , {usuario}</span>
+            <span className="font-medium ml-2">{saludoHora} , {session.user.name} </span>
             <div ref={topbarmenuRef} className={classNames('layout-topbar-menu', { 'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible })}>
 
                 <Menu model={itemsPerfil} popup ref={menuPerfil} id="popup_menu" />

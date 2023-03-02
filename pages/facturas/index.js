@@ -24,11 +24,13 @@ import { FacturaService } from '../../demo/service/FacturaService';
 import { FacturaDetalleService } from '../../demo/service/FacturaDetalleService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 import View from '../ReciboView';
 //import 'bootstrap/dist/css/bootstrap.min.css';
 import ReciboPDF from '../ReciboPDF';
 import { PDFViewer } from '@react-pdf/renderer';
-import Moment from 'moment';
+import Moment, { now } from 'moment';
 import Router from 'next/router';
 import dynamic from "next/dynamic";
 
@@ -41,17 +43,17 @@ const Facturas = () => {
     //FacturaEncabezado
     let facturaVacia = {
         idFactura: null,
-        idParametroFactura: null,
+        parametroFactura: null,
         noFactura: '',
-        idCliente: null,
-        idEmpleado: null,
-        fechaFactura: new Date(),
-        idMetodoPago: null,
+        cliente: null,
+        empleado: null,
+        fechaFactura: null,
+        metodoPago: null,
         efectivo: null,
         tarjeta: null,
-        idCupon: null,
-        idTipoEntrega: null,
-        idShipper: null,
+        cupon: null,
+        tipoEntrega: null,
+        shipper: null,
         costoEnvio: null,
         fechaDespacho: null,
         fechaEntrega: null
@@ -99,7 +101,7 @@ const Facturas = () => {
         total: 0
     }
     const [inputNumberValue, setInputNumberValue] = useState(null);
-    const [facturas, setFacturas] = useState();
+    const [facturas, setFacturas] = useState([]);
     const [facturaDialog, setFacturaDialog] = useState(false);
     const [activarDesactivarCuponDialog, setActivarDesactivarCuponDialog] = useState(false);
     const [activarDesactivarCuponsDialog, setActivarDesactivarCuponsDialog] = useState(false);
@@ -129,6 +131,7 @@ const Facturas = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const [displayResponsive, setDisplayResponsive] = useState(false);
     const [facturaDetalles, setFacturaDetalles] = useState([]);
+    const { data: session } = useSession();
 
     //condicionRender
     const [efectivo, setEfectivo] = useState(false);
@@ -306,7 +309,7 @@ const Facturas = () => {
     const setearDropdownCupones = () => {
         let dropdown = []
         cupones.map((item) => {
-            if(item.activo === 1) {
+            if (item.activo === 1) {
                 dropdown.push(item);
             }
         });
@@ -332,6 +335,7 @@ const Facturas = () => {
         try {
             //factura.fechaFactura = new Date();
             const facturaService = new FacturaService();
+
             console.log(factura);
             if (detalles.length === 0) {
                 let error = { errorDetails: 'Agregue un repuesto antes de facturar!' }
@@ -348,7 +352,7 @@ const Facturas = () => {
                 }
                 if (factura.efectivo >= total) {
                     let error = { errorDetails: 'Efectivo no puede ser igual o mayor al total!' }
-                throw (error);
+                    throw (error);
                 }
             }
             if (cuponChek === false && cupon === null) {
@@ -356,9 +360,13 @@ const Facturas = () => {
                 throw (error);
             }
             console.log(factura);
-            if(factura.idParametroFactura){
+            if (factura.idParametroFactura) {
                 factura.noFactura = obtenerNoFactura(factura.idParametroFactura);
             }
+            const dateM = Date.now();
+            factura.fechaFactura = dateM;//new Date(dateM.toLocaleString("en-US",'America/El_Salvador'));
+            console.log(factura.fechaFactura);
+            //Aqui se guarda la factura
             const response = await facturaService.addFactura(factura);
             detalles.forEach(function (detalle) {
                 detalle.idFactura = response.idFactura;
@@ -369,7 +377,7 @@ const Facturas = () => {
             actualizarCorrelativo(factura);
             toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Factura Creada', life: 3000 });
             pasoRegistro(factura);
-            
+
         } catch (error) {
             console.log(error);
             toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
@@ -425,7 +433,7 @@ const Facturas = () => {
         _recibo.detallesRecibo = _detalles;
         _recibo.subTotal = subTotal1.toFixed(2);
         valorDescCupon = (subTotal1 * (valorCupon / 100));
-        
+
         descuentos1 = descuentos1 + valorDescCupon;
         _recibo.totalImpuestos = impuestos1.toFixed(2);
         _recibo.totalDescuento = descuentos1.toFixed(2);
@@ -441,8 +449,102 @@ const Facturas = () => {
         console.log(reciboFactura);
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idFactura', header: 'ID' },
+        { field: 'parametroFactura', header: 'CAI' },
+        { field: 'noFactura', header: 'No. Factura' },
+        { field: 'cliente', header: 'Cliente' },
+        { field: 'empleado', header: 'Empleado' },
+        { field: 'fechaFactura', header: 'Fecha F.' },
+        { field: 'metodoPago', header: 'Método Pago' },
+        { field: 'efectivo', header: 'Efectivo' },
+        { field: 'tarjeta', header: 'Tarjeta' },
+        { field: 'cupon', header: 'Cupón' },
+        { field: 'tipoEntrega', header: 'T. Entrega' },
+        { field: 'shipper', header: 'Shipper' },
+        { field: 'costoEnvio', header: 'C. Envío' },
+        { field: 'fechaDespacho', header: 'F. Despacho' },
+        { field: 'fechaEntrega', header: 'F. Entrega' }
+    ];
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = facturas.map(function (element) {
+        return {
+            idFactura: element.idFactura,
+            parametroFactura: element.parametroFactura.cai,
+            noFactura: element.noFactura,
+            cliente: element.cliente.nombre,
+            empleado: element.empleado.nombre,
+            fechaFactura: new Date(element.fechaFactura).toLocaleDateString(),
+            metodoPago: element.metodoPago.nombre,
+            efectivo: element.efectivo,
+            tarjeta: element.tarjeta==null?"N/A":element.tarjeta,
+            cupon: element.cupon==null?"N/A":element.cupon.nombre,
+            tipoEntrega: element.tipoEntrega.nombre,
+            shipper: element.shipper==null?"N/A":element.shipper.nombre,
+            costoEnvio: element.costoEnvio,
+            fechaDespacho: element.fechaDespacho==null?"N/A":new Date(element.fechaDespacho).toLocaleDateString(),
+            fechaEntrega: element.fechaEntrega==null?"N/A":new Date(element.fechaEntrega).toLocaleDateString()
+        };
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default("portrait");
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('VENTAS REALIZADAS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('VENTAS REALIZADAS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Facturas: ' + facturas.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 40 },columnStyles:{1:{cellWidth: 15},2:{cellWidth: 15}} });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Facturas.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Facturas');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const deleteSelectedCupons = async () => {
@@ -468,21 +570,21 @@ const Facturas = () => {
         const val = (e.target && e.target.value) || '';
         let _factura = { ...factura };
         switch (nombre) {
-            case "idParametroFactura":
-                _factura[`${nombre}`] = val.idParametro;
+            case "parametroFactura":
+                _factura[`${nombre}`] = val;
                 setParametro(e.value)
                 //console.log(_factura.idParametroFactura);
                 break;
-            case "idCliente":
-                _factura[`${nombre}`] = val.idCliente;
+            case "cliente":
+                _factura[`${nombre}`] = val;
                 setCliente(e.value)
                 break;
-            case "idEmpleado":
-                _factura[`${nombre}`] = val.idEmpleado;
+            case "empleado":
+                _factura[`${nombre}`] = val;
                 setEmpleado(e.value)
                 break;
-            case "idMetodoPago":
-                _factura[`${nombre}`] = val.idMetodoPago;
+            case "metodoPago":
+                _factura[`${nombre}`] = val;
                 setMetodoPago(e.value)
                 val.nombre == 'TARJETA' ? setEfectivo(true) : setEfectivo(false);
                 if (!efectivo) _factura.efectivo = null;
@@ -494,18 +596,18 @@ const Facturas = () => {
                 setChecked(e.checked);
                 if (checked) setCupon(null);
                 break;
-            case "idCupon":
-                _factura[`${nombre}`] = val.idCupon;
+            case "cupon":
+                _factura[`${nombre}`] = val;
                 setCupon(e.value)
                 break;
-            case "idTipoEntrega":
-                _factura[`${nombre}`] = val.idTipoEntrega;
+            case "tipoEntrega":
+                _factura[`${nombre}`] = val;
                 val.nombre == 'ENVIO' ? setEnvio(true) : setEnvio(false);
                 setTipoEntrega(e.value)
                 if (envio) nuevoTipoEntrega();
                 break;
-            case "idShipper":
-                _factura[`${nombre}`] = val.idShipper;
+            case "shipper":
+                _factura[`${nombre}`] = val;
                 setShipper(e.value)
                 break;
             case "fechaDespacho":
@@ -586,9 +688,9 @@ const Facturas = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-
-
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help " onClick={() => exportCSV()} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -608,30 +710,12 @@ const Facturas = () => {
         );
     }
     const parametroBodyTemplate = (rowData) => {
-        const parametro = parametros.find((item) => {
-            if (item.idParametro == rowData.idParametroFactura)
-                return item;
-        });
-        //console.log(documento)
-        if (parametro != null) {
-            return (
-                <>
-                    <span className="p-column-title">Parametro Factura</span>
-                    {
-                        parametro.cai
-                    }
-
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Parametro Factura</span>
-                    {rowData.idParametroFactura}
-                </>
-            );
-        }
-
+        return (
+            <>
+                <span className="p-column-title">Parametro Factura</span>
+                {rowData.parametroFactura.cai}
+            </>
+        );
     }
     const noFacturaBodyTemplate = (rowData) => {
         return (
@@ -642,55 +726,21 @@ const Facturas = () => {
         );
     }
     const clienteBodyTemplate = (rowData) => {
-        const cliente = clientes.find((item) => {
-            if (item.idCliente == rowData.idCliente)
-                return item;
-        });
-        //console.log(documento)
-        if (cliente != null) {
-            return (
-                <>
-                    <span className="p-column-title">Cliente</span>
-                    {
-                        cliente.nombre
-                    }
-
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Cliente</span>
-                    {rowData.idCliente}
-                </>
-            );
-        }
+        return (
+            <>
+                <span className="p-column-title">Cliente</span>
+                {rowData.cliente.nombre}
+            </>
+        );
 
     }
     const empleadoBodyTemplate = (rowData) => {
-        const empleado = empleados.find((item) => {
-            if (item.idEmpleado == rowData.idEmpleado)
-                return item;
-        });
-        //console.log(documento)
-        if (empleado != null) {
-            return (
-                <>
-                    <span className="p-column-title">Empleado</span>
-                    {
-                        empleado.nombre
-                    }
-
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Empleado</span>
-                    {rowData.idEmpleado}
-                </>
-            );
-        }
+        return (
+            <>
+                <span className="p-column-title">Empleado</span>
+                {rowData.empleado.nombre}
+            </>
+        );
     }
     const fechaFacturaBodyTemplate = (rowData) => {
         var dateDMY = Moment(rowData.fechaFactura).format('DD/MM/YYYY');
@@ -702,30 +752,12 @@ const Facturas = () => {
         );
     }
     const metodoPagoBodyTemplate = (rowData) => {
-        const pago = metodosPago.find((item) => {
-            if (item.idMetodoPago == rowData.idMetodoPago)
-                return item;
-        });
-        //console.log(documento)
-        if (pago != null) {
-            return (
-                <>
-                    <span className="p-column-title">Pago</span>
-                    {
-                        pago.nombre
-                    }
-
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Pago</span>
-                    {rowData.idMetodoPago}
-                </>
-            );
-        }
-
+        return (
+            <>
+                <span className="p-column-title">Pago</span>
+                {rowData.metodoPago.nombre}
+            </>
+        );
     }
     const actionBodyTemplate = (rowData) => {
         return (
@@ -874,9 +906,9 @@ const Facturas = () => {
         <>
             <div className='p-fluid formgrid grid'>
                 <div className="field col">
-                    <label htmlFor="idShipper">Shipper:</label>
-                    <Dropdown id="idShipper" options={shippers} value={shipper} onChange={(e) => onInputChange(e, 'idShipper')} optionLabel="nombre" placeholder="Seleccione un Shipper" required autoFocus className={classNames({ 'p-invalid': submitted && !factura.idShipper })}></Dropdown>
-                    {submitted && !factura.idShipper && <small className="p-invalid">Shipper es requerido.</small>}
+                    <label htmlFor="idShipper">Transportista:</label>
+                    <Dropdown id="idShipper" options={shippers} value={factura.shipper} onChange={(e) => onInputChange(e, 'shipper')} optionLabel="nombre" placeholder="Seleccione un Transportista" required autoFocus className={classNames({ 'p-invalid': submitted && !factura.shipper })}></Dropdown>
+                    {submitted && !factura.shipper && <small className="p-invalid">Shipper es requerido.</small>}
                 </div>
                 <div className="field col-4">
                     <label htmlFor="costoEnvio">Costo Envío:</label>
@@ -942,37 +974,37 @@ const Facturas = () => {
                         >
                             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                             <Column field="idFactura" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="idParametroFactura" header="Parámetro" sortable body={parametroBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="parametroFactura.cai" header="Parámetro" sortable body={parametroBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                             <Column field="noFactura" header="Número Factura" sortable body={noFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
-                            <Column field="idCliente" header="Cliente" sortable body={clienteBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="idEmpleado" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="cliente.nombre" header="Cliente" sortable body={clienteBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                             <Column field="fechaFactura" header="Fecha Factura" sortable body={fechaFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                            <Column field="idMetodoPago" header="Forma de Pago" sortable body={metodoPagoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                            <Column field="metodoPago.nombre" header="Forma de Pago" sortable body={metodoPagoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
                             <Column header="Acciones" body={actionBodyTemplate}></Column>
                         </DataTable>
 
                         <Dialog visible={facturaDialog} style={{ width: '800px' }} header="FACTURACIÓN" modal className="p-fluid" footer={facturaDialogFooter} onHide={hideDialog}>
                             <div className='p-fluid formgrid grid'>
                                 <div className="field col ">
-                                    <label htmlFor="idParametroFactura">Parámetro Factura:</label>
-                                    <Dropdown id="idParametroFactura" options={parametros} value={parametro} onChange={(e) => onInputChange(e, 'idParametroFactura')} optionLabel="cai" required autoFocus placeholder="Seleccione un parámetro" className={classNames({ 'p-invalid': submitted && !factura.idParametroFactura })}></Dropdown>
-                                    {submitted && !factura.idParametroFactura && <small className="p-invalid">Parámetro es requerido.</small>}
+                                    <label htmlFor="parametroFactura">Parámetro Factura:</label>
+                                    <Dropdown id="parametroFactura.cai" options={parametros} value={factura.parametroFactura} onChange={(e) => onInputChange(e, 'parametroFactura')} optionLabel="cai" required autoFocus placeholder="Seleccione un parámetro" className={classNames({ 'p-invalid': submitted && !factura.parametroFactura })}></Dropdown>
+                                    {submitted && !factura.parametroFactura && <small className="p-invalid">Parámetro es requerido.</small>}
                                 </div>
                                 <div className="field col-3">
                                     <label htmlFor="fechaFactura">Fecha:</label>
-                                    <InputText id="fechaFactura" value={Moment(factura.fechaFactura).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
+                                    <InputText id="fechaFactura" value={Moment(new Date()).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
                                 </div>
                             </div>
                             <div className='p-fluid formgrid grid'>
                                 <div className="field col">
                                     <label htmlFor="idCliente">Cliente:</label>
-                                    <Dropdown id="idCliente" options={clientes} value={cliente} onChange={(e) => onInputChange(e, 'idCliente')} optionLabel="nombre" placeholder="Seleccione un cliente" className={classNames({ 'p-invalid': submitted && !factura.idCliente })}></Dropdown>
-                                    {submitted && !factura.idCliente && <small className="p-invalid">Cliente es requerido.</small>}
+                                    <Dropdown id="idCliente" options={clientes} value={factura.cliente} onChange={(e) => onInputChange(e, 'cliente')} optionLabel="nombre" placeholder="Seleccione un cliente" className={classNames({ 'p-invalid': submitted && !factura.cliente })}></Dropdown>
+                                    {submitted && !factura.cliente && <small className="p-invalid">Cliente es requerido.</small>}
                                 </div>
                                 <div className="field col">
                                     <label htmlFor="idEmpleado">Empleado:</label>
-                                    <Dropdown id="idEmpleado" options={empleados} value={empleado} onChange={(e) => onInputChange(e, 'idEmpleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !factura.idEmpleado })}></Dropdown>
-                                    {submitted && !factura.idEmpleado && <small className="p-invalid">Empleado es requerido.</small>}
+                                    <Dropdown id="idEmpleado" options={empleados} value={factura.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !factura.empleado })}></Dropdown>
+                                    {submitted && !factura.empleado && <small className="p-invalid">Empleado es requerido.</small>}
                                 </div>
                             </div>
                             <div className='formgrid grid'>
@@ -1022,8 +1054,8 @@ const Facturas = () => {
                             <div className='p-fluid formgrid grid'>
                                 <div className="field col-5">
                                     <label htmlFor="idMetodoPago">Forma de Pago:</label>
-                                    <Dropdown id="idMetodoPago" options={metodosPago} value={metodoPago} onChange={(e) => onInputChange(e, 'idMetodoPago')} optionLabel="nombre" placeholder="Seleccione un método de pago" className={classNames({ 'p-invalid': submitted && !factura.idMetodoPago })}></Dropdown>
-                                    {submitted && !factura.idMetodoPago && <small className="p-invalid">Forma de pago es requerido.</small>}
+                                    <Dropdown id="idMetodoPago" options={metodosPago} value={factura.metodoPago} onChange={(e) => onInputChange(e, 'metodoPago')} optionLabel="nombre" placeholder="Seleccione un método de pago" className={classNames({ 'p-invalid': submitted && !factura.metodoPago })}></Dropdown>
+                                    {submitted && !factura.metodoPago && <small className="p-invalid">Forma de pago es requerido.</small>}
                                 </div>
                                 <div className="field col-2">
                                     <label htmlFor="efectivo">Efectivo Recibido:</label>
@@ -1044,14 +1076,14 @@ const Facturas = () => {
                                     </div>
                                 </div>
                                 <div className="field col-7">
-                                    <Dropdown id="idCupon" disabled={cuponChek} options={dropdownCupones} value={cupon} onChange={(e) => onInputChange(e, 'idCupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.idCupon })}></Dropdown>
-                                    {submitted && !cuponChek && !factura.idCupon && <small className="p-invalid">Cúpon es requerido.</small>}
+                                    <Dropdown id="idCupon" disabled={cuponChek} options={dropdownCupones} value={factura.cupon} onChange={(e) => onInputChange(e, 'cupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.cupon })}></Dropdown>
+                                    {submitted && !cuponChek && !factura.cupon && <small className="p-invalid">Cúpon es requerido.</small>}
                                 </div>
                             </div>
                             <div className="field">
                                 <label htmlFor="idTipoEntrega">Tipo Entrega:</label>
-                                <Dropdown id="idTipoEntrega" options={tipoEntregas} value={tipoEntrega} onChange={(e) => onInputChange(e, 'idTipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.idTipoEntrega })}></Dropdown>
-                                {submitted && !factura.idTipoEntrega && <small className="p-invalid">Tipo de entrega es requerido.</small>}
+                                <Dropdown id="idTipoEntrega" options={tipoEntregas} value={factura.tipoEntrega} onChange={(e) => onInputChange(e, 'idTipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.tipoEntrega })}></Dropdown>
+                                {submitted && !factura.tipoEntrega && <small className="p-invalid">Tipo de entrega es requerido.</small>}
                             </div>
                             {/* si es por envio: */}
                             {envio ? ventaPorEnvio() : <hr></hr>}
@@ -1075,5 +1107,12 @@ const Facturas = () => {
         );
     }
 };
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 
 export default Facturas;

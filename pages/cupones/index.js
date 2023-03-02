@@ -10,6 +10,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CuponService } from '../../demo/service/CuponService';
 import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 import Moment from 'moment';
 
@@ -25,7 +27,7 @@ const Cupones = () => {
         porcentajeDescuento: null,
     };
 
-    const [cupons, setCupons] = useState();
+    const [cupons, setCupons] = useState([]);
     const [cuponDialog, setCuponDialog] = useState(false);
     const [activarDesactivarCuponDialog, setActivarDesactivarCuponDialog] = useState(false);
     const [activarDesactivarCuponsDialog, setActivarDesactivarCuponsDialog] = useState(false);
@@ -39,6 +41,7 @@ const Cupones = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const [cantidadDefault, setCantidadDefault] = useState(true);
+    const { data: session } = useSession();
 
     const listarCupons = () => {
         const cuponService = new CuponService();
@@ -135,8 +138,88 @@ const Cupones = () => {
         }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idCupon', header: 'ID' },
+        { field: 'codigo', header: 'Códigp' },
+        { field: 'fechaEmision', header: 'Feha Emisión' },
+        { field: 'fechaCaducidad', header: 'Fecha Caducidad' },
+        { field: 'cantidadMaxima', header: 'Cant. Máxima' },
+        { field: 'cantidadDisponible', header: 'Cant. Disponible' },
+        { field: 'activo', header: 'Estado' },
+        { field: 'porcentajeDescuento', header: 'Descuento(%)' }
+    ];
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = cupons.map(function (element) {
+        return {
+            idCupon: element.idCupon,
+            codigo: element.codigo,
+            fechaEmision: element.fechaEmision,
+            fechaCaducidad: element.fechaCaducidad,
+            cantidadMaxima: element.cantidadMaxima,
+            cantidadDisponible: element.cantidadDisponible,
+            activo: element.activo?'Activo':'Inactivo',
+            porcentajeDescuento: element.porcentajeDescuento,
+        };
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('CUPONES') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('CUPONES', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Cupones: ' + cupons.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Cupones.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Cupones');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const deleteSelectedCupons = async () => {
@@ -166,7 +249,7 @@ const Cupones = () => {
                 break;
             case 'cantidadMaxima':
                 _cupon[`${nombre}`] = val;
-                if(cantidadDefault)_cupon.cantidadDisponible = val;
+                if (cantidadDefault) _cupon.cantidadDisponible = val;
                 break;
             default:
                 _cupon[`${nombre}`] = val;
@@ -191,7 +274,9 @@ const Cupones = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -399,4 +484,11 @@ const Cupones = () => {
     );
 };
 
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 export default Cupones;

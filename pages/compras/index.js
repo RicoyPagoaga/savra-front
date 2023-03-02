@@ -15,6 +15,7 @@ import { CompraDetalleService } from '../../demo/service/CompraDetalleService';
 import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { RepuestoService } from '../../demo/service/RepuestoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Compras = () => {
 
@@ -726,5 +727,12 @@ const Compras = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Compras;

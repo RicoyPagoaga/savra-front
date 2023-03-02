@@ -8,6 +8,8 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { PaisService } from '../../demo/service/PaisService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const Paises = () => {
     let paisVacio = {
@@ -27,6 +29,7 @@ const Paises = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
 
     const listarPaiss = () => {
         const paisService = new PaisService();
@@ -59,39 +62,39 @@ const Paises = () => {
     const pasoRegistro = () => {
         listarPaiss();
         setPaisDialog(false);
-        setPais(paisVacio); 
+        setPais(paisVacio);
     }
 
     const savePais = async () => {
         setSubmitted(true);
-        if (pais.nombre.trim()) {
-            if (pais.idPais) {
-               try {
-                    const paisService = new PaisService();
-                    await paisService.updatePais(pais);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Actualizado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                }
+
+        if (pais.idPais) {
+            try {
+                const paisService = new PaisService();
+                await paisService.updatePais(pais);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Actualizado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
-            else {
-                try {
-                    const paisService = new PaisService();
-                    await paisService.addPais(pais);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Creado', life: 3000 });
-                    pasoRegistro();
-                } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-    
-                }
+        }
+        else {
+            try {
+                const paisService = new PaisService();
+                await paisService.addPais(pais);
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Creado', life: 3000 });
+                pasoRegistro();
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+
             }
-        }   
-        
+        }
+
+
     }
 
     const editPais = (pais) => {
-        setPais({ ...pais});
+        setPais({ ...pais });
         setPaisDialog(true);
     }
 
@@ -107,14 +110,78 @@ const Paises = () => {
             listarPaiss();
             setDeletePaisDialog(false);
             toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'País Eliminado', life: 3000 });
-    
-            } catch (error) {
-                toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
-            }
+
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
+        }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idPais', header: 'ID' },
+        { field: 'cod_iso', header: 'Código ISO' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'cod_area', header: 'Código de Área' }
+    ]
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('PAISES') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('PAISES', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Paises: ' + paiss.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, paiss, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Países.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(paiss);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Países');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const confirmDeleteSelected = () => {
@@ -158,7 +225,9 @@ const Paises = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -208,7 +277,7 @@ const Paises = () => {
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -227,7 +296,7 @@ const Paises = () => {
     const paisDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={savePais}/>
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={savePais} />
         </>
     );
     const deletePaisDialogFooter = (
@@ -261,13 +330,13 @@ const Paises = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} paises" 
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} paises"
                         globalFilter={globalFilter}
                         emptyMessage="No se encontraron paises."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="idPais" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="cod_iso" header="Código ISO" sortable body={cod_isoBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
@@ -279,19 +348,19 @@ const Paises = () => {
                         <div className="field">
                             <label htmlFor="nombre">Código ISO</label>
                             <InputText id="nombre" value={pais.cod_iso} onChange={(e) => onInputChange(e, 'cod_iso')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.cod_iso })} />
-                            { submitted && !pais.cod_iso && <small className="p-invalid">Código ISO es requerido.</small> }
+                            {submitted && !pais.cod_iso && <small className="p-invalid">Código ISO es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={pais.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.nombre })} />
-                            { submitted && !pais.nombre && <small className="p-invalid">Nombre es requerido.</small> }
+                            {submitted && !pais.nombre && <small className="p-invalid">Nombre es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="nombre">Código de Area</label>
                             <InputText id="nombre" value={pais.cod_area} onChange={(e) => onInputChange(e, 'cod_area')} required autoFocus className={classNames({ 'p-invalid': submitted && !pais.cod_area })} />
-                            { submitted && !pais.cod_area && <small className="p-invalid">Código de área requerido.</small> }
+                            {submitted && !pais.cod_area && <small className="p-invalid">Código de área requerido.</small>}
                         </div>
-                    </Dialog> 
+                    </Dialog>
 
                     <Dialog visible={deletePaisDialog} style={{ width: '450px' }} header="Confirm" modal footer={deletePaisDialogFooter} onHide={hideDeletePaisDialog}>
                         <div className="flex align-items-center justify-content-center">
@@ -311,5 +380,11 @@ const Paises = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 export default Paises;

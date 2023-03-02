@@ -11,7 +11,7 @@ const AppMenu = () => {
     const model = [
         {
             label: 'Inicio',
-            items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/dashboard/' }]
+            items: [{ label: 'Tablero Principal', icon: 'pi pi-fw pi-home', to: '/dashboard/' }]
         },
         {
             label: 'Ambitos',
@@ -72,7 +72,7 @@ const AppMenu = () => {
                     to: '/repuestos/'
                 }, 
                 {
-                    label: 'Shippers',
+                    label: 'Transportistas',
                     icon: 'pi pi-truck',
                     to: '/shippers/'
                 },

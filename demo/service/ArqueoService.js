@@ -15,8 +15,8 @@ export class ArqueoService{
     
     async removeArqueo(id){
         try {
-            let url = url + '/delete/' + id;
-            const response = await fetch(url ,{
+            let url_ = url+'/delete/'+id;
+            const response = await fetch(url_ ,{
                 "method": 'DELETE',
                 "headers": {
                     "Content-type": 'application/json'
