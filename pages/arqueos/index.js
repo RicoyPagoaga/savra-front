@@ -18,6 +18,7 @@ import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import Moment from 'moment';
 import { Calendar } from 'primereact/calendar';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 
 const Arqueos = () => {
@@ -49,6 +50,8 @@ const Arqueos = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const { data: session } = useSession();
+
 
 
     const listarArqueos = () => {
@@ -162,27 +165,57 @@ const Arqueos = () => {
     const cols = [
         { field: 'idArqueo', header: 'ID' },
         { field: 'fecha', header: 'Fecha Arqueo' },
-        { field: 'empleado.nombre', header: 'Empleado' },
+        { field: 'empleado', header: 'Empleado' },
         { field: 'totalRecuento', header: 'Total Recuento' },
         { field: 'observacion', header: 'Observación' }
     ]
 
     const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+    //metodo para sacar a la raiz del objeto, l apropiedad nombre del objeto anidado ya que no accede el datakey por si solo.
+    // let dataExport = Object.assign([], arqueos);
+    // dataExport = dataExport.map(obj => {
+    //     obj.empleadoN = `${obj.empleado.nombre}`;
+    //     return obj;
+    // });
+    let objModificado = arqueos.map(function (element) {
+        return {
+            idArqueo: element.idArqueo,
+            fecha: element.fecha,
+            empleado: element.empleado.nombre,
+            totalRecuento: element.totalRecuento,
+            observacion: element.observacion
+        };
+    });
+
 
     const exportCSV = (selectionOnly) => {
         dt.current.exportCSV({ selectionOnly });
     };
     const exportPdf = () => {
-        const unit = "pt";
-        const size = "A4"; // Use A1, A2, A3 or A4
-        const orientation = "portrait"; // portrait or landscap
-        const title = "My Awesome Report";
-        const marginLeft = 40;
         import('jspdf').then((jsPDF) => {
             import('jspdf-autotable').then(() => {
-                const doc = new jsPDF.default(orientation,unit,size);
-                doc.text(title, marginLeft, 40)
-                doc.autoTable(exportColumns, arqueos);
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('ARQUEOS REALIZADOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('ARQUEOS REALIZADOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Arqueos: ' + arqueos.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
                 doc.save('Reporte_Arqueos.pdf');
             });
         });
@@ -191,7 +224,8 @@ const Arqueos = () => {
     const exportExcel = () => {
         var tbl = document.getElementById('TablaArqueo');
         import('xlsx').then((xlsx) => {
-            const worksheet = xlsx.utils.table_to_sheet(tbl);
+            //const worksheet = xlsx.utils.table_to_sheet(tbl);
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
             const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
             const excelBuffer = xlsx.write(workbook, {
                 bookType: 'xlsx',
@@ -261,7 +295,7 @@ const Arqueos = () => {
         return (
             <React.Fragment>
                 <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
                 <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         );
@@ -270,7 +304,7 @@ const Arqueos = () => {
     const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID Arqueo</span>
+
                 {rowData.idArqueo}
             </>
         );
@@ -279,7 +313,7 @@ const Arqueos = () => {
         var dateDMY = Moment(rowData.fecha).format('DD/MM/YYYY')
         return (
             <>
-                <span className="p-column-title">Fecha</span>
+
                 {dateDMY}
             </>
         );
@@ -288,7 +322,6 @@ const Arqueos = () => {
     const idEmpleadoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Id Empleado</span>
                 {
                     rowData.empleado.nombre
                 }
@@ -299,7 +332,7 @@ const Arqueos = () => {
     const totalRecuentoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">totalRecuento</span>
+
                 L. {rowData.totalRecuento}
             </>
         );
@@ -308,7 +341,7 @@ const Arqueos = () => {
     const observacionBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Observacion</span>
+
                 {rowData.observacion}
             </>
         );
@@ -414,7 +447,7 @@ const Arqueos = () => {
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {arqueo && (
                                 <span>
-                                    Esta seguro que desea eliminar a <b>{arqueo.nombre}</b>?
+                                    Esta seguro que desea eliminar el arqueo: <b>{arqueo.idArqueo}</b>?
                                 </span>
                             )}
                         </div>
@@ -431,11 +464,10 @@ const Arqueos = () => {
         </div>
     );
 };
-export async function getServerSideProps({req}){
-    return autenticacionRequerida(req,({session}) =>
-    {
-        return{
-            props:{session}
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
         }
     })
 }

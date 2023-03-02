@@ -9,6 +9,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { CategoriaRepuestoService } from '../../demo/service/CategoriaRepuestoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const categoria_repuestos = () => {
     let categoriaVacia = {
@@ -17,7 +19,7 @@ const categoria_repuestos = () => {
         descripcion: '',
     };
 
-    const [categorias, setCategorias] = useState();
+    const [categorias, setCategorias] = useState([]);
     const [categoriaDialog, setCategoriaDialog] = useState(false);
     const [deleteCategoriaDialog, setDeleteCategoriaDialog] = useState(false);
     const [deleteCategoriasDialog, setDeleteCategoriasDialog] = useState(false);
@@ -27,6 +29,7 @@ const categoria_repuestos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
 
     const listarCategorias = () => {
         const categoriaService = new CategoriaRepuestoService();
@@ -110,8 +113,70 @@ const categoria_repuestos = () => {
         }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idCategoria', header: 'ID' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'descripcion', header: 'Descripción' }
+    ];
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('CATEGORÍAs DE REPUESTOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('CATEGORÍAS DE REPUESTOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Categorías: ' + categorias.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, categorias, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_CategoriaRepuestos.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(categorias);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_CategoriaRepuestos');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const confirmDeleteSelected = () => {
@@ -164,7 +229,9 @@ const categoria_repuestos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -308,4 +375,12 @@ const categoria_repuestos = () => {
     );
 };
 
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default categoria_repuestos;

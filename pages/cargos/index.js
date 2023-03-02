@@ -9,6 +9,7 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { CargoService } from '../../demo/service/CargoService';
 import { InputNumber } from 'primereact/inputnumber';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Cargos = () => {
     let cargoVacio = {
@@ -236,7 +237,7 @@ const Cargos = () => {
         return (
             <>
                 <span className="p-column-title">Salario Base</span>
-                {rowData.salarioBase}
+                L. {rowData.salarioBase}
             </>
         );
     }
@@ -358,4 +359,12 @@ const Cargos = () => {
     );
 };
 
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Cargos;

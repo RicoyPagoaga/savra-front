@@ -18,6 +18,7 @@ import { TransmisionService } from '../../demo/service/TransmisionService';
 import { ImpuestoService } from '../../demo/service/ImpuestoService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Repuestos = () => {
     
@@ -891,5 +892,12 @@ const Repuestos = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Repuestos;

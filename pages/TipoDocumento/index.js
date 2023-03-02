@@ -1,3 +1,4 @@
+import { Canvas } from '@react-pdf/renderer';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
@@ -8,6 +9,8 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const TipoDocumentos = () => {
     let tipoDocumentoVacio = {
@@ -15,7 +18,7 @@ const TipoDocumentos = () => {
         nombreDocumento: ''
     };
 
-    const [tipoDocumentos, setTipoDocumentos] = useState();
+    const [tipoDocumentos, setTipoDocumentos] = useState([]);
     const [tipoDocumentoDialog, setTipoDocumentoDialog] = useState(false);
     const [deleteTipoDocumentoDialog, setDeleteTipoDocumentoDialog] = useState(false);
     const [deleteTipoDocumentosDialog, setDeleteTipoDocumentosDialog] = useState(false);
@@ -25,6 +28,8 @@ const TipoDocumentos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
+
 
     const listarTipoDocumentos = () => {
         const tipoDocumentoService = new TipoDocumentoService();
@@ -57,14 +62,14 @@ const TipoDocumentos = () => {
     const pasoRegistro = () => {
         listarTipoDocumentos();
         setTipoDocumentoDialog(false);
-        setTipoDocumento(tipoDocumentoVacio); 
+        setTipoDocumento(tipoDocumentoVacio);
     }
 
     const saveTipoDocumento = async () => {
         setSubmitted(true);
         if (tipoDocumento.nombreDocumento.trim()) {
             if (tipoDocumento.idTipoDocumento) {
-               try {
+                try {
                     const tipoDocumentoService = new TipoDocumentoService();
                     await tipoDocumentoService.updateTipoDocumento(tipoDocumento);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Actualizado (^‿^)', life: 3000 });
@@ -80,16 +85,16 @@ const TipoDocumentos = () => {
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Creado (^‿^)', life: 3000 });
                     pasoRegistro();
                 } catch (error) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
-    
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+
                 }
             }
-        }   
-        
+        }
+
     }
 
     const editTipoDocumento = (tipoDocumento) => {
-        setTipoDocumento({ ...tipoDocumento});
+        setTipoDocumento({ ...tipoDocumento });
         setTipoDocumentoDialog(true);
     }
 
@@ -100,35 +105,54 @@ const TipoDocumentos = () => {
 
     const deleteTipoDocumento = async () => {
         try {
-        const tipoDocumentoService = new TipoDocumentoService();
-        await tipoDocumentoService.removeTipoDocumento(tipoDocumento.idTipoDocumento);
-        listarTipoDocumentos();
-        setDeleteTipoDocumentoDialog(false);
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Eliminado 🚨', life: 3000 });
-            
+            const tipoDocumentoService = new TipoDocumentoService();
+            await tipoDocumentoService.removeTipoDocumento(tipoDocumento.idTipoDocumento);
+            listarTipoDocumentos();
+            setDeleteTipoDocumentoDialog(false);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo Documento Eliminado 🚨', life: 3000 });
+
         } catch (error) {
-            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });  
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
         }
-        
+
     }
 
     const cols = [
         { field: 'idTipoDocumento', header: 'ID' },
         { field: 'nombreDocumento', header: 'Nombre del Documento' },
     ];
-    
+
 
     const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
 
     const exportCSV = (selectionOnly) => {
         dt.current.exportCSV({ selectionOnly });
     };
+
     const exportPdf = () => {
         import('jspdf').then((jsPDF) => {
             import('jspdf-autotable').then(() => {
                 const doc = new jsPDF.default(0, 0);
-
-                doc.autoTable(exportColumns,tipoDocumentos);
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('TIPOS DE DOCUMENTOS')*fontSize/doc.internal.scaleFactor;
+                const x = ( docWidth - txtWidth ) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                doc.text('TIPOS DE DOCUMENTOS',x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth-15, 30, 'Total Tipos: ' + tipoDocumentos.length,{align:"right"});
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, tipoDocumentos, { margin: { top: 45 ,bottom: 25} });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight-20, docWidth - 15, docHeight-20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth-15, docHeight-10,{align:"right"});
+                }
                 doc.save('Reporte_Tipos de Documentos.pdf');
             });
         });
@@ -201,9 +225,9 @@ const TipoDocumentos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -225,7 +249,7 @@ const TipoDocumentos = () => {
             </>
         );
     }
-    
+
 
     const actionBodyTemplate = (rowData) => {
         return (
@@ -238,7 +262,7 @@ const TipoDocumentos = () => {
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -257,13 +281,13 @@ const TipoDocumentos = () => {
     const tipoDocumentoDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveTipoDocumento}/>
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveTipoDocumento} />
         </>
     );
     const deleteTipoDocumentoDialogFooter = (
         <>
             <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteTipoDocumentoDialog} />
-            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteTipoDocumento}   />
+            <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteTipoDocumento} />
         </>
     );
     const deleteTipoDocumentosDialogFooter = (
@@ -291,13 +315,13 @@ const TipoDocumentos = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Tipo Documentos" 
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Tipo Documentos"
                         globalFilter={globalFilter}
                         emptyMessage="No se encontraron Tipo Documentos."
                         header={header}
                         responsiveLayout="scroll"
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="idTipoDocumento" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombreDocumento" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
@@ -307,9 +331,9 @@ const TipoDocumentos = () => {
                         <div className="field">
                             <label htmlFor="nombreDocumento">Nombre</label>
                             <InputText id="nombreDocumento" value={tipoDocumento.nombreDocumento} onChange={(e) => onInputChange(e, 'nombreDocumento')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipoDocumento.nombreDocumento })} />
-                            { submitted && !tipoDocumento.nombreDocumento && <small className="p-invalid">Nombre Documento es requerido.</small> }
+                            {submitted && !tipoDocumento.nombreDocumento && <small className="p-invalid">Nombre Documento es requerido.</small>}
                         </div>
-                    </Dialog> 
+                    </Dialog>
 
                     <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
                         <div className="flex align-items-center justify-content-center">
@@ -329,5 +353,11 @@ const TipoDocumentos = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 export default TipoDocumentos;

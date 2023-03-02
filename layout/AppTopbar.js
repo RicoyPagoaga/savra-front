@@ -11,6 +11,8 @@ import { UsuarioService } from '../demo/service/UsuarioService';
 import { ClienteService } from '../demo/service/clienteservice';
 import { Toast } from 'primereact/toast';
 import { signOut, useSession } from 'next-auth/react'
+import { FacturaService } from '../demo/service/FacturaService';
+import { RepuestoService } from '../demo/service/RepuestoService';
 
 const AppTopbar = forwardRef((props, ref) => {
     let usuarioVacio = {
@@ -35,33 +37,29 @@ const AppTopbar = forwardRef((props, ref) => {
     const [usuario, setUsuario] = useState(usuarioVacio);
     const [saludoHora, setSaludoHora] = useState("");
     const [cerrarSesionDialog, setCerrarSesionDialog] = useState(false);
-    const [usuarios, setUsuarios] = useState([]);
+    const [user, setUser] = useState([]);
+    const [ventas, setVentas] = useState([]);
+    const [repuestos, setRepuestos] = useState([]);
     const [clientes, setClientes] = useState([]);
-    const [cantidadClientes, setCantidadClientes] = useState(0);
     const toast = useRef(null);
     const { data: session } = useSession();
 
     const confirmarCerrarSesion = () => {
         setCerrarSesionDialog(true);
     }
+    const listarFacturas = () => {
+        const facturaservice = new FacturaService();
+        facturaservice.getFacturas().then(data => setVentas(data));
+    };
+    const listarRepuestos = () => {
+        const repuestoService = new RepuestoService();
+        repuestoService.getRepuestos().then(data => setRepuestos(data));
+    };
     const listarClientes = () => {
         const clienteservice = new ClienteService();
         clienteservice.getClientes().then(data => setClientes(data));
-        setCantidadClientes(clientes.length);
     };
-    const listarUsuarios = () => {
-        const usuarioService = new UsuarioService();
-        usuarioService.getUsuarios().then(data => setUsuarios(data));
-    };
-    const encontrarUsuario = async () => {
-        listarUsuarios();
-        const user = usuarios.find((item) => {
-            if (item.username === session.user.email) {
-                return item;
-            }
-        });
-        setUsuario(user);
-    }
+
     const saludarHora = () => {
         var hora = new Date().getHours()
         var saludo = '';
@@ -74,17 +72,42 @@ const AppTopbar = forwardRef((props, ref) => {
         }
         setSaludoHora(saludo);
     }
+    const obtenerUsuario = async () => {
+        try {
+            var info = session.user.email.split('/');
+            const usuarioService = new UsuarioService();
+            await usuarioService.getUsuarioByUsername(info[3]).then(data => setUser(data));
+        } catch {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.details, life: 3000 });
+        }
+
+    }
 
     useEffect(() => {
+        obtenerUsuario();
+        listarFacturas();
+        listarRepuestos();
         listarClientes();
         saludarHora()
-        encontrarUsuario();
     }, [])
     const actualizarUsuario = async () => {
         try {
-            let date = Date.now()
+            let _user = { ...user };
+            let date = null;
+            let pClientes = 0
+            let pVentas = 0
+            let pRepuestos = 0
+            date = new Date(Date.now())
+            pClientes = clientes.length;
+            pVentas = ventas.length;
+            pRepuestos = repuestos.length;
+            _user.clientesVista = pClientes;
+            _user.repuestosVista = pRepuestos;
+            _user.ultimaVisita = date;
+            _user.ventasVista = pVentas;
             const usuarioService = new UsuarioService();
-            await usuarioService.cerrarSesion(clientes.length,date,session.user.email);
+            await usuarioService.updateUsuario(_user,true);
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Sesión Finalizada', life: 3000 });
         } catch (error) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: error.details, life: 3000 });
         }
@@ -134,7 +157,6 @@ const AppTopbar = forwardRef((props, ref) => {
     function cerrarSesion() {
         actualizarUsuario()
         signOut({ redirect: '/' })
-        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Sesión Finalizada', life: 3000 });
     }
     let itemsPerfil = [
         {
@@ -176,7 +198,7 @@ const AppTopbar = forwardRef((props, ref) => {
             <button ref={topbarmenubuttonRef} type="button" className="p-link layout-topbar-menu-button layout-topbar-button" onClick={showProfileSidebar}>
                 <i className="pi pi-ellipsis-v" />
             </button>
-            <span className="font-medium ml-2">{saludoHora} , {session.user.name ? session.user.name : usuario}</span>
+            <span className="font-medium ml-2">{saludoHora} , {session.user.name} </span>
             <div ref={topbarmenuRef} className={classNames('layout-topbar-menu', { 'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible })}>
 
                 <Menu model={itemsPerfil} popup ref={menuPerfil} id="popup_menu" />

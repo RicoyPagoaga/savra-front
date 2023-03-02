@@ -12,16 +12,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ClienteService } from '../../demo/service/clienteservice';
 import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
 import { CategoriaClienteService } from '../../demo/service/CategoriaClienteService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const Clientes = () => {
     let emptyCliente = {
         idCliente: null,
         nombre: '',
         documento: '',
-        idTipoDocumento: null,
+        tipoDocumento: null,
         telefono: '',
         direccion: '',
-        idCategoria: null
+        categoria: null
     };
 
     let emptyRestApiError = {
@@ -30,7 +32,7 @@ const Clientes = () => {
         errorDetails: ''
     };
 
-    const [clientes, setClientes] = useState();
+    const [clientes, setClientes] = useState([]);
     const [tipoDocumentos, setTipoDocumentos] = useState([]);
     const [tipoDocumento, setTipoDocumento] = useState(null);
     const [categoriaClientes, setCategoriaClientes] = useState([]);
@@ -46,6 +48,7 @@ const Clientes = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const { data: session } = useSession();
 
 
     const listarClientes = () => {
@@ -65,6 +68,7 @@ const Clientes = () => {
         listarClientes();
         await listarTipoDocumentos();
         await listarCategoriasClientes();
+        console.log(clientes);
     }, []);
     //const [documentosItem,setOpcionesDocumentoItem] = useState(null);
     //const documentosItem = tipoDocumentos.map((idTipoDocumento) =>{
@@ -107,7 +111,6 @@ const Clientes = () => {
                 pasoRegistro();
             } catch (error) {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
-                //console.log(apiError.errorDetails);
             }
         } else {
             try {
@@ -123,16 +126,6 @@ const Clientes = () => {
 
     const editCliente = (cliente) => {
         setCliente({ ...cliente });
-        console.log(tipoDocumentos);
-        const documento = tipoDocumentos.find((item) => {
-            if (item.idTipoDocumento == cliente.idTipoDocumento)
-                return item
-        });
-        setTipoDocumento(documento);
-        const categoria = categoriaClientes.find((item) => {
-            if (item.idCategoria == cliente.idCategoria)
-                return item
-        });
         setCategoriaCliente(categoria);
         setClienteDialog(true);
     };
@@ -152,24 +145,102 @@ const Clientes = () => {
         setDeleteClienteDialog(true);
     };
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idCliente', header: 'ID' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'documento', header: 'Documento' },
+        { field: 'tipoDocumento', header: 'Tipo de Documento' },
+        { field: 'telefono', header: 'Teléfono' },
+        { field: 'direccion', header: 'Dirección' },
+        { field: 'categoria', header: 'Categoría' }
+    ];
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = clientes.map(function (element) {
+        return {
+            idCliente: element.idCliente,
+            nombre: element.nombre,
+            documento: element.documento,
+            tipoDocumento: element.tipoDocumento?element.tipoDocumento.nombreDocumento:'',
+            telefono: element.telefono,
+            direccion: element.direccion,
+            categoria: element.categoria?element.categoria.nombre: ''
+        };
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('CLIENTES REGISTRADOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('CLIENTES REGISTRADOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Clientes: ' + clientes.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Clientes.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Clientes');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
     const confirmDeleteSelected = () => {
         setDeleteClientesDialog(true);
     }
     const deleteSelectedClientes = () => {
-        let x=' ';
+        let x = ' ';
         const clienteService = new ClienteService();
         selectedClientes.map(async (cliente) => {
             try {
-                await clienteService.removeCliente(cliente.idCliente);   
+                await clienteService.removeCliente(cliente.idCliente);
             } catch (error) {
-                x = x + 'error'; 
-                toast.current.show({ severity: 'error', summary: 'Error', detail: error + ` ${cliente.nombre}`, life: 3000 }); 
+                x = x + 'error';
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error + ` ${cliente.nombre}`, life: 3000 });
             }
         });
-        if (x=='') {
+        if (x == '') {
             let _clientes = clientes.filter((val) => !selectedClientes.includes(val));
             setClientes(_clientes);
             setDeleteClientesDialog(false);
@@ -182,11 +253,10 @@ const Clientes = () => {
         const val = (e.target && e.target.value) || '';
         let _cliente = { ...cliente };
         if (nombre == 'idTipoDocumento') {
-            _cliente[`${nombre}`] = val.idTipoDocumento;
+            _cliente[`${nombre}`] = val;
             setTipoDocumento(e.value);
-            console.log(e.value);
         } else if (nombre == 'idCategoria') {
-            _cliente[`${nombre}`] = val.idCategoria;
+            _cliente[`${nombre}`] = val;
             setCategoriaCliente(e.value);
         } else {
             _cliente[`${nombre}`] = val;
@@ -210,7 +280,9 @@ const Clientes = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help mr-2 inline-block" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         );
     };
@@ -244,32 +316,17 @@ const Clientes = () => {
     };
 
     const idTipoDocumentoBodyTemplate = (rowData) => {
-        const documento = tipoDocumentos.find((item) => {
-            if (item.idTipoDocumento == rowData.idTipoDocumento)
-                return item;
-        });
-        console.log(documento)
-        if (documento != null) {
-            return (
-                <>
-                    <span className="p-column-title">Id Tipo Documento</span>
-                    {
-                        documento.nombreDocumento
-                    }
 
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Id Tipo Documento</span>
-                    {
-                        rowData.idTipoDocumento
-                    }
+        return (
+            <>
+                <span className="p-column-title">Id Tipo Documento</span>
+                {
+                    rowData.documento == null ? ' ' : rowData.tipoDocumento.nombreDocumento
+                }
 
-                </>
-            );
-        }
+            </>
+        );
+
 
     };
     const telefonoBodyTemplate = (rowData) => {
@@ -289,30 +346,19 @@ const Clientes = () => {
         );
     };
     const idCategoriaBodyTemplate = (rowData) => {
-        const categoria = categoriaClientes.find((item) => {
-            if (item.idCategoria == rowData.idCategoria)
-                return item
-        });
-        if (categoria != null) {
-            return (
-                <>
-                    <span className="p-column-title">Id Categoria</span>
-                    {categoria.nombre == null ? ' ' : categoria.nombre}
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Id Categoria</span>
-                    {rowData.idCategoria == null ? ' ' : rowData.nombre}
-                </>
-            );
-        }
+
+        return (
+            <>
+                <span className="p-column-title">Id Categoria</span>
+                {rowData.categoria == null ? ' ' : rowData.categoria.nombre}
+            </>
+        );
+
     };
 
     const actionBodyTemplate = (rowData) => {
         const clientefinal = false;
-        if(rowData.idCliente === 1){
+        if (rowData.idCliente === 1) {
             clientefinal = true;
         }
         return (
@@ -326,7 +372,7 @@ const Clientes = () => {
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -389,10 +435,10 @@ const Clientes = () => {
                         <Column field="idCliente" header="Id Cliente" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="idTipoDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="tipoDocumento.nombreDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="idCategoria" header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="categoria.nombre" header="Categoria" sortable body={idCategoriaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -409,8 +455,8 @@ const Clientes = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idTipoDocumento })}></Dropdown>
-                            {submitted && !cliente.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
+                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={cliente.tipoDocumento} onChange={(e) => onInputChange(e, 'tipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.tipoDocumento })}></Dropdown>
+                            {submitted && !cliente.tipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="telefono">Teléfono</label>
@@ -424,8 +470,8 @@ const Clientes = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" value={categoriaCliente} onChange={(e) => onInputChange(e, 'idCategoria')} options={categoriaClientes} optionLabel="nombre" placeholder="Seleccione una Categoría" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.idCategoria })} ></Dropdown>
-                            {submitted && !cliente.idCategoria && <small className="p-invalid">Categoría es requerida.</small>}
+                            <Dropdown id="idCategoria" value={cliente.categoria} onChange={(e) => onInputChange(e, 'categoria')} options={categoriaClientes} optionLabel="nombre" placeholder="Seleccione una Categoría" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.categoria })} ></Dropdown>
+                            {submitted && !cliente.categoria && <small className="p-invalid">Categoría es requerida.</small>}
                         </div>
                     </Dialog>
 
@@ -452,5 +498,12 @@ const Clientes = () => {
     );
 };
 
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 export default Clientes;
 

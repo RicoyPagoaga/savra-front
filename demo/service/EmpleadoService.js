@@ -35,6 +35,7 @@ export class EmpleadoService{
             });
             const result = await response.json();
             if(response.status !== 201)throw result;
+            return result;
         } catch (error) {
             throw error;
         }

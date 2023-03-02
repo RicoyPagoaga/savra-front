@@ -9,6 +9,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { TipoEntregaService } from '../../demo/service/TipoEntregaService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const tipos_entrega = () => {
     let tipoEntregaVacia = {
@@ -17,7 +19,7 @@ const tipos_entrega = () => {
         descripcion: '',
     };
 
-    const [tipos, setTipos] = useState();
+    const [tipos, setTipos] = useState([]);
     const [tipoDialog, setTipoDialog] = useState(false);
     const [deleteTipoDialog, setDeleteTipoDialog] = useState(false);
     const [deleteTiposDialog, setDeleteTiposDialog] = useState(false);
@@ -27,6 +29,7 @@ const tipos_entrega = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
 
     const listarTipos = () => {
         const tipoService = new TipoEntregaService();
@@ -127,8 +130,28 @@ const tipos_entrega = () => {
         import('jspdf').then((jsPDF) => {
             import('jspdf-autotable').then(() => {
                 const doc = new jsPDF.default(0, 0);
-
-                doc.autoTable(exportColumns,tipos);
+                //const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('TIPOS DE ENTREGAS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('TIPOS DE ENTREGAS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Tipos de Entregas: ' + tipos.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, tipos, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
                 doc.save('Reporte_Tipos de Entrega.pdf');
             });
         });
@@ -354,5 +377,12 @@ const tipos_entrega = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default tipos_entrega;

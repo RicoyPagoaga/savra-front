@@ -8,6 +8,7 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { PermisoService } from '../../demo/service/PermisoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Permisos = () => {
     let permisoVacio = {
@@ -288,5 +289,12 @@ const Permisos = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Permisos;

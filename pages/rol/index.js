@@ -8,6 +8,7 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { RolService } from '../../demo/service/RolService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Rols = () => {
     let rolVacio = {
@@ -335,5 +336,12 @@ const Rols = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default Rols;

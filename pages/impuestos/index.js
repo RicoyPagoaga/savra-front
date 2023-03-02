@@ -11,6 +11,7 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { ImpuestoService } from '../../demo/service/ImpuestoService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 
 const Impuestos = () => {
     let impuestoVacio = {
@@ -495,5 +496,13 @@ const Impuestos = () => {
         </div>
     );
 };
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 
 export default Impuestos;

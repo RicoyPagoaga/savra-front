@@ -18,7 +18,9 @@ import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { CargoService } from '../../demo/service/CargoService';
 import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
 import { EmpleadoCargoService } from '../../demo/service/EmpleadoCargoService';
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import Moment from 'moment';
+import { useSession } from 'next-auth/react'
 
 
 const Empleados = () => {
@@ -26,7 +28,7 @@ const Empleados = () => {
         idEmpleado: null,
         nombre: '',
         documento: '',
-        idTipoDocumento: null,
+        tipoDocumento: null,
         fechaNacimiento: null,
         telefono: '',
         fechaIngreso: null,
@@ -58,13 +60,14 @@ const Empleados = () => {
     const [cargo, setCargo] = useState(null);
     const [cargos, setCargos] = useState([]);
     const [empleadoCargo, setEmpleadoCargo] = useState(empleadoCargoVacio);
+    const [empleadoCargoN, setEmpleadoCargoN] = useState(empleadoCargoVacio);
     const [empleadoCargos, setEmpleadoCargos] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
     const [cambioCargo, setCambioCargo] = useState(false);
     const [valorActCargo, setValorActCargo] = useState(cargoVacio);
 
 
-    const [empleados, setEmpleados] = useState(null);
+    const [empleados, setEmpleados] = useState([]);
     const [tipoDocumentos, setTipoDocumentos] = useState([]);
     const [tipoDocumento, setTipoDocumento] = useState(null);
     const [calendarValueNac, setCalendarValueNac] = useState(null);
@@ -80,6 +83,7 @@ const Empleados = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const { data: session } = useSession();
 
 
     const listarEmpleados = () => {
@@ -102,12 +106,11 @@ const Empleados = () => {
 
     useEffect(async () => {
         listarEmpleados();
+        console.log(empleados);
         await listarTipoDocumentos();
-        listarEmpleados();
         listarCargos();
         listarEmpleadoCargos();
-        console.log(listarEmpleadoCargos());
-
+        console.log(empleados);
     }, []);
 
 
@@ -124,6 +127,7 @@ const Empleados = () => {
     };
 
     const hideDialog = () => {
+        setCambioCargo(false);
         setSubmitted(false);
         setEmpleadoDialog(false);
     };
@@ -140,6 +144,7 @@ const Empleados = () => {
         listarEmpleados();
         setEmpleadoDialog(false);
         setEmpleado(emptyEmpleado);
+        setCambioCargo(false);
     }
 
     const saveEmpleado = async () => {
@@ -147,71 +152,82 @@ const Empleados = () => {
         const empleadoservice = new EmpleadoService();
         const empleadoCargoService = new EmpleadoCargoService();
         //
-        var fechaHoy = new Date();
-        //let fechaActual = `${fechaHoy.getFullYear()}-${fechaHoy.getMonth() + 1}-${fechaHoy.getDate()}`;
-        //_empleadoCargo.fechaInicio = new Date();
-        empleadoCargo.fechaInicio = new Date();
+        const fechaHoy = new Date()
+        let fechaActual = `${fechaHoy.getDate()}/${fechaHoy.getMonth() + 1}/${fechaHoy.getFullYear()}`;
+        empleadoCargo.fechaInicio = Date.now();
         if (empleado.idEmpleado) {
             let _empleadoCargo = { ...empleadoCargo };
-            let _valorAct = { ...valorActCargo };
-            // const miCargo = empleadoCargos.find((item) => {
-            //     if (item.idEmpleado == empleado.idEmpleado && item.fechaFinal == null) {
-            //         return item;
-            //     };
 
-            // });
-            //console.log(miCargo.fechaInicio);
-            //console.log(fechaActual);
+            let _valorAct = { ...valorActCargo };
+            const miCargo = empleadoCargos.find((item) => {
+                if (item.idEmpleado == empleado.idEmpleado && item.fechaFinal == null) {
+                    return item;
+                }
+            });
+            var fechaICargo = new Date(miCargo.fechaInicio).toLocaleDateString();
             try {
-                await empleadoservice.updateEmpleado(empleado);
-                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
-                    pasoRegistro();
                 //console.log(cambioCargo);
                 //console.log(_valorAct.idCargo);
-                //if (cambioCargo) {
-                    // if (cargo.idCargo == _valorAct.idCargo) {
-                    //     toast.current.show({ severity: 'info', summary: 'Aviso', detail: "Se detectó un cambio en el cargo pero no se actualizará el mismo", life: 3000 });
-                    // } else {
-                    //     if (miCargo.fechaInicio == fechaActual) {
-                    //         toast.current.show({ severity: 'error', summary: 'Error', detail: "Se ha actualizado o registrado recientemente un cargo a este empleado, modificar despues de 24hrs", life: 3000 });
-                    //     } else {
-                    //         const getfecha = () => {
-                    //             var fec = miCargo.fechaInicio.toString().split('-');
-                    //             return new Date(fec[0], fec[1] - 1, fec[2])
-                    //         }
-                    //         miCargo.fechaInicio = getfecha();
-                    //         miCargo.fechaFinal = new Date(); //arrgalr cambio de fecha!
-                    //         console.log(miCargo);
-                    //         console.log(empleado);
-                    //         //await empleadoCargoService.updateEmpleadoCargo(miCargo)
-                    //         //await empleadoservice.updateEmpleado(empleado);
-                    //         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado y Cargo Actualizado', life: 3000 });
-                    //         console.log("Ahorita lo asciendo perro");
-                    //     }
-                    //     console.log("Lo cambiaste puto");
-                    //}
-                 //} //else {
-                //     await empleadoservice.updateEmpleado(empleado);
-                //     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
-                //     pasoRegistro();
-                // }
-            } 
-            catch (error) {
+                if (cambioCargo) {
+                    if (cargo.idCargo == _valorAct.idCargo) {
+                        toast.current.show({ severity: 'info', summary: 'Aviso', detail: "Se detectó un cambio en el cargo pero no se actualizará el mismo", life: 4000 });
+                        await empleadoservice.updateEmpleado(empleado);
+                        toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
+                        pasoRegistro();
+                    } else {
+                        if (fechaICargo == fechaActual) {
+                            toast.current.show({ severity: 'error', summary: 'Error', detail: "Se ha actualizado o registrado recientemente un cargo a este empleado, modificar cargo despues de 24hrs.", life: 4000 });
+                        } else {
+                            //actualizamos el historico
+                            const fechaActual = Date.now(); //fecha actual
+                            let fecha = new Date(fechaActual);
+                            let fechaAyer = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + (fecha.getDate() - 1);
+                            const [y, m, d] = fechaAyer.split('-');
+                            let fechaMin = new Date(+y, m - 1, +d);
+                            console.log(miCargo.fechaInicio);
+                            _empleadoCargo.fechaInicio = new Date(miCargo.fechaInicio).getTime();
+                            _empleadoCargo.idEmpleado = empleado.idEmpleado;
+                            _empleadoCargo.fechaFinal = fechaMin;
+                            _empleadoCargo.idEmpleado = empleado.idEmpleado;
+                            _empleadoCargo.idCargo = _valorAct.idCargo
+                            console.log(_empleadoCargo)
+                            await empleadoCargoService.updateEmpleadoCargo(_empleadoCargo);
+                            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Actualizado', life: 3000 });
+                            //hacemos el nuevo registro del historico
+
+                            let empleadoNuew = empleadoCargoVacio;
+                            empleadoNuew.fechaInicio = new Date().getTime();
+                            empleadoNuew.idEmpleado = empleado.idEmpleado;
+                            empleadoNuew.fechaFinal = null;
+                            empleadoNuew.idEmpleado = empleado.idEmpleado;
+                            empleadoNuew.idCargo = cargo.idCargo;
+                            await empleadoCargoService.addEmpleadoCargo(empleadoNuew);
+                            toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Cargo Historico Agregado', life: 3000 });
+                            console.log("Ahorita lo asciendo perro");
+                            pasoRegistro();
+                            listarEmpleadoCargos();
+                        }
+                    }
+                } else {
+                    await empleadoservice.updateEmpleado(empleado);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Actualizado', life: 3000 });
+                    pasoRegistro();
+                }
+            } catch (error) {
                 console.log(error);
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
         } else {
             try {
                 const response = await empleadoservice.addEmpleado(empleado);
-                //empleadoCargo.idEmpleado = response.idEmpleado;
-                //await empleadoCargoService.addEmpleadoCargo(empleadoCargo);
-                //console.log(response.idEmpleado)
+                console.log(response);
+                empleadoCargo.idEmpleado = response.idEmpleado;
+                await empleadoCargoService.addEmpleadoCargo(empleadoCargo);
                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Empleado Registrado', life: 3000 });
                 pasoRegistro();
-                //listarEmpleadoCargos();
+                listarEmpleadoCargos();
             } catch (error) {
-                console.log(error)
-                console.log(empleado);
+
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
         };
@@ -239,21 +255,21 @@ const Empleados = () => {
         setCalendarValueIn(fechaI);
         console.log(fechaI.toString());
         console.log(empleadoCargos);
-        // const miCargo = empleadoCargos.find((item) => {
-        //     if (item.idEmpleado == empleado.idEmpleado && item.fechaFinal == null) {
-        //         return item;
-        //     }
+        const miCargo = empleadoCargos.find((item) => {
+            if (item.idEmpleado == empleado.idEmpleado && item.fechaFinal == null) {
+                return item;
+            }
 
-        // });
-        //console.log(miCargo);
-        // cargos.find((item) => {
-        //     if (item.idCargo == miCargo.idCargo) {
-        //         setCargo(item);
-        //         setValorActCargo(item)
-        //         //valorActualCargo= item.idCargo;
-        //     }
-        // });
-        //console.log(valorActualCargo);
+        });
+        console.log(miCargo);
+        cargos.find((item) => {
+            if (item.idCargo == miCargo.idCargo) {
+                setCargo(item);
+                setValorActCargo(item)
+                //valorActualCargo= item.idCargo;
+            }
+        });
+        console.log(valorActCargo);
         setEmpleadoDialog(true);
     };
 
@@ -267,7 +283,7 @@ const Empleados = () => {
         } catch (error) {
             toast.current.show({ severity: 'error', summary: 'Error', detail: error, life: 3000 });
         }
-       
+
     };
     const confirmDeleteEmpleado = (empleado) => {
         setEmpleado(empleado);
@@ -278,16 +294,30 @@ const Empleados = () => {
         { field: 'idEmpleado', header: 'ID' },
         { field: 'nombre', header: 'Nombre' },
         { field: 'documento', header: 'Documento' },
-        { field: 'idTipoDocumento', header: 'Tipo de Documento' },
+        { field: 'tipoDocumento', header: 'Tipo de Documento' },
         { field: 'fechaNacimiento', header: 'Fecha Nacimiento' },
         { field: 'telefono', header: 'Teléfono' },
         { field: 'fechaIngreso', header: 'Fecha Ingreso' },
         { field: 'correo', header: 'Correo Electrónico' },
         { field: 'direccion', header: 'Dirección' },
     ];
-    
+
 
     const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = empleados.map(function (element) {
+        return {
+            idEmpleado: element.idEmpleado,
+            nombre: element.nombre,
+            documento: element.documento,
+            tipoDocumento: element.tipoDocumento.nombreDocumento,
+            fechaNacimiento: element.fechaNacimiento,
+            telefono: element.telefono,
+            fechaIngreso: element.fechaIngreso,
+            correo: element.correo,
+            direccion: element.direccion
+        };
+    })
 
     const exportCSV = (selectionOnly) => {
         dt.current.exportCSV({ selectionOnly });
@@ -295,9 +325,28 @@ const Empleados = () => {
     const exportPdf = () => {
         import('jspdf').then((jsPDF) => {
             import('jspdf-autotable').then(() => {
-                const doc = new jsPDF.default(0, 0);
-
-                doc.autoTable(exportColumns,empleados);
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('EMPLEADOS REGISTRADOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('EMPLEADOS REGISTRADOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Empleados: ' + empleados.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
                 doc.save('Reporte_Empleados.pdf');
             });
         });
@@ -305,7 +354,7 @@ const Empleados = () => {
 
     const exportExcel = () => {
         import('xlsx').then((xlsx) => {
-            const worksheet = xlsx.utils.json_to_sheet(empleados);
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
             const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
             const excelBuffer = xlsx.write(workbook, {
                 bookType: 'xlsx',
@@ -348,8 +397,8 @@ const Empleados = () => {
         let _empleado = { ...empleado };
         let _empleadoCargo = { ...empleadoCargo };
         switch (nombre) {
-            case "idTipoDocumento":
-                _empleado[`${nombre}`] = val.idTipoDocumento;
+            case "tipoDocumento":
+                _empleado[`${nombre}`] = val;
                 setTipoDocumento(e.value);
                 break;
             case "fechaNacimiento":
@@ -369,15 +418,8 @@ const Empleados = () => {
                 _empleado[`${nombre}`] = val;
                 break;
         }
-        // console.log(val);
-        // console.log(val.idTipoDocumento);
-        // console.log(val.fechaNacimiento);
-        // console.log(val.fechaIngreso);
-        // console.log(calendarValueIn);
-        // console.log(calendarValueNac);
-        // console.log(_empleado)
         setEmpleado(_empleado);
-        //setEmpleadoCargo(_empleadoCargo);
+        setEmpleadoCargo(_empleadoCargo);
     };
     const onCellEditComplete = async (e) => {
         let { rowData, newValue, field, originalEvent: event } = e;
@@ -404,30 +446,30 @@ const Empleados = () => {
         }
     };
 
-    // const toggleAll = () => {
-    //     if (allExpanded) collapseAll();
-    //     else expandAll();
-    // };
+    const toggleAll = () => {
+        if (allExpanded) collapseAll();
+        else expandAll();
+    };
 
-    // const expandAll = () => {
-    //     let _expandedRows = {};
-    //     cargos.forEach((p) => (_expandedRows[`${p.idCargo}`] = true));
+    const expandAll = () => {
+        let _expandedRows = {};
+        cargos.forEach((p) => (_expandedRows[`${p.idCargo}`] = true));
 
-    //     setExpandedRows(_expandedRows);
-    //     setAllExpanded(true);
-    // };
+        setExpandedRows(_expandedRows);
+        setAllExpanded(true);
+    };
 
-    // const collapseAll = () => {
-    //     setExpandedRows(null);
-    //     setAllExpanded(false);
-    // };
+    const collapseAll = () => {
+        setExpandedRows(null);
+        setAllExpanded(false);
+    };
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    {/* <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
-                        disabled={!empleados || !empleados.length} /> */}
+                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
+                        disabled={!empleados || !empleados.length} />
                 </div>
             </React.Fragment>
         )
@@ -436,9 +478,9 @@ const Empleados = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         );
     };
@@ -471,33 +513,15 @@ const Empleados = () => {
     };
 
     const idTipoDocumentoBodyTemplate = (rowData) => {
-        const documento = tipoDocumentos.find((item) => {
-            if (item.idTipoDocumento == rowData.idTipoDocumento)
-                return item;
-        });
-        console.log(documento)
-        if (documento != null) {
-            return (
-                <>
-                    <span className="p-column-title">Id Tipo Documento</span>
-                    {
-                        documento.nombreDocumento
-                    }
+        return (
+            <>
+                <span className="p-column-title">Id Tipo Documento</span>
+                {
+                    rowData.tipoDocumento.nombreDocumento
+                }
 
-                </>
-            );
-        } else {
-            return (
-                <>
-                    <span className="p-column-title">Id Tipo Documento</span>
-                    {
-                        rowData.idTipoDocumento
-                    }
-
-                </>
-            );
-        }
-
+            </>
+        );
     };
     const fechaNacimientoBodyTemplate = (rowData) => {
         var dateDMY = Moment(rowData.fechaNacimiento).format('DD/MM/YYYY');
@@ -541,6 +565,16 @@ const Empleados = () => {
                 {rowData.direccion}
             </>
         );
+    };
+    const fechaBodyTemplate = (rowData) => {
+
+        return (
+            <>
+                <span className="p-column-title">Cargo</span>
+                {new Date(rowData.fechaInicio).toLocaleDateString()}
+            </>
+        );
+
     };
     const cargoBodyTemplate = (rowData) => {
         const cargo = cargos.find((item) => {
@@ -587,13 +621,13 @@ const Empleados = () => {
         });
         return (
             <div className="orders-subtable">
-                <h5> Histórico cargos: {data.nombre}</h5>
+                <h5> Histórico de cargos: {data.nombre}</h5>
                 <DataTable value={table}
                     editMode="cell"
                     className="editable-cells-table"
                     responsiveLayout="scroll"
                     emptyMessage="No se encontraron cargos asignados.">
-                    <Column field="fechaInicio" header="Fecha Inicial" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="fechaInicio" header="Fecha Inicial" body={fechaBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column key="fechaFinal" field="fechaFinal" header="Fecha Final" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="cargo" header="Cargo" body={cargoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                 </DataTable>
@@ -603,7 +637,7 @@ const Empleados = () => {
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -615,7 +649,7 @@ const Empleados = () => {
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-                
+
             </span>
         </div>
     );
@@ -667,11 +701,11 @@ const Empleados = () => {
                         rowExpansionTemplate={rowExpansionTemplate}
                     >
                         {/* <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column> */}
-                        {/* <Column expander style={{ width: '3em' }} /> */}
+                        <Column expander style={{ width: '3em' }} />
                         <Column field="idEmpleado" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="idTipoDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="tipoDocumento.nombreDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="fechaNacimiento" header="Fecha Nacimiento" sortable body={fechaNacimientoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="fechaIngreso" header="Fecha Ingreso" sortable body={fechaIngresoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
@@ -693,8 +727,8 @@ const Empleados = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={tipoDocumento} onChange={(e) => onInputChange(e, 'idTipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" className={classNames({ 'p-invalid': submitted && !empleado.idTipoDocumento })}></Dropdown>
-                            {submitted && !empleado.idTipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
+                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={empleado.tipoDocumento} onChange={(e) => onInputChange(e, 'tipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" className={classNames({ 'p-invalid': submitted && !empleado.tipoDocumento })}></Dropdown>
+                            {submitted && !empleado.tipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
@@ -722,11 +756,11 @@ const Empleados = () => {
                             <InputText id="direccion" value={empleado.direccion} onChange={(e) => onInputChange(e, 'direccion')} className={classNames({ 'p-invalid': submitted && !empleado.direccion })} tooltip="Ingrese una dirección u/o ubicación 🖊️📋" />
                             {submitted && !empleado.direccion && <small className="p-invalid">Dirección es requerido.</small>}
                         </div>
-                        {/* <div className="field">
+                        <div className="field">
                             <label htmlFor="idCargo">Cargo</label>
                             <Dropdown id="idCargo" options={cargos} value={cargo} onChange={(e) => onInputChange(e, 'idCargo')} optionLabel="nombre" placeholder="Seleccione un cargo" className={classNames({ 'p-invalid': submitted && !empleadoCargo.idCargo })}></Dropdown>
                             {submitted && !empleadoCargo.idCargo && <small className="p-invalid">Cargo es requerido.</small>}
-                        </div> */}
+                        </div>
 
                     </Dialog>
 
@@ -752,5 +786,11 @@ const Empleados = () => {
         </div>
     );
 };
-
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
+        }
+    })
+}
 export default Empleados;

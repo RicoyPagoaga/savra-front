@@ -36,14 +36,19 @@ const LoginPage = () => {
         usuarioService.getUsuarios().then(data => setListaUsuarios(data));
     };
     async function IniciarSesion(usuario){
+        console.log(usuario.ventasVista);
         const status = await signIn('credentials',{
             redirect:false,
-            nombre:  usuario.nombre,
-            username:usuario.username,
-            apellido:usuario.apellido,
+            nombre:   usuario.nombre,
+            apellido: usuario.apellido,
+            clientesVista:usuario.clientesVista,
+            ultimaVisita:  usuario.ultimaVisita,
+            ventasVista: usuario.ventasVista,
+            repuestosVista: usuario.repuestosVista,
+            nombreUsuario:usuario.username,
             callbackUrl:'/dashboard/'
         })
-        //console.log(status);
+        console.log(status);
         if(status.ok) router.push(status.url); 
     }
     useEffect(() => {

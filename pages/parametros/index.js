@@ -14,7 +14,8 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { ParametroFacturaService } from '../../demo/service/ParametroFacturaService';
 import Moment from 'moment';
-
+import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const ParametrosFactura = () => {
     let emptyParametroFactura = {
@@ -34,7 +35,7 @@ const ParametrosFactura = () => {
     };
 
     const [valueCai, setValueCai] = useState(null);
-    const [parametrosFactura, setParametrosFactura] = useState();
+    const [parametrosFactura, setParametrosFactura] = useState([]);
     const [fechaLE, setFechaLE] = useState(null);
     const [fechaI, setFechaI] = useState(null);
     const [parametrofacturaDialog, setParametroFacturaDialog] = useState(false);
@@ -50,7 +51,7 @@ const ParametrosFactura = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
-
+    const { data: session } = useSession();
 
     const listarParametrosFactura = () => {
         const parametrofacturaservice = new ParametroFacturaService();
@@ -171,9 +172,28 @@ const ParametrosFactura = () => {
     const exportPdf = () => {
         import('jspdf').then((jsPDF) => {
             import('jspdf-autotable').then(() => {
-                const doc = new jsPDF.default(0, 0);
-
-                doc.autoTable(exportColumns,parametrosFactura);
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('PARÁMETROS DE FACTURAS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('PARÁMETROS DE FACTURA', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Parámetros: ' + parametrosFactura.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, parametrosFactura, {margin: { top: 45, bottom: 25 },columnStyles:{1:{cellWidth: 20}} });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
                 doc.save('Reporte_Parámetros.pdf');
             });
         });
@@ -462,4 +482,12 @@ const ParametrosFactura = () => {
         </div>
     );
 };
+export async function getServerSideProps({req}){
+    return autenticacionRequerida(req,({session}) =>
+    {
+        return{
+            props:{session}
+        }
+    })
+}
 export default ParametrosFactura;

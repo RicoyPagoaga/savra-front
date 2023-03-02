@@ -11,7 +11,7 @@ import { FacturaService } from '../../demo/service/FacturaService';
 import Link from 'next/link';
 import { RepuestoService } from '../../demo/service/RepuestoService';
 import { ClienteService } from '../../demo/service/clienteservice';
-import { getSession, useSession } from "next-auth/react"
+import { getSession, useSession, } from "next-auth/react"
 import { redirect } from 'next/dist/server/api-utils';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { UsuarioService } from '../../demo/service/UsuarioService';
@@ -39,18 +39,6 @@ const lineData = {
 };
 
 const Dashboard = () => {
-    let usuarioVacio = {
-        idUsuario: null,
-        username: '',
-        password: '',
-        activo: 1,
-        bloqueado: 0,
-        idRol: null,
-        nombre: '',
-        apellido: '',
-        clientesVista: 0,
-        ultimaVisita: null
-    };
     const { data: session } = useSession();
     const [products, setProducts] = useState(null);
     const menu1 = useRef(null);
@@ -61,9 +49,10 @@ const Dashboard = () => {
     const [ventas, setVentas] = useState([]);
     const [repuestos, setRepuestos] = useState([]);
     const [clientes, setClientes] = useState([]);
-    const [usuarios, setUsuarios] = useState([]);
-    const [usuario, setUsuario] = useState(usuarioVacio);
-    const [nuevosClientes, setNuevosClientes] = useState(0);
+    const [cantidadClientes, setCantidadClientes] = useState(0);
+    const [cantidadVentas, setCantidadVentas] = useState(0);
+    const [cantidadRepuestos,setCantidadRepuestos] = useState(0);
+    const [ultimaVisita, setultimaVisita] = useState('');
 
     const listarFacturas = () => {
         const facturaservice = new FacturaService();
@@ -77,17 +66,13 @@ const Dashboard = () => {
         const clienteservice = new ClienteService();
         clienteservice.getClientes().then(data => setClientes(data));
     };
-    const listarUsuarios = () => {
-        const usuarioService = new UsuarioService();
-        usuarioService.getUsuarios().then(data => setUsuarios(data));
-    };
-    const encontrarUsuario = async () => {
-        listarUsuarios();
-        const user = usuarios.find((item) => {
-            if (item.username === session.user.email) {
-                setUsuario(item);
-            }
-        });
+    //extraemos la informacion del email de la session que es la que contiene la informacion del usuario;
+    const manejarInfoUsuario = () => {
+        var info = session.user.email.split('/');
+        setultimaVisita(session.user.image);
+        setCantidadClientes(parseInt(info[0]));
+        setCantidadVentas(parseInt(info[1]));
+        setCantidadRepuestos(parseInt(info[2]));
     }
 
     const applyLightTheme = () => {
@@ -155,14 +140,13 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
+        manejarInfoUsuario();
         const productService = new ProductService();
         productService.getProductsSmall().then((data) => setProducts(data));
         listarFacturas()
         listarRepuestos();
         listarClientes();
-        //listarUsuarios();
-        encontrarUsuario();
-        setNuevosClientes(clientes.length-usuario.clientesVista);
+        console.log(session);
     }, []);
 
     useEffect(() => {
@@ -176,23 +160,6 @@ const Dashboard = () => {
     const formatCurrency = (value) => {
         return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     };
-    const templateclientesNuevos = () => {
-        return (
-            <>
-                <span className="text-green-500 font-medium">{nuevosClientes}</span>
-                <span className="text-500"> Nuevos clientes</span>
-            </>
-        )
-    }
-    const templateultimaVisita = () => {
-        let _usuario = {...usuario}
-
-        return (
-            <>
-                <span className="block text-500 font-medium mb-3">Última Visita: {_usuario.ultimaVisita == null ? `Bienvenido` : _usuario.ultimaVisita.toLocaleString()}</span>
-            </>
-        )
-    }
 
     return (
         <div className="grid">
@@ -207,8 +174,8 @@ const Dashboard = () => {
                             <i className="pi pi-shopping-cart text-blue-500 text-xl" />
                         </div>
                     </div>
-                    {/* <span className="text-green-500 font-medium">24  </span>
-                    <span className="text-500"> nuevas</span> */}
+                    <span className="text-green-500 font-medium">{(ventas.length-cantidadVentas)}</span>
+                    <span className="text-500"> Nuevas ventas</span>
                 </div>
             </div>
 
@@ -223,7 +190,8 @@ const Dashboard = () => {
                             <i className="pi pi-inbox text-cyan-500 text-xl" />
                         </div>
                     </div>
-                    {templateclientesNuevos()}
+                    <span className="text-green-500 font-medium">{(clientes.length-cantidadClientes)}</span>
+                    <span className="text-500"> Nuevos clientes</span>
                 </div>
             </div>
 
@@ -238,8 +206,8 @@ const Dashboard = () => {
                             <i className="pi pi-wrench text-purple-500 text-xl" />
                         </div>
                     </div>
-                    {/* <span className="text-green-500 font-medium">85 </span>
-                    <span className="text-500">resueltas</span> */}
+                    <span className="text-green-500 font-medium">{(repuestos.length-cantidadRepuestos)}</span>
+                    <span className="text-500"> Nuevos Repuestos</span>
                 </div>
             </div>
 
@@ -343,7 +311,7 @@ const Dashboard = () => {
                 </div>
 
                 <div className="card">
-                    {templateultimaVisita()}
+                    <span className="block text-500 font-medium mb-3">Última Visita: {ultimaVisita=='null'?`Bienvenido!`: new Date(ultimaVisita).toLocaleString()}</span>
                 </div>
             </div>
         </div>
