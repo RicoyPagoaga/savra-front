@@ -16,12 +16,13 @@ import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { RepuestoService } from '../../demo/service/RepuestoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react';
 
 const Compras = () => {
 
     let compraVacia = {
         idCompra: null,
-        idEmpleado: null,
+        empleado: null,
         fechaCompra: null,
         fechaDespacho: null,
         fechaRecibido: null,
@@ -38,6 +39,7 @@ const Compras = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const [detalles, setDetalles] = useState([]);
+    const { data:session } = useSession();
 
     //fechas
     const [fechaCompra_, setFechaCompra_] = useState(null);
@@ -63,32 +65,32 @@ const Compras = () => {
         compraService.getCompras().then(data => setCompras(data));
     };
 
-    const listarDetallesCompra = () => {
+    const listarDetallesCompra = async () => {
         const detalleService = new CompraDetalleService();
-        detalleService.getDetallesCompra().then(data => setCompraDetalles(data));
+        await detalleService.getDetallesCompra().then(data => setCompraDetalles(data));
     };
 
-    const listarEmpleados = () => {
+    const listarEmpleados = async () => {
         const empleadoService = new EmpleadoService();
-        empleadoService.getEmpleados().then(data => setEmpleados(data));
+        await empleadoService.getEmpleados().then(data => setEmpleados(data));
     };
 
-    const listarRepuestos = () => {
+    const listarRepuestos = async () => {
         const repuestoService = new RepuestoService();
-        repuestoService.getRepuestos().then(data => setRepuestos(data));
+        await repuestoService.getRepuestos().then(data => setRepuestos(data));
     };
 
-    const listarPrecioHistoricos = () => {
+    const listarPrecioHistoricos = async () => {
         const precioHistoricoService = new PrecioHistoricoRepuestoService();
-        precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
+        await precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
     };
 
-    useEffect(() => {
+    useEffect(async () => {
         listarCompras();
-        listarDetallesCompra();
-        listarEmpleados();
-        listarRepuestos();
-        listarPrecioHistoricos();
+        await listarDetallesCompra();
+        await listarEmpleados();
+        await listarRepuestos();
+        await listarPrecioHistoricos();
     }, []); 
 
 
@@ -221,8 +223,87 @@ const Compras = () => {
         }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idCompra', header: 'ID' },
+        { field: 'empleado', header: 'Empleado' },
+        { field: 'fechaCompra', header: 'Fecha Compra' },
+        { field: 'fechaDespacho', header: 'Fecha Despacho' },
+        { field: 'fechaRecibido', header: 'Fecha de Entrega' },
+        { field: 'noComprobante', header: 'No. de Comprobante' }
+    ]
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+    
+    let objModificado = compras.map(function (element) {
+        return {
+            idCompra: element.idCompra,
+            empleado: element.empleado.nombre,
+            fechaCompra: element.fechaCompra,
+            fechaDespacho: element.fechaDespacho?element.fechaDespacho:"Pendiente",
+            fechaRecibido: element.fechaRecibido?element.fechaRecibido:"Pendiente",
+            noComprobante: element.noComprobante
+        };
+    });
+
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('COMPRAS REALIZADAS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('COMPRAS REALIZADAS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Compras: ' + compras.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Compras.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        var tbl = document.getElementById('TablaCompras');
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Compras');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
 
@@ -231,8 +312,8 @@ const Compras = () => {
         const val = (e.target && e.target.value) || '';
         let _Compra = { ...compra };
 
-        if (nombre == 'idEmpleado') {
-            _Compra[`${nombre}`]=val.idEmpleado;
+        if (nombre == 'empleado') {
+            _Compra[`${nombre}`]=val;
             setEmpleado(e.value);
         } else if (nombre == 'idRepuesto') {
             setRepuesto(e.value);    
@@ -297,7 +378,9 @@ const Compras = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -305,23 +388,15 @@ const Compras = () => {
     const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Código</span>
                 {rowData.idCompra}
             </>
         );
     }
 
     const empleadoBodyTemplate = (rowData) => {
-        let nombre = '';
-        empleados.map((item) => {
-            if (rowData.idEmpleado == item.idEmpleado) {
-                nombre = item.nombre;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Nombre</span>
-                {nombre}
+                {rowData.empleado.nombre}
             </>
         );
     }
@@ -329,7 +404,6 @@ const Compras = () => {
     const fechaCompraBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Fecha de Compra</span>
                 {rowData.fechaCompra}
             </>
         );
@@ -616,7 +690,7 @@ const Compras = () => {
                         <Column field="fechaCompra" header="Fecha de Compra" sortable body={fechaCompraBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column field="fechaDespacho" header="Fecha de Despacho" body={fechaDespachoBodyTemplate} sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
                         <Column field="fechaRecibido" header="Fecha de Entrega" body={fechaRecibidoBodyTemplate} sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
-                        <Column field="idEmpleado" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
+                        <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column field="noComprobante" header="No. de Comprobante" sortable body={comprobanteBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
@@ -625,9 +699,9 @@ const Compras = () => {
                         <div className='card' style={{ width: '640px' }}>   
                             <div className="field">
                                 <label htmlFor="idEmpleado">Empleado</label>
-                                <Dropdown id="idEmpleado" options={empleados} value={empleado} onChange={(e) => onInputChange(e, 'idEmpleado')} optionLabel={"nombre"} 
-                                emptyMessage="No se encontraron empleados" className={classNames({ 'p-invalid': submitted && !compra.idEmpleado })} />
-                                {submitted && !compra.idEmpleado && <small className="p-invalid">El empleado es requerido.</small>}
+                                <Dropdown id="idEmpleado" options={empleados} value={compra.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel={"nombre"} 
+                                emptyMessage="No se encontraron empleados" className={classNames({ 'p-invalid': submitted && !compra.empleado })} />
+                                {submitted && !compra.empleado && <small className="p-invalid">El empleado es requerido.</small>}
                             </div>
                             <div className="field">
                                 <label htmlFor="fechaCompra">Fecha de Compra</label>

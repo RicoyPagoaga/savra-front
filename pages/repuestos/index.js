@@ -19,6 +19,7 @@ import { ImpuestoService } from '../../demo/service/ImpuestoService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react'
 
 const Repuestos = () => {
     
@@ -27,14 +28,14 @@ const Repuestos = () => {
         nombre: '',
         anio_referenciaInicio: null,
         anio_referenciaFinal: null,
-        idCategoria: null,
+        categoria: null,
         stockActual: '',
         stockMinimo: '',
         stockMaximo: '',
-        idProveedor: null,
-        idModelo: null,
-        idTransmision: null,
-        idImpuesto: null,
+        proveedor: null,
+        modelo: null,
+        transmision: null,
+        impuesto: null,
     };
 
     let precioHistoricoVacio = {
@@ -49,11 +50,11 @@ const Repuestos = () => {
     const [deleteRepuestoDialog, setDeleteRepuestoDialog] = useState(false);
     const [deleteRepuestosDialog, setDeleteRepuestosDialog] = useState(false);
     const [repuesto, setRepuesto] = useState(repuestoVacio);
-    const [selectedRepuestos, setSelectedRepuestos] = useState(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
 
     //año referencia inicio - final
     const [refInicio, setRefInicio] = useState(null);
@@ -87,39 +88,39 @@ const Repuestos = () => {
         repuestoService.getRepuestos().then(data => setRepuestos(data));
     };
 
-    const listarCategorias = () => {
+    const listarCategorias = async () => {
         const categoriaService = new CategoriaRepuestoService();
-        categoriaService.getCategoriasRepuestos().then(data => setCategorias(data));
+        await categoriaService.getCategoriasRepuestos().then(data => setCategorias(data));
     };
 
-    const listarProveedores = () => {
+    const listarProveedores = async () => {
         const proveedorService = new ProveedorService();
-        proveedorService.getProveedores().then(data => setProveedores(data));
+        await proveedorService.getProveedores().then(data => setProveedores(data));
     };
 
-    const listarModelos = () => {
+    const listarModelos = async () => {
         const modeloService = new ModeloService();
-        modeloService.getModelos().then(data => setModelos(data));
+        await modeloService.getModelos().then(data => setModelos(data));
     };
 
-    const listarTransmisiones = () => {
+    const listarTransmisiones = async () => {
         const transmisionService = new TransmisionService();
-        transmisionService.getTransmisiones().then(data => setTransmisiones(data));
+        await transmisionService.getTransmisiones().then(data => setTransmisiones(data));
     };
 
-    const listarPrecios = () => {
+    const listarPrecios = async () => {
         const precioHistoricoService = new PrecioHistoricoRepuestoService();
-        precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
+        await precioHistoricoService.getPreciosHistorico().then(data => setPrecioHistoricos(data));
     };
 
-    const listarImpuestos = () => {
+    const listarImpuestos = async () => {
         const impuestoService = new ImpuestoService();
-        impuestoService.getImpuestos().then(data => setImpuestos(data));
+        await impuestoService.getImpuestos().then(data => setImpuestos(data));
     };
 
-    const listarImpuestosHistoricos = () => {
+    const listarImpuestosHistoricos = async () => {
         const impuestoHistoricoService = new ImpuestoHistoricoService();
-        impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
+        await impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
     };
 
     const setearRangoFechas = () => {
@@ -136,15 +137,15 @@ const Repuestos = () => {
         setMinYear(min_year);
     };
 
-    useEffect(() => {
+    useEffect(async () => {
         listarRepuestos(); 
-        listarPrecios();
-        listarCategorias();
-        listarProveedores();
-        listarModelos();
-        listarTransmisiones(); 
-        listarImpuestos();
-        listarImpuestosHistoricos();
+        await listarPrecios();
+        await listarCategorias();
+        await listarProveedores();
+        await listarModelos();
+        await listarTransmisiones(); 
+        await listarImpuestos();
+        await listarImpuestosHistoricos();
         setearRangoFechas();
     }, []); 
 
@@ -166,6 +167,7 @@ const Repuestos = () => {
         //
         setSubmitted(false);
         setRepuestoDialog(true);
+        console.log(repuestos);
     };
 
     const hideDialog = () => {
@@ -338,11 +340,6 @@ const Repuestos = () => {
         setRepuestoDialog(true);        
     };
 
-    const confirmDeleteRepuesto = (repuesto) => {
-        setRepuesto(repuesto);
-        setDeleteRepuestoDialog(true);
-    };
-
     const deleteRepuesto = async () => {
         try {
             const repuestoService = new RepuestoService();
@@ -355,39 +352,138 @@ const Repuestos = () => {
         }
     };
 
-
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const confirmDeleteRepuesto = (repuesto) => {
+        setRepuesto(repuesto);
+        setDeleteRepuestoDialog(true);
     };
+
+    const cols = [
+        { field: 'idRepuesto', header: 'ID' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'anio_referenciaInicio', header: 'Año de Referencia Inicial' },
+        { field: 'anio_referenciaFinal', header: 'Año de Referencia Final' },
+        { field: 'categoria', header: 'Categoría' },
+        { field: 'stockActual', header: 'Stock Actual' },
+        { field: 'stockMinimo', header: 'Stock Mínimo' },
+        { field: 'stockMaximo', header: 'Stock Máximo' },
+        { field: 'proveedor', header: 'Proveedor' },
+        { field: 'modelo', header: 'Modelo' },
+        { field: 'transmision', header: 'Transmisión' },
+        { field: 'impuesto', header: 'Impuesto' }
+    ]
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = repuestos.map(function (element) {
+        return {
+            idRepuesto: element.idRepuesto,
+            nombre: element.nombre,
+            anio_referenciaInicio: element.anio_referenciaInicio,
+            anio_referenciaFinal: element.anio_referenciaFinal,
+            categoria: element.categoria.nombre,
+            stockActual: element.stockActual,
+            stockMinimo: element.stockMinimo,
+            stockMaximo: element.stockMaximo,
+            proveedor: element.proveedor.nombre,
+            modelo: element.modelo.nombre,
+            transmision: element.transmision.nombre,
+            impuesto: element.impuesto.nombre
+        }
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('REPUESTOS REGISTRADOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('REPUESTOS REGISTRADOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Repuestos: ' + repuestos.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Repuestos.pdf');
+            });
+        });
+    }
+
+    const exportExcel = () => {
+        var tbl = document.getElementById('TablaRepuesto');
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Repuestos');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
+    };
+
 
     const onInputChange = (e, nombre) => {
         //categoria, proveedor, modelo, transmision, impuesto
         const val = (e.target && e.target.value) || '';
         let _Repuesto = { ...repuesto };
 
-        if (nombre == 'idCategoria') {
-            _Repuesto[`${nombre}`]=val.idCategoria;
-            setCategoria(e.value);
-        } 
-        else if (nombre == 'idProveedor') {
-            _Repuesto[`${nombre}`]=val.idProveedor;
-            setProveedor(e.value);
-        } 
-        else if (nombre == 'idModelo') {
-            _Repuesto[`${nombre}`]=val.idModelo;
-            setModelo(e.value);
-        } 
-        else if (nombre == 'idTransmision') {
-            _Repuesto[`${nombre}`]=val.idTransmision;
-            setTransmision(e.value);
-        } 
-        else if (nombre == 'idImpuesto') {    
-            _Repuesto[`${nombre}`]=val.idImpuesto;
-            setImpuesto(e.value);
+        switch(nombre) {
+            case 'categoria':
+                _Repuesto[`${nombre}`]=val;
+                setCategoria(e.value);
+                break;
+            case 'proveedor':
+                _Repuesto[`${nombre}`]=val;
+                setProveedor(e.value);
+                break;
+            case 'modelo':
+                _Repuesto[`${nombre}`]=val;
+                setModelo(e.value);
+                break;
+            case 'transmision':
+                _Repuesto[`${nombre}`]=val;
+                setTransmision(e.value);
+                break;
+            case 'impuesto':
+                _Repuesto[`${nombre}`]=val;
+                setImpuesto(e.value);
+                break;
+            default:
+                _Repuesto[`${nombre}`] = val;
+                break;
         }
-        else {
-            _Repuesto[`${nombre}`] = val;
-        }
+
         setRepuesto(_Repuesto);
     }
 
@@ -458,7 +554,9 @@ const Repuestos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -466,7 +564,6 @@ const Repuestos = () => {
     const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Código</span>
                 {rowData.idRepuesto}
             </>
         );
@@ -475,7 +572,6 @@ const Repuestos = () => {
     const nombreBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Nombre</span>
                 {rowData.nombre}
             </>
         );
@@ -484,7 +580,6 @@ const Repuestos = () => {
     const fechaInicioBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Año de Referencia Inicial</span>
                 {rowData.anio_referenciaInicio}
             </>
         );
@@ -493,23 +588,15 @@ const Repuestos = () => {
     const fechaFinalBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Año de Referencia Final</span>
                 {rowData.anio_referenciaFinal}
             </>
         );
     }
 
     const categoriaBodyTemplate = (rowData) => {
-        let categoriaNombre = '';
-        categorias.map((categoria) => {
-            if (rowData.idCategoria == categoria.idCategoria) {
-                categoriaNombre = categoria.nombre;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Categoría</span>
-                {categoriaNombre}
+                {rowData.categoria.nombre}
             </>
         )
     }
@@ -521,7 +608,6 @@ const Repuestos = () => {
         });
         return (
             <>
-                <span className="p-column-title">Stock Actual</span>
                 <div className={templateClass}>
                     {rowData.stockActual}
                 </div>
@@ -532,7 +618,6 @@ const Repuestos = () => {
     const stockMinimoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Stock Mínimo</span>
                 {rowData.stockMinimo}
             </>
         );
@@ -541,53 +626,31 @@ const Repuestos = () => {
     const stockMaximoBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Stock Máximo</span>
                 {rowData.stockMaximo}
             </>
         );
     }
 
     const proveedorBodyTemplate = (rowData) => {
-        let proveedorNombre = '';
-        proveedores.map((proveedor) => {
-            if (rowData.idProveedor == proveedor.idProveedor) {
-                proveedorNombre = proveedor.nombre;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Proveedor</span>
-                {proveedorNombre}
+                {rowData.proveedor.nombre}
             </>
         );
     }
 
     const modeloBodyTemplate = (rowData) => {
-        let modeloNombre = '';
-        modelos.map((modelo) => {
-            if (rowData.idModelo == modelo.idModelo) {
-                modeloNombre = modelo.nombre;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Modelo</span>
-                {modeloNombre}
+                {rowData.modelo.nombre}
             </>
         );
     }
 
     const transmisionBodyTemplate = (rowData) => {
-        let transmisionNombre = '';
-        transmisiones.map((transmision) => {
-            if (rowData.idTransmision == transmision.idTransmision) {
-                transmisionNombre = transmision.nombre;
-            }
-        });
         return (
             <>
-                <span className="p-column-title">Transmisión</span>
-                {transmisionNombre}
+                {rowData.transmision.nombre}
             </>
         )
     }
@@ -595,12 +658,12 @@ const Repuestos = () => {
     const impuestoBodyTemplate = (rowData) => {
         let impuestoValor = ''; let activo;
         impuestoHistoricos.map((impuestoHistorico) => {
-            if (rowData.idImpuesto == impuestoHistorico.idImpuesto && impuestoHistorico.fechaFinal == null) {
+            if (rowData.impuesto.idImpuesto == impuestoHistorico.idImpuesto && impuestoHistorico.fechaFinal == null) {
                 impuestoValor = impuestoHistorico.valor;
             }
         });
         impuestos.map((item) => {
-            if(rowData.idImpuesto===item.idImpuesto)
+            if(rowData.impuesto.idImpuesto===item.idImpuesto)
                 activo=item.estado;
         })
         const templateClass = classNames({
@@ -609,7 +672,6 @@ const Repuestos = () => {
         });
         return (
             <>
-                <span className="p-column-title">Impuesto</span>
                 <div className={templateClass}>
                     {impuestoValor}%
                 </div>
@@ -782,14 +844,14 @@ const Repuestos = () => {
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="anio_referenciaInicio" header="Año de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="anio_referenciaFinal" header="Año de Referencia Final" body={fechaFinalBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
-                        <Column field="idCategoria" header="Categoría" sortable body={categoriaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="categoria.nombre" header="Categoría" sortable body={categoriaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="stockActual" header="Stock Actual" body={stockActualBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="stockMinimo" header="Stock Mínimo" body={stockMinimoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="stockMaximo" header="Stock Máximo" body={stockMaximoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="idProveedor" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="idModelo" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="idTransmision" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="idImpuesto" header="Impuesto" sortable body={impuestoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="proveedor.nombre" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="modelo.nombre" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="transmision.nombre" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        <Column field="impuesto.nombre" header="Impuesto" sortable body={impuestoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -818,9 +880,9 @@ const Repuestos = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" options={categorias} value={categoria} onChange={(e) => onInputChange(e, 'idCategoria')} emptyMessage="No se encontraron categorías"
-                            optionLabel={"nombre"} className={classNames({ 'p-invalid': submitted && !repuesto.idCategoria })} />
-                            {submitted && !repuesto.idCategoria && <small className="p-invalid">La categoría es requerida.</small>}
+                            <Dropdown id="idCategoria" options={categorias} value={repuesto.categoria} onChange={(e) => onInputChange(e, 'categoria')} emptyMessage="No se encontraron categorías"
+                            optionLabel={"nombre"} className={classNames({ 'p-invalid': submitted && !repuesto.categoria })} />
+                            {submitted && !repuesto.categoria && <small className="p-invalid">La categoría es requerida.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="stockActual">Stock Actual</label>
@@ -847,21 +909,21 @@ const Repuestos = () => {
                         </div>
                         <div className="field">
                             <label htmlFor="idProveedor">Proveedor</label>
-                            <Dropdown id="idProveedor" options={proveedores} value={proveedor} onChange={(e) => onInputChange(e, 'idProveedor')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron proveedores" className={classNames({ 'p-invalid': submitted && !repuesto.idProveedor })} />
-                            {submitted && !repuesto.idProveedor && <small className="p-invalid">El proveedor es requerido.</small>}
+                            <Dropdown id="idProveedor" options={proveedores} value={repuesto.proveedor} onChange={(e) => onInputChange(e, 'proveedor')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron proveedores" className={classNames({ 'p-invalid': submitted && !repuesto.proveedor })} />
+                            {submitted && !repuesto.proveedor && <small className="p-invalid">El proveedor es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idModelo">Modelo</label>
-                            <Dropdown id="idModelo" options={modelos} value={modelo} onChange={(e) => onInputChange(e, 'idModelo')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron modelos" className={classNames({ 'p-invalid': submitted && !repuesto.idModelo })}/>
-                            {submitted && !repuesto.idModelo && <small className="p-invalid">El modelo es requerido.</small>}
+                            <Dropdown id="idModelo" options={modelos} value={repuesto.modelo} onChange={(e) => onInputChange(e, 'modelo')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron modelos" className={classNames({ 'p-invalid': submitted && !repuesto.modelo })}/>
+                            {submitted && !repuesto.modelo && <small className="p-invalid">El modelo es requerido.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="idTransmision">Transmisión</label>
-                            <Dropdown id="idTransmision" options={transmisiones} value={transmision} onChange={(e) => onInputChange(e, 'idTransmision')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron transmisiones" className={classNames({ 'p-invalid': submitted && !repuesto.idTransmision })} />
-                            {submitted && !repuesto.idTransmision && <small className="p-invalid">La transmisión es requerida.</small>}
+                            <Dropdown id="idTransmision" options={transmisiones} value={repuesto.transmision} onChange={(e) => onInputChange(e, 'transmision')} optionLabel={"nombre"} 
+                            emptyMessage="No se encontraron transmisiones" className={classNames({ 'p-invalid': submitted && !repuesto.transmision })} />
+                            {submitted && !repuesto.transmision && <small className="p-invalid">La transmisión es requerida.</small>}
                         </div>
                         <div className='formgrid grid'>
                             <div className="field col">
@@ -873,9 +935,9 @@ const Repuestos = () => {
                             </div>
                             <div className="field col">
                                 <label htmlFor="idImpuesto">Impuesto</label>
-                                <Dropdown id="idImpuesto" options={dropdownImpuestos} value={impuesto} onChange={(e) => onInputChange(e, 'idImpuesto')} optionLabel={"nombre"} tooltip="Impuestos con estado activo"
-                                emptyMessage="No se encontraron impuestos" className={classNames({ 'p-invalid': submitted && !repuesto.idImpuesto })} />
-                                {submitted && !repuesto.idImpuesto && <small className="p-invalid">El impuesto es requerido.</small>}
+                                <Dropdown id="idImpuesto" options={dropdownImpuestos} value={repuesto.impuesto} onChange={(e) => onInputChange(e, 'impuesto')} optionLabel={"nombre"} tooltip="Impuestos con estado activo"
+                                emptyMessage="No se encontraron impuestos" className={classNames({ 'p-invalid': submitted && !repuesto.impuesto })} />
+                                {submitted && !repuesto.impuesto && <small className="p-invalid">El impuesto es requerido.</small>}
                             </div>
                         </div>
                     </Dialog> 

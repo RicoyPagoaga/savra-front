@@ -12,6 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ImpuestoService } from '../../demo/service/ImpuestoService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react';
 
 const Impuestos = () => {
     let impuestoVacio = {
@@ -28,7 +29,7 @@ const Impuestos = () => {
         valor: "",
     };
 
-    const [impuestos, setImpuestos] = useState(null);
+    const [impuestos, setImpuestos] = useState([]);
     const [impuestoDialog, setImpuestoDialog] = useState(false);
     const [activarDesactivarImpuestoDialog, setActivarDesactivarImpuestoDialog] = useState(false);
     const [impuesto, setImpuesto] = useState(impuestoVacio);
@@ -37,6 +38,7 @@ const Impuestos = () => {
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
     const dt = useRef(null);
+    const { data: session } = useSession();
 
     //impuesto historico
     const [allExpanded, setAllExpanded] = useState(false);
@@ -51,9 +53,9 @@ const Impuestos = () => {
         impuestoService.getImpuestos().then(data => setImpuestos(data));
     };
 
-    const listarImpuestosHistorico = () => {
+    const listarImpuestosHistorico = async () => {
         const impuestoHistoricoService = new ImpuestoHistoricoService();
-        impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
+        await impuestoHistoricoService.getImpuestosHistorico().then(data => setImpuestoHistoricos(data));
     };
 
     const setearRangoFechas = () => {
@@ -68,9 +70,9 @@ const Impuestos = () => {
         setMaxDate(fecha);
     };
 
-    useEffect(() => {
+    useEffect(async () => {
         listarImpuestos(); 
-        listarImpuestosHistorico();
+        await listarImpuestosHistorico();
         setearRangoFechas();
     }, []); 
 
@@ -187,8 +189,83 @@ const Impuestos = () => {
         }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idImpuesto', header: 'ID'},
+        { field: 'nombre', header: 'Nombre'},
+        { field: 'descripcion', header: 'Descripción'},
+        { field: 'estado', header: 'Estado'},
+    ]
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+
+    let objModificado = impuestos.map(function (element) {
+        return {
+            idImpuesto: element.idImpuesto,
+            nombre: element.nombre,
+            descripcion: element.descripcion,
+            estado: element.estado?'Activo':'Inactivo'
+        }
+    })
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('IMPUESTOS REGISTRADOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('IMPUESTOS REGISTRADOS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Impuestos: ' + impuestos.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_Impuestos.pdf');
+            });
+        });
+    }
+
+    const exportExcel = () => {
+        var tbl = document.getElementById('TablaImpuesto');
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_Impuestos');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
 
@@ -241,7 +318,9 @@ const Impuestos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }

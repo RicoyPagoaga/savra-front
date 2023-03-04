@@ -16,12 +16,13 @@ import { RepuestoService } from '../../demo/service/RepuestoService';
 import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { DevolucionCompraService } from '../../demo/service/DevolucionCompraService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { useSession } from 'next-auth/react';
 
 const DevolucionCompra = () => {
 
     let devolucionVacia = { 
         idRepuesto: undefined,
-        idCompraDetalle: undefined,
+        compraDetalle: null,
         cantCompra: undefined,
         fecha: undefined,
         cantDevolver: undefined,
@@ -46,6 +47,7 @@ const DevolucionCompra = () => {
     const dt = useRef(null);
     const [devoluciones, setDevoluciones] = useState([]);
     const [devolucionesEditar, setDevolucionesEditar] = useState(false);
+    const { data: session } = useSession();
 
     //nueva devolucion
     const [dropdownRepuestos, setDropdownRepuestos] = useState([]);
@@ -78,22 +80,7 @@ const DevolucionCompra = () => {
 
     const listarCompras = () => {
         const compraService = new CompraService();
-        let compras_=[];
-        compraService.getCompras().then(data => { 
-            devolucionesCompra.map((dev) => {
-                compraDetalles.map((det) => {
-                    data.map((compra) => {
-                        if(dev.idCompraDetalle===det.idCompraDetalle && det.idCompra===compra.idCompra) {
-                            if (!compras_.some((item) => {return item.idCompra === compra.idCompra})) {
-                                compras_.push(compra);
-                            }
-                        }
-                    });
-                });
-            })
-            setCompras(data);
-        })
-        setComprasConDevolucion(compras_);
+        compraService.getCompras().then(data => setCompras(data));
     };
 
     const listarDetallesCompra = () => {
@@ -111,8 +98,26 @@ const DevolucionCompra = () => {
         empleadoService.getEmpleados().then(data => setEmpleados(data));
     };
 
+    const listarComprasConDevolucion = () => {
+        //compras con devolucion (tabla principal)
+        if(devolucionesCompra.length) {
+            let compras_=[];
+            compras.map((compra) => {
+                devolucionesCompra.map((devolucion) => {
+                    if(devolucion.compraDetalle.idCompra===compra.idCompra) {
+                        if (!compras_.some((item) => {return item.idCompra === compra.idCompra})) {
+                            compras_.push(compra);
+                        }
+                    }
+                });
+            });
+            setComprasConDevolucion(compras_);
+        }
+    }
+
     useEffect(() => {
         isMounted.current = true;
+        listarCompras();
         listarDetallesCompra();
         listarDevolucionesCompra();
         listarRepuestos();
@@ -120,9 +125,10 @@ const DevolucionCompra = () => {
     }, []); 
 
     useEffect(() => {
-        if(devolucionesCompra && devolucionesCompra.length && compraDetalles && compraDetalles.length)
-            listarCompras();
+        listarComprasConDevolucion();
     }, [devolucionesCompra]);
+    
+
 
     useEffect(() => {
         if (isMounted.current && selectedCompra) {
@@ -136,7 +142,7 @@ const DevolucionCompra = () => {
                 compraDetalles.map((det) => {
                     devolucionesCompra.map((item) => {
                         if(det.idCompra===selectedCompra.idCompra && 
-                            det.idCompraDetalle===item.idCompraDetalle) {
+                            det.idCompraDetalle===item.compraDetalle.idCompraDetalle) {
                             _devoluciones.push(item);
                         }
                     })
@@ -161,16 +167,6 @@ const DevolucionCompra = () => {
         setDropdownRepuestos(dropdown);
     }
 
-    const setearOverlay = () => {
-        let overlay=[];
-        compras.map((item) => {
-            if(item.fechaRecibido) {
-                overlay.push(item);
-            }
-        });
-        setComprasOverlay(overlay);
-    }
-
     const openNew = () => {
         setDevoluciones([]);
         setDevolucion(devolucionVacia);
@@ -179,6 +175,16 @@ const DevolucionCompra = () => {
         setSubmitted(false);
         setDevolucionCompraDialog(true);
         setearOverlay();
+    }
+
+    const setearOverlay = () => {
+        let overlay=[];
+        compras.map((item) => {
+            if(item.fechaRecibido) {
+                overlay.push(item);
+            }
+        });
+        setComprasOverlay(overlay);
     }
 
     const hideDialog = () => {
@@ -244,7 +250,7 @@ const DevolucionCompra = () => {
         compraDetalles.map((det) => {
             devolucionesCompra.map((item) => {
                 if(det.idCompra===compra.idCompra && 
-                    det.idCompraDetalle===item.idCompraDetalle) {
+                    det.idCompraDetalle===item.compraDetalle.idCompraDetalle) {
                     _devoluciones.push(item);
                 }
             })
@@ -284,8 +290,85 @@ const DevolucionCompra = () => {
         }
     }
 
-    const exportCSV = () => {
-        dt.current.exportCSV();
+    const cols = [
+        { field: 'idDevolucion', header: 'ID' },
+        { field: 'compraDetalle', header: 'ID Detalle de Compra' },
+        { field: 'fecha', header: 'Fecha' },
+        { field: 'cantidad', header: 'Cantidad Devolución' },
+        { field: 'motivo', header: 'Motivo' }
+    ]
+
+    const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
+    
+    let objModificado = devolucionesCompra.map(function (element) {
+        return {
+            idDevolucion: element.idDevolucion,
+            compraDetalle: element.compraDetalle.idCompraDetalle,
+            fecha: element.fecha,
+            cantidad: element.cantidad,
+            motivo: element.motivo
+        };
+    });
+
+
+    const exportCSV = (selectionOnly) => {
+        dt.current.exportCSV({ selectionOnly });
+    };
+    const exportPdf = () => {
+        import('jspdf').then((jsPDF) => {
+            import('jspdf-autotable').then(() => {
+                const doc = new jsPDF.default('portrait');
+                var image = new Image();
+                var fontSize = doc.internal.getFontSize();
+                const docWidth = doc.internal.pageSize.getWidth();
+                const docHeight = doc.internal.pageSize.getHeight();
+                const txtWidth = doc.getStringUnitWidth('DEVOLUCIONES REALIZADAS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
+                image.src = '../layout/images/img_facturalogo2.png';
+                doc.addImage(image, 'PNG', 10, 0, 50, 30);
+                //centrar texto:
+                doc.text('DEVOLUCIONES REALIZADAS', x, 15);
+                doc.setFontSize(12);
+                doc.text(15, 30, 'Usuario: ' + session.user.name);
+                doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+                doc.text(docWidth - 15, 30, 'Total Devoluciones de Compra: ' + devolucionesCompra.length, { align: "right" });
+                doc.line(15, 40, docWidth - 15, 40);
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 25 } });
+                const pageCount = doc.internal.getNumberOfPages();
+                for (var i = 1; i <= pageCount; i++) {
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
+                }
+                doc.save('Reporte_DevolucionesCompras.pdf');
+            });
+        });
+    };
+
+    const exportExcel = () => {
+        var tbl = document.getElementById('TablaDevolucionesCompras');
+        import('xlsx').then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(objModificado);
+            const workbook = { Sheets: { data: worksheet }, SheetNames: ['data'] };
+            const excelBuffer = xlsx.write(workbook, {
+                bookType: 'xlsx',
+                type: 'array'
+            });
+
+            saveAsExcelFile(excelBuffer, 'Reporte_DevolucionesCompras');
+        });
+    };
+    const saveAsExcelFile = (buffer, fileName) => {
+        import('file-saver').then((module) => {
+            if (module && module.default) {
+                let EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+                let EXCEL_EXTENSION = '.xlsx';
+                const data = new Blob([buffer], {
+                    type: EXCEL_TYPE
+                });
+
+                module.default.saveAs(data, fileName + '_export_' + new Date().getTime() + EXCEL_EXTENSION);
+            }
+        });
     };
 
     const cantidadCompra = (devolucion) => {
@@ -307,7 +390,7 @@ const DevolucionCompra = () => {
             (_devolucion.idRepuesto===undefined) ? _devolucion.cantCompra=undefined : cantidadCompra(_devolucion);
             compraDetalles.map((item) => {
                 if(item.idCompra===selectedCompra.idCompra && item.idRepuesto===val.idRepuesto) {
-                    _devolucion.idCompraDetalle=item.idCompraDetalle;
+                    _devolucion.compraDetalle=item;
                 }
             })
         } 
@@ -375,7 +458,9 @@ const DevolucionCompra = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Exportar" icon="pi pi-upload" className="p-button-help" onClick={exportCSV} />
+                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
+                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
             </React.Fragment>
         )
     }
@@ -383,8 +468,15 @@ const DevolucionCompra = () => {
     const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">Código</span>
                 {rowData.idDevolucion}
+            </>
+        );
+    }
+
+    const compraDetalleBodyTemplate = (rowData) => {
+        return (
+            <>
+                {rowData.compraDetalle.idCompraDetalle}
             </>
         );
     }
@@ -427,16 +519,10 @@ const DevolucionCompra = () => {
     }
 
     const empleadoBodyTemplate = (rowData) => {
-        let nombre = '';
-        empleados.map((item) => {
-            if (rowData.idEmpleado == item.idEmpleado) {
-                nombre = item.nombre;
-            }
-        });
         return (
             <>
                 <span className="p-column-title">Nombre</span>
-                {nombre}
+                {rowData.empleado.nombre}
             </>
         );
     }
@@ -459,7 +545,7 @@ const DevolucionCompra = () => {
     const cantidadEditarBodyTemplate = (rowData) => {
         let detalle_=''; 
         compraDetalles.map((detalle) => {
-            if(rowData.idCompraDetalle===detalle.idCompraDetalle) {
+            if(rowData.compraDetalle.idCompraDetalle===detalle.idCompraDetalle) {
                 detalle_=detalle.cantidad;
             }
         });
@@ -476,7 +562,7 @@ const DevolucionCompra = () => {
         let detalle_='';
         compraDetalles.map((detalle) => {
             repuestos.map((repuesto) => {
-                if(rowData.idCompraDetalle===detalle.idCompraDetalle
+                if(rowData.compraDetalle.idCompraDetalle===detalle.idCompraDetalle
                     && detalle.idRepuesto===repuesto.idRepuesto) {
                     detalle_=repuesto.idRepuesto +'- '+repuesto.nombre;
                 }
@@ -488,7 +574,7 @@ const DevolucionCompra = () => {
     const cantDetalleBodyTemplate = (rowData) => {
         let detalle_='';
         compraDetalles.map((detalle) => {
-            if(rowData.idCompraDetalle===detalle.idCompraDetalle) {
+            if(rowData.compraDetalle.idCompraDetalle===detalle.idCompraDetalle) {
                 detalle_=detalle.cantidad;
             }
         });
@@ -603,13 +689,13 @@ const DevolucionCompra = () => {
         if(devolucion.idRepuesto && devolucion.cantDevolver && devolucion.fecha && devolucion.motivo) {
             let _devoluciones = [...devoluciones];
             let hasRepuesto = _devoluciones.some((item) => {
-                return item.idCompraDetalle === devolucion.idCompraDetalle;
+                return item.compraDetalle.idCompraDetalle === devolucion.compraDetalle.idCompraDetalle;
             });
             if(hasRepuesto===false) {
                 let id = crearId();
                 let devolucionVacia_ = {
                     idDevolucion: -id,
-                    idCompraDetalle: devolucion.idCompraDetalle,
+                    compraDetalle: devolucion.compraDetalle,
                     fecha: getFecha(devolucion.fecha),
                     cantidad: devolucion.cantDevolver,
                     motivo: devolucion.motivo
@@ -631,7 +717,7 @@ const DevolucionCompra = () => {
         compraDetalles.map((detalle) => {
             devolucionesCompra.map((item) => {
                 if (detalle.idCompra===data.idCompra &&
-                    detalle.idCompraDetalle===item.idCompraDetalle) {
+                    detalle.idCompraDetalle===item.compraDetalle.idCompraDetalle) {
                     table.push(item);
                 }
             });
@@ -645,7 +731,7 @@ const DevolucionCompra = () => {
                 responsiveLayout="scroll"
                 emptyMessage="No se encontraron detalles de la compra.">
                     <Column field="idDevolucion" header="Código de Devolución" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    <Column field="idCompraDetalle" header="Código Detalle de Compra" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="compraDetalle.idCompraDetalle" header="Código Detalle de Compra" sortable body={compraDetalleBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="fecha" header="Fecha Devolución" sortable body={fechaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column header="Repuesto" sortable body={idDetalleBodyTemplate} headerStyle={{ width: '12%', minWidth: '10rem' }} ></Column>
                     <Column header="Cantidad Compra" sortable body={cantDetalleBodyTemplate} headerStyle={{ width: '12%', minWidth: '10rem' }} ></Column>
@@ -687,7 +773,7 @@ const DevolucionCompra = () => {
                         <Column field="fechaCompra" header="Fecha de Compra" sortable headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column field="fechaDespacho" header="Fecha de Despacho" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
                         <Column field="fechaRecibido" header="Fecha de Entrega" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
-                        <Column field="idEmpleado" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
+                        <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column field="noComprobante" header="No. de Comprobante" sortable body={comprobanteBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>
@@ -777,7 +863,7 @@ const DevolucionCompra = () => {
                             globalFilter={devolucionFilter}
                             responsiveLayout="scroll"
                             >
-                                <Column field="idCompraDetalle" header="Código de Detalle" sortable headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
+                                <Column field="compraDetalle.idCompraDetalle" header="Código de Detalle" sortable headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
                                 <Column header="Repuesto" sortable body={idDetalleBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                                 <Column field="fecha" header="Fecha" sortable body={fechaEditarBodyTemplate} headerStyle={{ width: '15%', minWidth: '10rem' }}></Column>
                                 <Column header="Cantidad Compra" sortable body={cantDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
