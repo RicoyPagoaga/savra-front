@@ -156,11 +156,16 @@ const AppMenu = () => {
                     icon: 'pi pi-building ',
                     to: '/rol/'
                 },
-                // {
-                //     label: 'Permisos',
-                //     icon: 'pi pi-lock" pi-lock',
-                //     to: '/permisos/'
-                // }
+                {
+                    label: 'Acciones',
+                    icon: 'pi pi-arrow-right-arrow-left',
+                    to: '/acciones/'
+                },
+                {
+                    label: 'Modulos',
+                    icon: 'pi pi-bars',
+                    to: '/modulo/'
+                }
             ] 
         }
         

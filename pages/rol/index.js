@@ -136,12 +136,12 @@ const Rols = () => {
                 var fontSize = doc.internal.getFontSize();
                 const docWidth = doc.internal.pageSize.getWidth();
                 const docHeight = doc.internal.pageSize.getHeight();
-                const txtWidth = doc.getStringUnitWidth('ROLES LABORALES') * fontSize / doc.internal.scaleFactor;
+                const txtWidth = doc.getStringUnitWidth('ROLES') * fontSize / doc.internal.scaleFactor;
                 const x = (docWidth - txtWidth) / 2;
                 image.src = '../layout/images/img_facturalogo2.png';
                 doc.addImage(image, 'PNG', 10, 0, 50, 30);
                 //centrar texto:
-                doc.text('ROLES LABORALES', x, 15);
+                doc.text('ROLES', x, 15);
                 doc.setFontSize(12);
                 doc.text(15, 30, 'Usuario: ' + session.user.name);
                 doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
@@ -150,6 +150,7 @@ const Rols = () => {
                 doc.autoTable(exportColumns, rols, { margin: { top: 45, bottom: 25 } });
                 const pageCount = doc.internal.getNumberOfPages();
                 for (var i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
                     doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
                     doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
                 }
