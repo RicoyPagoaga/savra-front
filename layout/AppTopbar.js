@@ -208,7 +208,7 @@ const AppTopbar = forwardRef((props, ref) => {
                 </button>
                 <Menu model={itemsConfig} popup ref={menuConfig} id="popup_menu" />
                 <button type="button" className="p-link layout-topbar-button" onClick={(event) => menuConfig.current.toggle(event)}>
-                    <i className="pi pi-cog"></i>
+                    <i className="pi pi-spin pi-cog"></i>
                     <span>Configuración</span>
                 </button>
             </div>

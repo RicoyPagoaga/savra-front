@@ -27,9 +27,9 @@ export class FacturaService{
     //     if (response.status == 500) throw 'No es posible eliminar el registro, se encuentra en uso';
     // }
 
-    async addFactura(factura){
+    async addFactura(factura,detalles,total){
         try {
-            let url_ = url + '/addFactura';
+            let url_ = url + '/addFactura/detalles/'+detalles+'/total/'+total;
             const response = await fetch(url_,{
             "method": 'POST',
             "body": JSON.stringify(factura),

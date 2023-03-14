@@ -150,6 +150,7 @@ const Paises = () => {
                 doc.autoTable(exportColumns, paiss, { margin: { top: 45, bottom: 25 } });
                 const pageCount = doc.internal.getNumberOfPages();
                 for (var i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
                     doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
                     doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
                 }

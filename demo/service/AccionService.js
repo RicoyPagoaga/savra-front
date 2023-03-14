@@ -1,19 +1,19 @@
 import getConfig from 'next/config';
 
 
-let url='http://localhost:8080/api/v1/permisos';
+let url='http://localhost:8080/api/v1/acciones';
 
-export class PermisoService{
+export class AccionService{
     constructor() {
         this.contextPath = getConfig().publicRuntimeConfig.contextPath;
     }
 
-    async getPermisos(){
+    async getAcciones(){
         const response = await fetch(url);
         return await response.json();
     }
     
-    async removePermiso(id){
+    async removeAccion(id){
         let url_ = url + '/delete/' + id;
         const response = await fetch(url_ ,{
             "method": 'DELETE',
@@ -23,9 +23,9 @@ export class PermisoService{
         });
     }
 
-    async addPermiso(permiso){
+    async addAccion(permiso){
         try {
-            let url_ = url + '/addPermiso';
+            let url_ = url + '/addAccion';
             const response = await fetch(url_,{
             "method": 'POST',
             "body": JSON.stringify(permiso),
@@ -41,7 +41,7 @@ export class PermisoService{
         
     }
 
-    async updatePermiso(permiso){
+    async updateAccion(permiso){
         try {
             const response = await fetch(url,{
             "method": 'PUT',

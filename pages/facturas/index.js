@@ -333,41 +333,19 @@ const Facturas = () => {
     const saveFactura = async () => {
         setSubmitted(true);
         try {
-            //factura.fechaFactura = new Date();
             const facturaService = new FacturaService();
-
-            console.log(factura);
-            if (detalles.length === 0) {
-                let error = { errorDetails: 'Agregue un repuesto antes de facturar!' }
-                throw (error);
-            }
-            if (factura.idMetodoPago === 1 && factura.efectivo < total) {
-                let error = { errorDetails: 'Efectivo digitado insuficiente!' }
-                throw (error);
-            }
-            if (factura.idMetodoPago === 3) {
-                if (!factura.efectivo) {
-                    let error = { errorDetails: 'Efectivo está vacío!' }
-                    throw (error);
-                }
-                if (factura.efectivo >= total) {
-                    let error = { errorDetails: 'Efectivo no puede ser igual o mayor al total!' }
-                    throw (error);
-                }
-            }
             if (cuponChek === false && cupon === null) {
                 let error = { errorDetails: 'Selecciona un cupón para aplicar, de lo contrario desmarca la casilla' }
                 throw (error);
             }
-            console.log(factura);
-            if (factura.idParametroFactura) {
-                factura.noFactura = obtenerNoFactura(factura.idParametroFactura);
+            if (factura.parametroFactura) {
+                factura.noFactura = obtenerNoFactura(factura.parametroFactura.idParametro);
             }
             const dateM = Date.now();
-            factura.fechaFactura = dateM;//new Date(dateM.toLocaleString("en-US",'America/El_Salvador'));
-            console.log(factura.fechaFactura);
+            factura.fechaFactura = dateM;
             //Aqui se guarda la factura
-            const response = await facturaService.addFactura(factura);
+            console.log(detalles.length);
+            const response = await facturaService.addFactura(factura,detalles.length,total);
             detalles.forEach(function (detalle) {
                 detalle.idFactura = response.idFactura;
             })
@@ -382,21 +360,6 @@ const Facturas = () => {
             console.log(error);
             toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
         }
-    }
-
-    const editFactura = (cupon) => {
-        const fechaE = () => {
-            var emision = cupon.fechaEmision.toString().split('-');
-            return new Date(emision[0], emision[1] - 1, emision[2])
-        }
-        const fechaC = () => {
-            var caducidad = cupon.fechaCaducidad.toString().split('-');
-            return new Date(caducidad[0], caducidad[1] - 1, caducidad[2])
-        }
-        setFechaE(fechaE);
-        setFechaC(fechaC);
-        setCupon({ ...cupon });
-        setCuponDialog(true);
     }
 
     const visualizarRecibo = async (factura) => {
@@ -455,16 +418,9 @@ const Facturas = () => {
         { field: 'noFactura', header: 'No. Factura' },
         { field: 'cliente', header: 'Cliente' },
         { field: 'empleado', header: 'Empleado' },
-        { field: 'fechaFactura', header: 'Fecha F.' },
+        { field: 'fechaFactura', header: 'Fecha' },
         { field: 'metodoPago', header: 'Método Pago' },
-        { field: 'efectivo', header: 'Efectivo' },
-        { field: 'tarjeta', header: 'Tarjeta' },
-        { field: 'cupon', header: 'Cupón' },
-        { field: 'tipoEntrega', header: 'T. Entrega' },
-        { field: 'shipper', header: 'Shipper' },
-        { field: 'costoEnvio', header: 'C. Envío' },
-        { field: 'fechaDespacho', header: 'F. Despacho' },
-        { field: 'fechaEntrega', header: 'F. Entrega' }
+        { field: 'tipoEntrega', header: 'T. Entrega' }
     ];
     const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
 
@@ -510,9 +466,10 @@ const Facturas = () => {
                 doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
                 doc.text(docWidth - 15, 30, 'Total Facturas: ' + facturas.length, { align: "right" });
                 doc.line(15, 40, docWidth - 15, 40);
-                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 40 },columnStyles:{1:{cellWidth: 15},2:{cellWidth: 15}} });
+                doc.autoTable(exportColumns, objModificado, { margin: { top: 45, bottom: 40 },columnStyles:{1:{cellWidth: 30},2:{cellWidth: 30}} });
                 const pageCount = doc.internal.getNumberOfPages();
                 for (var i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
                     doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
                     doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
                 }
@@ -573,7 +530,6 @@ const Facturas = () => {
             case "parametroFactura":
                 _factura[`${nombre}`] = val;
                 setParametro(e.value)
-                //console.log(_factura.idParametroFactura);
                 break;
             case "cliente":
                 _factura[`${nombre}`] = val;
@@ -872,7 +828,7 @@ const Facturas = () => {
                     return rep;
             });
             const impuesto = impuestos.find((imp) => {
-                if (imp.idImpuesto === repuesto1.idImpuesto)
+                if (imp.idImpuesto === repuesto1.impuesto.idImpuesto)
                     return imp;
             });
             descuentoT += (item.cantidad * precioHistoric.precio) * (item.descuento / 100);
@@ -1082,7 +1038,7 @@ const Facturas = () => {
                             </div>
                             <div className="field">
                                 <label htmlFor="idTipoEntrega">Tipo Entrega:</label>
-                                <Dropdown id="idTipoEntrega" options={tipoEntregas} value={factura.tipoEntrega} onChange={(e) => onInputChange(e, 'idTipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.tipoEntrega })}></Dropdown>
+                                <Dropdown id="idTipoEntrega" options={tipoEntregas} value={factura.tipoEntrega} onChange={(e) => onInputChange(e, 'tipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.tipoEntrega })}></Dropdown>
                                 {submitted && !factura.tipoEntrega && <small className="p-invalid">Tipo de entrega es requerido.</small>}
                             </div>
                             {/* si es por envio: */}
