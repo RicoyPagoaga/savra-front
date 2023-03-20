@@ -196,7 +196,7 @@ const Modulos = () => {
                     });
                 });
             }
-            if(mensaje===' ') {
+            if(mensaje==="") {
                 try {
                     //acciones registradas
                     let acciones__ = [];
