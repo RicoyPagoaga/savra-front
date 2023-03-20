@@ -1,3 +1,4 @@
+import getConfig from 'next/config';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
@@ -5,11 +6,15 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
+import { PickList } from 'primereact/picklist';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { ModuloService } from '../../demo/service/ModuloService';
+import { AccionService } from '../../demo/service/AccionService';
+import { ModuloAccionService } from '../../demo/service/ModuloAccionService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { InputGroup } from 'react-bootstrap';
 
 const Modulos = () => {
     let moduloVacio = {
@@ -29,13 +34,41 @@ const Modulos = () => {
     const dt = useRef(null);
     const { data: session } = useSession();
 
+    //acciones, pick list
+    const [acciones, setAcciones] = useState([]);
+    const [listaPickList, setListaPickList] = useState([]);
+    const [modulosAccion, setModulosAccion] = useState([]);
+    const [modulo_accionDialog, setModulo_accionDialog] = useState(false);
+    const [header_, setHeader_] = useState(null);
+    const [target, setTarget] = useState([]);
+    const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const [allExpanded, setAllExpanded] = useState(false);
+    const [expandedRows, setExpandedRows] = useState([]);
+
+    const onChange = (event) => {
+        setListaPickList(event.source);
+        setTarget(event.target);
+    }
+
     const listarModulos = () => {
         const moduloService = new ModuloService();
         moduloService.getModulos().then(data => setModulos(data));
     };
 
+    const listarAcciones = () => {
+        const accionService = new AccionService();
+        accionService.getAcciones().then(data => setAcciones(data));
+    };
+
+    const listarModuloAcciones = () => {
+        const moduloAccionesService = new ModuloAccionService();
+        moduloAccionesService.getModulosAccion().then(data => setModulosAccion(data));
+    };
+
     useEffect(() => {
         listarModulos();
+        listarAcciones();
+        listarModuloAcciones();
     }, []);
 
     const openNew = () => {
@@ -88,12 +121,121 @@ const Modulos = () => {
             }
         }
 
-
     }
 
     const editModulo = (modulo) => {
         setModulo({ ...modulo });
         setModuloDialog(true);
+    }
+
+    const listarPickList = (modulo) => {
+        let picklist = [];
+        let target_ = [];        
+        modulosAccion.map((item) => {
+            acciones.map((accion) => {
+                if(item.modulo.idModulo === modulo.idModulo) {
+                    if(item.accion.idAccion===accion.idAccion) {
+                        target_.push(accion); 
+                    } 
+                } 
+            });
+        });
+
+        if(target_.length) {
+            picklist = acciones.filter((val) => !target_.includes(val));
+        } else {
+            picklist = [...acciones];
+        }
+
+        setListaPickList(picklist);
+        setTarget(target_);
+    }
+
+    const moduloAccion = (modulo) => {
+        setModulo({ ...modulo });
+        setHeader_("Agregar Acciones al Módulo: " + modulo.nombre);
+        setModulo_accionDialog(true);
+        listarPickList(modulo);
+    }
+
+    const hideModuloAccionDialog = () => {
+        setModulo_accionDialog(false);
+    }
+
+    const guardarCambiosModuloAccion = async () => {
+        let mensaje="";
+        if (modulo.idModulo) {  
+            //acciones registradas
+            let acciones_ = [];
+            modulosAccion.map((item) => {
+                acciones.map((accion) => {
+                    if(item.modulo.idModulo === modulo.idModulo) {
+                        if(item.accion.idAccion===accion.idAccion) {
+                            acciones_.push(accion); 
+                        } 
+                    } 
+                });
+            });
+
+            //eliminar
+            const moduloAccionService = new ModuloAccionService();
+            let lista_ = listaPickList.filter((val) => acciones_.includes(val));
+            if(lista_.length>0) {
+                modulosAccion.map(async (item) => {
+                    lista_.map(async (accion) => {
+                        if(item.modulo.idModulo === modulo.idModulo) {
+                            if(item.accion.idAccion===accion.idAccion) {
+                                try {
+                                    await moduloAccionService.removeModuloAccion(item.idModuloAccion);
+                                } catch (error) {
+                                    mensaje = 'Error: No se realizarán los cambios';
+                                    toast.current.show({ severity: 'error', summary: mensaje, detail: error + ` ${item.accion.nombre}`, life: 3000 });
+                                }
+                            } 
+                        } 
+                    });
+                });
+            }
+            if(mensaje===' ') {
+                try {
+                    //acciones registradas
+                    let acciones__ = [];
+                    modulosAccion.map((item) => {
+                        acciones.map((accion) => {
+                            if(item.modulo.idModulo === modulo.idModulo) {
+                                if(item.accion.idAccion===accion.idAccion) {
+                                    acciones__.push(accion); 
+                                } 
+                            } 
+                        });
+                    });
+                    //guardar
+                    let lista_agregar = target.filter((val) => !acciones__.includes(val));
+                    if(lista_agregar.length>0) {
+                        let accionesAgregar = [];
+                        lista_agregar.map((item) => {
+                            let moduloAccion = {
+                                idModuloAccion:null,
+                                modulo:modulo,
+                                accion:item
+                            }
+                            accionesAgregar.push(moduloAccion);
+                        });                
+                        const moduloAccionService = new ModuloAccionService();
+                        await moduloAccionService.addModulosAccion(accionesAgregar);
+                    }
+
+                    listarModulos();
+                    let cambios = await moduloAccionService.getModulosAccion();
+                    setModulosAccion(cambios);
+                    setModulo_accionDialog(false);
+                    toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Los Cambios Han Sido Guardados', life: 3000 });
+    
+                } catch (error) {
+                    toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+                }
+            }
+        }
     }
 
     const confirmDeleteModulo = (modulo) => {
@@ -207,13 +349,31 @@ const Modulos = () => {
         setModulo(_modulo);
     }
 
+    const toggleAll = () => {
+        if (allExpanded) collapseAll();
+        else expandAll();
+    };
+
+    const expandAll = () => {
+        let _expandedRows = {};
+        modulos.forEach((p) => (_expandedRows[`${p.idModulo}`] = true));
+
+        setExpandedRows(_expandedRows);
+        setAllExpanded(true);
+    };
+
+    const collapseAll = () => {
+        setExpandedRows(null);
+        setAllExpanded(false);
+    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedModulos || !selectedModulos.length} />
+                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
+                    disabled={!modulos || !modulos.length} />
                 </div>
             </React.Fragment>
         )
@@ -232,7 +392,7 @@ const Modulos = () => {
     const idBodyTemplate = (rowData) => {
         return (
             <>
-                <span className="p-column-title">ID Modulo</span>
+                <span className="p-column-title">ID Módulo</span>
                 {rowData.idModulo}
             </>
         );
@@ -253,6 +413,7 @@ const Modulos = () => {
         return (
             <div className="actions">
                 <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editModulo(rowData)} />
+                <Button icon="pi pi-plus" className="p-button-rounded p-button-primary mr-2" onClick={() => moduloAccion(rowData)}  />
                 <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteModulo(rowData)} />
             </div>
         );
@@ -268,7 +429,7 @@ const Modulos = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Listado de Modulos</h5>
+            <h5 className="m-0">Listado de Módulos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
@@ -282,6 +443,14 @@ const Modulos = () => {
             <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveModulo} />
         </>
     );
+
+    const moduloAccionDialogFooter = (
+        <>
+            <Button label="Guardar cambios" icon="pi pi-check" className="p-button-text" onClick={guardarCambiosModuloAccion}  />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideModuloAccionDialog} />
+        </>
+    );
+
     const deleteModuloDialogFooter = (
         <>
             <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteModuloDialog} />
@@ -295,6 +464,51 @@ const Modulos = () => {
         </>
     );
 
+    const rowExpansionTemplate = (data) => {
+        let table = [];
+        modulosAccion.map((item) => {
+            if (item.modulo.idModulo == data.idModulo) {
+                table.push(item);
+            }
+        });
+        return (
+            <div className="orders-subtable">
+                <h5>Acciones del Módulo: {data.nombre}</h5>
+                <DataTable value={table} 
+                editMode="cell" 
+                className="editable-cells-table"
+                responsiveLayout="scroll"
+                emptyMessage="No se encontraron acciones del módulo.">
+                    <Column field="idModuloAccion" header="ID" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="accion.idAccion" header="ID Acción" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="accion.nombre" header="Nombre" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                </DataTable>
+            </div>
+        );
+    };
+
+    //PickList
+    const itemTemplate = (item) => {
+        const templateClass = classNames({
+            'pi pi-plus': item.nombre==="Registrar",
+            'pi pi-pencil': item.nombre==="Actualizar",
+            'pi pi-trash': item.nombre==="Eliminar",
+            'pi pi-file': item.nombre==="Exportar CSV",
+            'pi pi-file-excel': item.nombre==="Exportar Excel",
+            'pi pi-file-pdf': item.nombre==="Exportar PDF"
+        });
+        return (
+            <div className="flex flex-wrap p-2 align-items-center gap-3">
+                <i className={templateClass} style={{ fontSize: '1.5rem', color: 'var(--primary-color)' }}></i>
+                <div className="flex-1 flex flex-column gap-2">
+                    <span className="font-bold">{item.nombre}</span>
+                    <div className="flex align-items-center gap-2">
+                    </div>
+                </div>
+            </div>
+        );
+    };
+ 
     return (
         <div className="grid crud-demo">
             <div className="col-12">
@@ -305,21 +519,22 @@ const Modulos = () => {
                     <DataTable
                         ref={dt}
                         value={modulos}
-                        selection={selectedModulos}
-                        onSelectionChange={(e) => setSelectedModulos(e.value)}
                         dataKey="idModulo"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} modulos"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} módulos"
                         globalFilter={globalFilter}
-                        emptyMessage="No se encontraron modulos."
+                        emptyMessage="No se encontraron módulos."
                         header={header}
                         responsiveLayout="scroll"
+                        expandedRows={expandedRows}
+                        onRowToggle={(e) => setExpandedRows(e.data)}
+                        rowExpansionTemplate={rowExpansionTemplate}
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                        <Column expander style={{ width: '3em' }}></Column>
                         <Column field="idModulo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column header="Acciones" body={actionBodyTemplate}></Column>
@@ -332,6 +547,14 @@ const Modulos = () => {
                             <InputText id="nombre" value={modulo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !modulo.nombre })} />
                             {submitted && !modulo.nombre && <small className="p-invalid">Nombre es requerido.</small>}
                         </div>
+                    </Dialog>
+
+                    <Dialog visible={modulo_accionDialog} style={{ width: '950px' }} header={header_} modal className="p-fluid" footer={moduloAccionDialogFooter} onHide={hideModuloAccionDialog}>
+                        
+                        <PickList source={listaPickList} target={target} onChange={onChange} itemTemplate={itemTemplate} filterBy="idAccion" breakpoint="1400px"
+                        sourceHeader="Disponibles" targetHeader="Seleccionados" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
+                        sourceFilterPlaceholder="Buscar por ID" targetFilterPlaceholder="Buscar por ID" />
+
                     </Dialog>
 
                     <Dialog visible={deleteModuloDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModuloDialogFooter} onHide={hideDeleteModuloDialog}>

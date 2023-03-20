@@ -1,3 +1,5 @@
+import getConfig from 'next/config';
+import { PickList } from 'primereact/picklist';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
@@ -8,6 +10,8 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { RolService } from '../../demo/service/RolService';
+import { ModuloAccionService } from '../../demo/service/ModuloAccionService';
+import { PermisoRolService } from '../../demo/service/PermisoRolService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
 
@@ -30,14 +34,41 @@ const Rols = () => {
     const dt = useRef(null);
     const { data: session } = useSession();
     
+    //permisos rol, pick list
+    const [permisos_rolDialog, setPermisos_rolDialog] = useState(false);
+    const [header_, setHeader_] = useState(null);
+    const [modulosAccion, setModulosAccion] = useState([]);
+    const [permisosRol, setPermisosRol] = useState([]);
+    const [listaPickList, setListaPickList] = useState([]);
+    const [target, setTarget] = useState([]);
+    const contextPath = getConfig().publicRuntimeConfig.contextPath;
+    const [allExpanded, setAllExpanded] = useState(false);
+    const [expandedRows, setExpandedRows] = useState([]);   
+
+    const onChange = (event) => {
+        setListaPickList(event.source);
+        setTarget(event.target);
+    }
 
     const listarRols = () => {
         const rolService = new RolService();
         rolService.getRols().then(data => setRols(data));
     };
 
+    const listarModuloAcciones = () => {
+        const moduloAccionesService = new ModuloAccionService();
+        moduloAccionesService.getModulosAccion().then(data => setModulosAccion(data));
+    };
+
+    const listarPermisosRol = () => {
+        const permisoRolService = new PermisoRolService();
+        permisoRolService.getPermisosRol().then(data => setPermisosRol(data));
+    };
+
     useEffect(() => {
         listarRols();
+        listarModuloAcciones();
+        listarPermisosRol();
     }, []);
 
     const openNew = () => {
@@ -96,6 +127,92 @@ const Rols = () => {
     const editRol = (rol) => {
         setRol({ ...rol});
         setRolDialog(true);
+    }
+
+    const listarPickList = (rol) => {
+        let picklist = [];
+        let target_ = [];     
+        permisosRol.map((permiso) => {
+            modulosAccion.map((item) => {
+                if(permiso.rol.idRol===rol.idRol) {
+                    if(item.idModuloAccion===permiso.moduloAccion.idModuloAccion) {
+                        target_.push(item);
+                    }
+                }
+            });
+        });
+
+        if(target_.length) {
+            picklist = modulosAccion.filter((val) => !target_.includes(val));
+        } else {
+            picklist = [...modulosAccion];
+        }
+
+        setListaPickList(picklist);
+        setTarget(target_);
+    }
+
+    const permisoRol = (rol) => {
+        setRol({ ...rol });
+        setHeader_("Agregar Permisos al Rol: " + rol.nombre);
+        setPermisos_rolDialog(true);
+        listarPickList(rol);
+    }
+
+    const hidePermisoRolDialog = () => {
+        setPermisos_rolDialog(false);
+    }
+
+    const guardarCambiosPermisosRol = async () => {
+        if (rol.idRol) {
+            try {
+                //guardar
+                let modulos_accion = [];
+                permisosRol.map((permiso) => {
+                    modulosAccion.map((item) => {
+                        if(permiso.rol.idRol === rol.idRol) {
+                            if(permiso.moduloAccion.idModuloAccion===item.idModuloAccion) {
+                                modulos_accion.push(item); 
+                            } 
+                        } 
+                    });
+                });
+                let lista_agregar = target.filter((val) => !modulos_accion.includes(val));
+                let permisosAgregar = [];
+                lista_agregar.map((item) => {
+                    let permisoRol = {
+                        idModuloAccion:item.idModuloAccion,
+                        idRol:rol.idRol,
+                        moduloAccion:item,
+                        rol:rol
+                    }
+                    permisosAgregar.push(permisoRol);
+                });
+                const permisoRolService = new PermisoRolService();
+                await permisoRolService.addPermisosRol(permisosAgregar);
+
+                //eliminar
+                let lista_ = listaPickList.filter((val) => modulos_accion.includes(val));
+                permisosRol.map(async (item) => {
+                    lista_.map(async (permiso) => {
+                        if(item.rol.idRol === rol.idRol) {
+                            if(item.moduloAccion.idModuloAccion===permiso.idModuloAccion) {
+                                await permisoRolService.removePermisoRol(permiso.idModuloAccion, rol.idRol);
+                            } 
+                        } 
+                    });
+                });
+                
+                //refrescar cambios
+                let cambios = await permisoRolService.getPermisosRol();
+                setPermisosRol(cambios);
+                setPermisos_rolDialog(false);
+
+                toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Los Cambios Han Sido Guardados', life: 3000 });
+            } catch (error) {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
+            }
+        }
     }
 
     const confirmDeleteRol = (rol) => {
@@ -212,13 +329,32 @@ const Rols = () => {
         setRol(_rol);
     }
 
+    const toggleAll = () => {
+        if (allExpanded) collapseAll();
+        else expandAll();
+    };
+
+    const expandAll = () => {
+        let _expandedRows = {};
+        rols.forEach((p) => (_expandedRows[`${p.idRol}`] = true));
+
+        setExpandedRows(_expandedRows);
+        setAllExpanded(true);
+        console.log(permisosRol);
+    };
+
+    const collapseAll = () => {
+        setExpandedRows(null);
+        setAllExpanded(false);
+    };
 
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
                     <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedRols || !selectedRols.length} />
+                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
+                    disabled={!rols || !rols.length} />
                 </div>
             </React.Fragment>
         )
@@ -264,6 +400,7 @@ const Rols = () => {
         return (
             <div className="actions">
                 <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editRol(rowData)} />
+                <Button icon="pi pi-plus" className="p-button-rounded p-button-primary mr-2" onClick={() => permisoRol(rowData)}  />
                 <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteRol(rowData)} />
             </div>
         );
@@ -285,6 +422,12 @@ const Rols = () => {
             <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveRol}/>
         </>
     );
+    const permisoRolDialogFooter = (
+        <>
+            <Button label="Guardar cambios" icon="pi pi-check" className="p-button-text" onClick={guardarCambiosPermisosRol}  />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hidePermisoRolDialog} />
+        </>
+    );
     const deleteRolDialogFooter = (
         <>
             <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteRolDialog} />
@@ -298,6 +441,54 @@ const Rols = () => {
         </>
     );
 
+    const rowExpansionTemplate = (data) => {
+        let table = [];
+        permisosRol.map((item) => {
+            if(item.rol.idRol===data.idRol) {
+                table.push(item);
+            }
+        });
+        return (
+            <div className="orders-subtable">
+                <h5>Permisos del Rol: {data.nombre}</h5>
+                <DataTable value={table} 
+                editMode="cell" 
+                className="editable-cells-table"
+                responsiveLayout="scroll"
+                emptyMessage="No se encontraron permisos del rol.">
+                    <Column field="moduloAccion.idModuloAccion" header="ID Permiso" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="moduloAccion.modulo.nombre" header="Módulo" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="moduloAccion.accion.idAccion" header="ID Acción" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column field="moduloAccion.accion.nombre" header="Acción" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                </DataTable>
+            </div>
+        );
+    };
+
+    //PickList
+    const itemTemplate = (item) => {
+        const templateClass = classNames({
+            'pi pi-plus text-sm': item.accion.nombre==="Registrar",
+            'pi pi-pencil text-sm': item.accion.nombre==="Actualizar",
+            'pi pi-trash text-sm': item.accion.nombre==="Eliminar",
+            'pi pi-file text-sm': item.accion.nombre==="Exportar CSV",
+            'pi pi-file-excel text-sm': item.accion.nombre==="Exportar Excel",
+            'pi pi-file-pdf text-sm': item.accion.nombre==="Exportar PDF"
+        });
+        return (
+            <div className="flex flex-wrap p-2 align-items-center gap-3">
+                <img src={`${contextPath}/demo/images/picklist/configurar_icono.png`} className="w-4rem shadow-2 flex-shrink-0 border-round" />
+                <div className="flex-1 flex flex-column gap-2">
+                    <span className="font-bold">{item.modulo.nombre}</span>
+                    <div className="flex align-items-center gap-2">
+                        <i className={templateClass}></i>
+                        <span>{item.accion.nombre}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="grid crud-demo">
             <div className="col-12">
@@ -308,11 +499,9 @@ const Rols = () => {
                     <DataTable
                         ref={dt}
                         value={rols}
-                        selection={selectedRols}
-                        onSelectionChange={(e) => setSelectedRols(e.value)}
-                        dataKey="idRol"
                         paginator
                         rows={10}
+                        dataKey="idRol"
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -321,8 +510,11 @@ const Rols = () => {
                         emptyMessage="No se encontraron roles."
                         header={header}
                         responsiveLayout="scroll"
+                        expandedRows={expandedRows}
+                        onRowToggle={(e) => setExpandedRows(e.data)}
+                        rowExpansionTemplate={rowExpansionTemplate}
                     >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                        <Column expander style={{ width: '3em'}}></Column>
                         <Column field="idRol" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                         <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
@@ -342,6 +534,14 @@ const Rols = () => {
                         </div>
                     </Dialog> 
 
+                    <Dialog visible={permisos_rolDialog} style={{ width: '950px' }} header={header_} modal className="p-fluid" footer={permisoRolDialogFooter} onHide={hidePermisoRolDialog}>
+                        
+                        <PickList source={listaPickList} target={target} onChange={onChange} itemTemplate={itemTemplate} filterBy="idModuloAccion" breakpoint="1400px"
+                        sourceHeader="Disponibles" targetHeader="Seleccionados" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
+                        sourceFilterPlaceholder="Buscar por ID" targetFilterPlaceholder="Buscar por ID" />
+
+                    </Dialog>
+
                     <Dialog visible={deleteRolDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteRolDialogFooter} onHide={hideDeleteRolDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
@@ -360,6 +560,7 @@ const Rols = () => {
         </div>
     );
 };
+
 export async function getServerSideProps({req}){
     return autenticacionRequerida(req,({session}) =>
     {
