@@ -20,6 +20,7 @@ import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoSe
 import { PrecioHistoricoRepuestoService } from '../../demo/service/PrecioHistoricoRepuestoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 const Repuestos = () => {
     
@@ -56,6 +57,19 @@ const Repuestos = () => {
     const dt = useRef(null);
     const { data: session } = useSession();
 
+     //
+     const [permisos, setPermisos] = useState([]);
+     const [cargando, setCargando] = useState(true);
+     //Estado de acciones
+     const [verLista, setVerLista] = useState(false);
+     const [buscar, setBuscar] = useState(false);
+     const [agregar, setAgregar] = useState(false);
+     const [actualizar, setActualizar] = useState(false);
+     const [eliminar, setEliminar] = useState(false);
+     const [exportarCVS, setExportarCVS] = useState(false);
+     const [exportarXLS, setExportarXLS] = useState(false);
+     const [exportarPDF, setExportarPDF] = useState(false);
+
     //año referencia inicio - final
     const [refInicio, setRefInicio] = useState(null);
     const [refFinal, setRefFinal] = useState(null);
@@ -82,6 +96,49 @@ const Repuestos = () => {
     const [impuestos, setImpuestos] = useState([]);
     const [impuestoHistoricos, setImpuestoHistoricos] = useState([]);
     const [dropdownImpuestos, setDropdownImpuestos] = useState([]);
+
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Repuestos').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     const listarRepuestos = () => {
         const repuestoService = new RepuestoService();
@@ -147,7 +204,14 @@ const Repuestos = () => {
         await listarImpuestos();
         await listarImpuestosHistoricos();
         setearRangoFechas();
+        listarPermisos();
+        permisosDisponibles();
     }, []); 
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
+
 
     const setearDropdownImpuestos = () => {
         let dropdown = []
@@ -544,9 +608,9 @@ const Repuestos = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
-                    disabled={!repuestos || !repuestos.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {verLista?<Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
+                    disabled={!repuestos || !repuestos.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -555,9 +619,9 @@ const Repuestos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -683,8 +747,8 @@ const Repuestos = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editRepuesto(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteRepuesto(rowData)} />
+                {eliminar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editRepuesto(rowData)} />:null}
+                {actualizar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteRepuesto(rowData)} />:null}
             </div>
         );
     }
@@ -701,10 +765,10 @@ const Repuestos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Repuestos</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -814,146 +878,156 @@ const Repuestos = () => {
             </div>
         );
     };
-
-    return (
-        <div className="grid crud-demo datatable-style-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={repuestos}
-                        dataKey="idRepuesto"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} repuestos" 
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron repuestos."
-                        header={header}
-                        responsiveLayout="scroll"
-                        expandedRows={expandedRows}
-                        onRowToggle={(e) => setExpandedRows(e.data)}
-                        rowExpansionTemplate={rowExpansionTemplate}
-                    >
-                        <Column expander style={{ width: '3em' }} />
-                        <Column field="idRepuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="anio_referenciaInicio" header="Año de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="anio_referenciaFinal" header="Año de Referencia Final" body={fechaFinalBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
-                        <Column field="categoria.nombre" header="Categoría" sortable body={categoriaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="stockActual" header="Stock Actual" body={stockActualBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="stockMinimo" header="Stock Mínimo" body={stockMinimoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="stockMaximo" header="Stock Máximo" body={stockMaximoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="proveedor.nombre" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="modelo.nombre" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="transmision.nombre" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="impuesto.nombre" header="Impuesto" sortable body={impuestoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={repuestoDialog} style={{ width: '550px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={repuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
-                            className={classNames({ 'p-invalid': submitted && !repuesto.nombre })} />
-                            {submitted && !repuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
-                        </div>
-                        <div className='formgrid grid'>
-                            <div className="field col">
-                                <label htmlFor="anio_referenciaInicio">Año de Referencia Inicial</label>
-                                <Calendar id="anio_referenciaInicio" value={refInicio} onChange={(e) => onYearChange(e, 'anio_referenciaInicio')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
-                                placeholder="Seleccione año" tooltip="No podrá seleccionar un año anterior a 1970"
-                                readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaInicio })} />
-                                {submitted && !repuesto.anio_referenciaInicio && <small className="p-invalid">El año de referencia inicial es requerida.</small>}
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo datatable-style-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={repuestos}
+                            dataKey="idRepuesto"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} repuestos" 
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron repuestos."
+                            header={header}
+                            responsiveLayout="scroll"
+                            expandedRows={expandedRows}
+                            onRowToggle={(e) => setExpandedRows(e.data)}
+                            rowExpansionTemplate={rowExpansionTemplate}
+                        >
+                            <Column expander style={{ width: '3em' }} />
+                            <Column field="idRepuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="anio_referenciaInicio" header="Año de Referencia Inicial" sortable body={fechaInicioBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="anio_referenciaFinal" header="Año de Referencia Final" body={fechaFinalBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
+                            <Column field="categoria.nombre" header="Categoría" sortable body={categoriaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="stockActual" header="Stock Actual" body={stockActualBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="stockMinimo" header="Stock Mínimo" body={stockMinimoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="stockMaximo" header="Stock Máximo" body={stockMaximoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="proveedor.nombre" header="Proveedor" sortable body={proveedorBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="modelo.nombre" header="Modelo" sortable body={modeloBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="transmision.nombre" header="Transmisión" sortable body={transmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="impuesto.nombre" header="Impuesto" sortable body={impuestoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={repuestoDialog} style={{ width: '550px' }} header="Detalles de Repuesto" modal className="p-fluid" footer={repuestoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={repuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
+                                className={classNames({ 'p-invalid': submitted && !repuesto.nombre })} />
+                                {submitted && !repuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
                             </div>
-                            <div className="field col">
-                                <label htmlFor="anio_referenciaFinal">Año de Referencia Final</label>
-                                <Calendar id="anio_referenciaFinal" value={refFinal} onChange={(e) => onYearChange(e, 'anio_referenciaFinal')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
-                                placeholder="Seleccione año" tooltip="No podrá seleccionar un año posterior al actual"
-                                readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaFinal })} />
-                                {submitted && !repuesto.anio_referenciaFinal && <small className="p-invalid">El año de referencia final es requerida.</small>}
-                            </div>    
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idCategoria">Categoría</label>
-                            <Dropdown id="idCategoria" options={categorias} value={repuesto.categoria} onChange={(e) => onInputChange(e, 'categoria')} emptyMessage="No se encontraron categorías"
-                            optionLabel={"nombre"} className={classNames({ 'p-invalid': submitted && !repuesto.categoria })} />
-                            {submitted && !repuesto.categoria && <small className="p-invalid">La categoría es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="stockActual">Stock Actual</label>
-                            <InputText id="stockActual" type="number" min={0} max={1000000} value={repuesto.stockActual} onChange={(e) => onStockChange(e, 'stockActual')} 
-                            tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
-                            className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
-                            {submitted && !repuesto.stockActual && <small className="p-invalid">El stock actual es requerido.</small>}
-                        </div>
-                        <div className='formgrid grid'>
-                            <div className="field col">
-                                <label htmlFor="stockMinimo">Stock Mínimo</label>
-                                <InputText id="stockMinimo" type="number" min={0} max={1000000} value={repuesto.stockMinimo} onChange={(e) => onStockChange(e, 'stockMinimo')} 
+                            <div className='formgrid grid'>
+                                <div className="field col">
+                                    <label htmlFor="anio_referenciaInicio">Año de Referencia Inicial</label>
+                                    <Calendar id="anio_referenciaInicio" value={refInicio} onChange={(e) => onYearChange(e, 'anio_referenciaInicio')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
+                                    placeholder="Seleccione año" tooltip="No podrá seleccionar un año anterior a 1970"
+                                    readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaInicio })} />
+                                    {submitted && !repuesto.anio_referenciaInicio && <small className="p-invalid">El año de referencia inicial es requerida.</small>}
+                                </div>
+                                <div className="field col">
+                                    <label htmlFor="anio_referenciaFinal">Año de Referencia Final</label>
+                                    <Calendar id="anio_referenciaFinal" value={refFinal} onChange={(e) => onYearChange(e, 'anio_referenciaFinal')} view="year" dateFormat='yy' minDate={minYear} maxDate={maxDate} 
+                                    placeholder="Seleccione año" tooltip="No podrá seleccionar un año posterior al actual"
+                                    readOnlyInput showIcon className={classNames({ 'p-invalid': submitted && !repuesto.anio_referenciaFinal })} />
+                                    {submitted && !repuesto.anio_referenciaFinal && <small className="p-invalid">El año de referencia final es requerida.</small>}
+                                </div>    
+                            </div>
+                            <div className="field">
+                                <label htmlFor="idCategoria">Categoría</label>
+                                <Dropdown id="idCategoria" options={categorias} value={repuesto.categoria} onChange={(e) => onInputChange(e, 'categoria')} emptyMessage="No se encontraron categorías"
+                                optionLabel={"nombre"} className={classNames({ 'p-invalid': submitted && !repuesto.categoria })} />
+                                {submitted && !repuesto.categoria && <small className="p-invalid">La categoría es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="stockActual">Stock Actual</label>
+                                <InputText id="stockActual" type="number" min={0} max={1000000} value={repuesto.stockActual} onChange={(e) => onStockChange(e, 'stockActual')} 
                                 tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
-                                className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
-                                {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
+                                className={classNames({ 'p-invalid': submitted && !repuesto.stockActual })} />
+                                {submitted && !repuesto.stockActual && <small className="p-invalid">El stock actual es requerido.</small>}
                             </div>
-                            <div className="field col">
-                                <label htmlFor="stockMaximo">Stock Máximo</label>
-                                <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} min={0} max={1000000} onChange={(e) => onStockChange(e, 'stockMaximo')} 
-                                tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
-                                className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
-                                {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
+                            <div className='formgrid grid'>
+                                <div className="field col">
+                                    <label htmlFor="stockMinimo">Stock Mínimo</label>
+                                    <InputText id="stockMinimo" type="number" min={0} max={1000000} value={repuesto.stockMinimo} onChange={(e) => onStockChange(e, 'stockMinimo')} 
+                                    tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
+                                    className={classNames({ 'p-invalid': submitted && !repuesto.stockMinimo })} />
+                                    {submitted && !repuesto.stockMinimo && <small className="p-invalid">El stock mínimo es requerido.</small>}
+                                </div>
+                                <div className="field col">
+                                    <label htmlFor="stockMaximo">Stock Máximo</label>
+                                    <InputText id="stockMaximo" type="number" value={repuesto.stockMaximo} min={0} max={1000000} onChange={(e) => onStockChange(e, 'stockMaximo')} 
+                                    tooltip="No se permiten valores mayores a 1,000,000" keyfilter={/[0-9]+/}
+                                    className={classNames({ 'p-invalid': submitted && !repuesto.stockMaximo })} />
+                                    {submitted && !repuesto.stockMaximo && <small className="p-invalid">El stock máximo es requerido.</small>}
+                                </div>
                             </div>
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idProveedor">Proveedor</label>
-                            <Dropdown id="idProveedor" options={proveedores} value={repuesto.proveedor} onChange={(e) => onInputChange(e, 'proveedor')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron proveedores" className={classNames({ 'p-invalid': submitted && !repuesto.proveedor })} />
-                            {submitted && !repuesto.proveedor && <small className="p-invalid">El proveedor es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idModelo">Modelo</label>
-                            <Dropdown id="idModelo" options={modelos} value={repuesto.modelo} onChange={(e) => onInputChange(e, 'modelo')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron modelos" className={classNames({ 'p-invalid': submitted && !repuesto.modelo })}/>
-                            {submitted && !repuesto.modelo && <small className="p-invalid">El modelo es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idTransmision">Transmisión</label>
-                            <Dropdown id="idTransmision" options={transmisiones} value={repuesto.transmision} onChange={(e) => onInputChange(e, 'transmision')} optionLabel={"nombre"} 
-                            emptyMessage="No se encontraron transmisiones" className={classNames({ 'p-invalid': submitted && !repuesto.transmision })} />
-                            {submitted && !repuesto.transmision && <small className="p-invalid">La transmisión es requerida.</small>}
-                        </div>
-                        <div className='formgrid grid'>
-                            <div className="field col">
-                                <label htmlFor="precio">Precio</label>
-                                <InputNumber id="precio" value={precioHistorico.precio} onValueChange={(e) => onPriceChange(e, 'precio')} min={0} max={200000} mode='currency' currency='HNL' locale='en-US' 
-                                tooltip="No se permiten valores mayores a 200,000"
-                                className={classNames({ 'p-invalid': submitted && !precioHistorico.precio })}/>
-                                {submitted && !precioHistorico.precio && <small className="p-invalid">El precio es requerido, no debe ser menor o igual a cero.</small>}
+                            <div className="field">
+                                <label htmlFor="idProveedor">Proveedor</label>
+                                <Dropdown id="idProveedor" options={proveedores} value={repuesto.proveedor} onChange={(e) => onInputChange(e, 'proveedor')} optionLabel={"nombre"} 
+                                emptyMessage="No se encontraron proveedores" className={classNames({ 'p-invalid': submitted && !repuesto.proveedor })} />
+                                {submitted && !repuesto.proveedor && <small className="p-invalid">El proveedor es requerido.</small>}
                             </div>
-                            <div className="field col">
-                                <label htmlFor="idImpuesto">Impuesto</label>
-                                <Dropdown id="idImpuesto" options={dropdownImpuestos} value={repuesto.impuesto} onChange={(e) => onInputChange(e, 'impuesto')} optionLabel={"nombre"} tooltip="Impuestos con estado activo"
-                                emptyMessage="No se encontraron impuestos" className={classNames({ 'p-invalid': submitted && !repuesto.impuesto })} />
-                                {submitted && !repuesto.impuesto && <small className="p-invalid">El impuesto es requerido.</small>}
+                            <div className="field">
+                                <label htmlFor="idModelo">Modelo</label>
+                                <Dropdown id="idModelo" options={modelos} value={repuesto.modelo} onChange={(e) => onInputChange(e, 'modelo')} optionLabel={"nombre"} 
+                                emptyMessage="No se encontraron modelos" className={classNames({ 'p-invalid': submitted && !repuesto.modelo })}/>
+                                {submitted && !repuesto.modelo && <small className="p-invalid">El modelo es requerido.</small>}
                             </div>
-                        </div>
-                    </Dialog> 
-
-                    <Dialog visible={deleteRepuestoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRepuestoDialogFooter} onHide={hideDeleteRepuestoDialog}>
-
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {repuesto && <span>¿Está seguro de que desea eliminar a <b>{repuesto.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
+                            <div className="field">
+                                <label htmlFor="idTransmision">Transmisión</label>
+                                <Dropdown id="idTransmision" options={transmisiones} value={repuesto.transmision} onChange={(e) => onInputChange(e, 'transmision')} optionLabel={"nombre"} 
+                                emptyMessage="No se encontraron transmisiones" className={classNames({ 'p-invalid': submitted && !repuesto.transmision })} />
+                                {submitted && !repuesto.transmision && <small className="p-invalid">La transmisión es requerida.</small>}
+                            </div>
+                            <div className='formgrid grid'>
+                                <div className="field col">
+                                    <label htmlFor="precio">Precio</label>
+                                    <InputNumber id="precio" value={precioHistorico.precio} onValueChange={(e) => onPriceChange(e, 'precio')} min={0} max={200000} mode='currency' currency='HNL' locale='en-US' 
+                                    tooltip="No se permiten valores mayores a 200,000"
+                                    className={classNames({ 'p-invalid': submitted && !precioHistorico.precio })}/>
+                                    {submitted && !precioHistorico.precio && <small className="p-invalid">El precio es requerido, no debe ser menor o igual a cero.</small>}
+                                </div>
+                                <div className="field col">
+                                    <label htmlFor="idImpuesto">Impuesto</label>
+                                    <Dropdown id="idImpuesto" options={dropdownImpuestos} value={repuesto.impuesto} onChange={(e) => onInputChange(e, 'impuesto')} optionLabel={"nombre"} tooltip="Impuestos con estado activo"
+                                    emptyMessage="No se encontraron impuestos" className={classNames({ 'p-invalid': submitted && !repuesto.impuesto })} />
+                                    {submitted && !repuesto.impuesto && <small className="p-invalid">El impuesto es requerido.</small>}
+                                </div>
+                            </div>
+                        </Dialog> 
+    
+                        <Dialog visible={deleteRepuestoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRepuestoDialogFooter} onHide={hideDeleteRepuestoDialog}>
+    
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {repuesto && <span>¿Está seguro de que desea eliminar a <b>{repuesto.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        return (
+            <h2>No tiene permisos disponibles para este modulo! </h2>
+        )
+    }
+
+    
 };
 export async function getServerSideProps({req}){
     return autenticacionRequerida(req,({session}) =>

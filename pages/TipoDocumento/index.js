@@ -10,6 +10,7 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { TipoDocumentoService } from '../../demo/service/TipoDocumentoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
+import { AccionService } from '../../demo/service/AccionService';
 import { useSession } from 'next-auth/react'
 
 const TipoDocumentos = () => {
@@ -29,16 +30,79 @@ const TipoDocumentos = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
 
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Tipo de Documentos').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     const listarTipoDocumentos = () => {
         const tipoDocumentoService = new TipoDocumentoService();
         tipoDocumentoService.getTipoDocumentos().then(data => setTipoDocumentos(data));
+        console.log('Hola1')
     };
+
+    
 
     useEffect(() => {
         listarTipoDocumentos();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setTipoDocumento(tipoDocumentoVacio);
@@ -137,22 +201,22 @@ const TipoDocumentos = () => {
                 var fontSize = doc.internal.getFontSize();
                 const docWidth = doc.internal.pageSize.getWidth();
                 const docHeight = doc.internal.pageSize.getHeight();
-                const txtWidth = doc.getStringUnitWidth('TIPOS DE DOCUMENTOS')*fontSize/doc.internal.scaleFactor;
-                const x = ( docWidth - txtWidth ) / 2;
+                const txtWidth = doc.getStringUnitWidth('TIPOS DE DOCUMENTOS') * fontSize / doc.internal.scaleFactor;
+                const x = (docWidth - txtWidth) / 2;
                 image.src = '../layout/images/img_facturalogo2.png';
                 doc.addImage(image, 'PNG', 10, 0, 50, 30);
-                doc.text('TIPOS DE DOCUMENTOS',x, 15);
+                doc.text('TIPOS DE DOCUMENTOS', x, 15);
                 doc.setFontSize(12);
                 doc.text(15, 30, 'Usuario: ' + session.user.name);
                 doc.text(15, 36, 'Fecha: ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
-                doc.text(docWidth-15, 30, 'Total Tipos: ' + tipoDocumentos.length,{align:"right"});
+                doc.text(docWidth - 15, 30, 'Total Tipos: ' + tipoDocumentos.length, { align: "right" });
                 doc.line(15, 40, docWidth - 15, 40);
-                doc.autoTable(exportColumns, tipoDocumentos, { margin: { top: 45 ,bottom: 25} });
+                doc.autoTable(exportColumns, tipoDocumentos, { margin: { top: 45, bottom: 25 } });
                 const pageCount = doc.internal.getNumberOfPages();
                 for (var i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
-                    doc.line(15, docHeight-20, docWidth - 15, docHeight-20);
-                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth-15, docHeight-10,{align:"right"});
+                    doc.line(15, docHeight - 20, docWidth - 15, docHeight - 20);
+                    doc.text('Página ' + String(i) + '/' + pageCount, docWidth - 15, docHeight - 10, { align: "right" });
                 }
                 doc.save('Reporte_Tipos de Documentos.pdf');
             });
@@ -184,12 +248,9 @@ const TipoDocumentos = () => {
             }
         });
     };
-
     const confirmDeleteSelected = () => {
         setDeleteTipoDocumentosDialog(true);
     }
-
-
     const deleteSelectedTipoDocumentos = async () => {
         const tipoDocumentoService = new TipoDocumentoService();
         selectedTipoDocumentos.map(async (tipoDocumento) => {
@@ -201,8 +262,6 @@ const TipoDocumentos = () => {
         setSelectedTipoDocumentos(null);
         toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Tipo de Documentos Eliminados', life: 3000 });
     }
-
-
     const onInputChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _tipoDocumento = { ...tipoDocumento };
@@ -210,14 +269,12 @@ const TipoDocumentos = () => {
 
         setTipoDocumento(_tipoDocumento);
     }
-
-
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedTipoDocumentos || !selectedTipoDocumentos.length} />
+                    {agregar ? <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} /> : null}
+                    {eliminar ? <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedTipoDocumentos || !selectedTipoDocumentos.length} /> : null}
                 </div>
             </React.Fragment>
         )
@@ -226,9 +283,9 @@ const TipoDocumentos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -251,12 +308,11 @@ const TipoDocumentos = () => {
         );
     }
 
-
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editTipoDocumento(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteTipoDocumento(rowData)} />
+                {actualizar ? <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editTipoDocumento(rowData)} /> : null}
+                {eliminar ? <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteTipoDocumento(rowData)} /> : null}
             </div>
         );
     }
@@ -272,10 +328,10 @@ const TipoDocumentos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Tipos de Documentos</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar ? <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span> : null}
         </div>
     );
 
@@ -297,62 +353,72 @@ const TipoDocumentos = () => {
             <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedTipoDocumentos} />
         </>
     );
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        console.log(verLista)
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista ? <DataTable
+                            ref={dt}
+                            value={tipoDocumentos}
+                            selection={selectedTipoDocumentos}
+                            onSelectionChange={(e) => setSelectedTipoDocumentos(e.value)}
+                            dataKey="idTipoDocumento"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Tipo Documentos"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron Tipo Documentos."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idTipoDocumento" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombreDocumento" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        </DataTable> : null}
+                        <Dialog visible={tipoDocumentoDialog} style={{ width: '450px' }} header="Registro Tipo Documentos" modal className="p-fluid" footer={tipoDocumentoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombreDocumento">Nombre</label>
+                                <InputText id="nombreDocumento" value={tipoDocumento.nombreDocumento} onChange={(e) => onInputChange(e, 'nombreDocumento')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipoDocumento.nombreDocumento })} />
+                                {submitted && !tipoDocumento.nombreDocumento && <small className="p-invalid">Nombre Documento es requerido.</small>}
+                            </div>
+                        </Dialog>
 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {tipoDocumento && <span>¿Está seguro de que desea eliminar a <b>{tipoDocumento.nombreDocumento}</b>?</span>}
+                            </div>
+                        </Dialog>
 
-                    <DataTable
-                        ref={dt}
-                        value={tipoDocumentos}
-                        selection={selectedTipoDocumentos}
-                        onSelectionChange={(e) => setSelectedTipoDocumentos(e.value)}
-                        dataKey="idTipoDocumento"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Tipo Documentos"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron Tipo Documentos."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idTipoDocumento" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombreDocumento" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog visible={tipoDocumentoDialog} style={{ width: '450px' }} header="Registro Tipo Documentos" modal className="p-fluid" footer={tipoDocumentoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombreDocumento">Nombre</label>
-                            <InputText id="nombreDocumento" value={tipoDocumento.nombreDocumento} onChange={(e) => onInputChange(e, 'nombreDocumento')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipoDocumento.nombreDocumento })} />
-                            {submitted && !tipoDocumento.nombreDocumento && <small className="p-invalid">Nombre Documento es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteTipoDocumentoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentoDialogFooter} onHide={hideDeleteTipoDocumentoDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {tipoDocumento && <span>¿Está seguro de que desea eliminar a <b>{tipoDocumento.nombreDocumento}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteTipoDocumentosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentosDialogFooter} onHide={hideDeleteTipoDocumentosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {tipoDocumento && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
-                        </div>
-                    </Dialog>
+                        <Dialog visible={deleteTipoDocumentosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteTipoDocumentosDialogFooter} onHide={hideDeleteTipoDocumentosDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {tipoDocumento && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este modulo! </h2>
+        )
+    }
+
+
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {
