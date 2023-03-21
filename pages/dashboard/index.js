@@ -146,7 +146,6 @@ const Dashboard = () => {
         listarFacturas()
         listarRepuestos();
         listarClientes();
-        console.log(session);
     }, []);
 
     useEffect(() => {

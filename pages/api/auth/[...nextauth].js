@@ -17,7 +17,7 @@ export default NextAuth({
                 //usare Imge para ultimavisita como cadena de string
                 const usuario = {
                     name :credentials.nombre +' '+credentials.apellido,
-                    email :credentials.clientesVista+'/'+credentials.ventasVista+'/'+credentials.repuestosVista+'/'+credentials.nombreUsuario,
+                    email :credentials.clientesVista+'/'+credentials.ventasVista+'/'+credentials.repuestosVista+'/'+credentials.nombreUsuario+'/'+credentials.rol,
                     image: credentials.ultimaVisita==null?'NULL':credentials.ultimaVisita
                 };
                 return usuario;

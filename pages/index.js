@@ -36,7 +36,6 @@ const LoginPage = () => {
         usuarioService.getUsuarios().then(data => setListaUsuarios(data));
     };
     async function IniciarSesion(usuario){
-        console.log(usuario.ventasVista);
         const status = await signIn('credentials',{
             redirect:false,
             nombre:   usuario.nombre,
@@ -46,9 +45,9 @@ const LoginPage = () => {
             ventasVista: usuario.ventasVista,
             repuestosVista: usuario.repuestosVista,
             nombreUsuario:usuario.username,
+            rol:usuario.rol.idRol,
             callbackUrl:'/dashboard/'
         })
-        console.log(status);
         if(status.ok) router.push(status.url); 
     }
     useEffect(() => {

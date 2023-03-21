@@ -56,4 +56,10 @@ export class AccionService{
             throw error;
         }
     }
+    async getAccionesModuloRol(rol,modulo){
+        const response = await fetch(url+'/rol/'+rol+'/modulo/'+modulo);
+        const acciones =  await response.json();
+
+        return acciones;
+    }
 }
