@@ -33,6 +33,19 @@ const Modulos = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+    const [asignar, setAsignar] = useState(false);
 
     //acciones, pick list
     const [acciones, setAcciones] = useState([]);
@@ -64,12 +77,63 @@ const Modulos = () => {
         const moduloAccionesService = new ModuloAccionService();
         moduloAccionesService.getModulosAccion().then(data => setModulosAccion(data));
     };
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Módulos').then(data => { setPermisos(data), setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                case "Asignar":
+                    setAsignar(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(() => {
         listarModulos();
         listarAcciones();
         listarModuloAcciones();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setModulo(moduloVacio);
@@ -130,18 +194,18 @@ const Modulos = () => {
 
     const listarPickList = (modulo) => {
         let picklist = [];
-        let target_ = [];        
+        let target_ = [];
         modulosAccion.map((item) => {
             acciones.map((accion) => {
-                if(item.modulo.idModulo === modulo.idModulo) {
-                    if(item.accion.idAccion===accion.idAccion) {
-                        target_.push(accion); 
-                    } 
-                } 
+                if (item.modulo.idModulo === modulo.idModulo) {
+                    if (item.accion.idAccion === accion.idAccion) {
+                        target_.push(accion);
+                    }
+                }
             });
         });
 
-        if(target_.length) {
+        if (target_.length) {
             picklist = acciones.filter((val) => !target_.includes(val));
         } else {
             picklist = [...acciones];
@@ -163,64 +227,64 @@ const Modulos = () => {
     }
 
     const guardarCambiosModuloAccion = async () => {
-        let mensaje="";
-        if (modulo.idModulo) {  
+        let mensaje = "";
+        if (modulo.idModulo) {
             //acciones registradas
             let acciones_ = [];
             modulosAccion.map((item) => {
                 acciones.map((accion) => {
-                    if(item.modulo.idModulo === modulo.idModulo) {
-                        if(item.accion.idAccion===accion.idAccion) {
-                            acciones_.push(accion); 
-                        } 
-                    } 
+                    if (item.modulo.idModulo === modulo.idModulo) {
+                        if (item.accion.idAccion === accion.idAccion) {
+                            acciones_.push(accion);
+                        }
+                    }
                 });
             });
 
             //eliminar
             const moduloAccionService = new ModuloAccionService();
             let lista_ = listaPickList.filter((val) => acciones_.includes(val));
-            if(lista_.length>0) {
+            if (lista_.length > 0) {
                 modulosAccion.map(async (item) => {
                     lista_.map(async (accion) => {
-                        if(item.modulo.idModulo === modulo.idModulo) {
-                            if(item.accion.idAccion===accion.idAccion) {
+                        if (item.modulo.idModulo === modulo.idModulo) {
+                            if (item.accion.idAccion === accion.idAccion) {
                                 try {
                                     await moduloAccionService.removeModuloAccion(item.idModuloAccion);
                                 } catch (error) {
                                     mensaje = 'Error: No se realizarán los cambios';
                                     toast.current.show({ severity: 'error', summary: mensaje, detail: error + ` ${item.accion.nombre}`, life: 3000 });
                                 }
-                            } 
-                        } 
+                            }
+                        }
                     });
                 });
             }
-            if(mensaje==="") {
+            if (mensaje === "") {
                 try {
                     //acciones registradas
                     let acciones__ = [];
                     modulosAccion.map((item) => {
                         acciones.map((accion) => {
-                            if(item.modulo.idModulo === modulo.idModulo) {
-                                if(item.accion.idAccion===accion.idAccion) {
-                                    acciones__.push(accion); 
-                                } 
-                            } 
+                            if (item.modulo.idModulo === modulo.idModulo) {
+                                if (item.accion.idAccion === accion.idAccion) {
+                                    acciones__.push(accion);
+                                }
+                            }
                         });
                     });
                     //guardar
                     let lista_agregar = target.filter((val) => !acciones__.includes(val));
-                    if(lista_agregar.length>0) {
+                    if (lista_agregar.length > 0) {
                         let accionesAgregar = [];
                         lista_agregar.map((item) => {
                             let moduloAccion = {
-                                idModuloAccion:null,
-                                modulo:modulo,
-                                accion:item
+                                idModuloAccion: null,
+                                modulo: modulo,
+                                accion: item
                             }
                             accionesAgregar.push(moduloAccion);
-                        });                
+                        });
                         const moduloAccionService = new ModuloAccionService();
                         await moduloAccionService.addModulosAccion(accionesAgregar);
                     }
@@ -230,7 +294,7 @@ const Modulos = () => {
                     setModulosAccion(cambios);
                     setModulo_accionDialog(false);
                     toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Los Cambios Han Sido Guardados', life: 3000 });
-    
+
                 } catch (error) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
                 }
@@ -371,9 +435,9 @@ const Modulos = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
-                    disabled={!modulos || !modulos.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {verLista?<Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
+                        disabled={!modulos || !modulos.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -382,9 +446,9 @@ const Modulos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -398,7 +462,7 @@ const Modulos = () => {
         );
     }
 
-   
+
     const nombreBodyTemplate = (rowData) => {
         return (
             <>
@@ -407,14 +471,14 @@ const Modulos = () => {
             </>
         );
     }
-  
+
 
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editModulo(rowData)} />
-                <Button icon="pi pi-plus" className="p-button-rounded p-button-primary mr-2" onClick={() => moduloAccion(rowData)}  />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteModulo(rowData)} />
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editModulo(rowData)} />:null}
+                {asignar?<Button icon="pi pi-plus" className="p-button-rounded p-button-primary mr-2" onClick={() => moduloAccion(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteModulo(rowData)} />:null}
             </div>
         );
     }
@@ -430,10 +494,10 @@ const Modulos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Módulos</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -446,7 +510,7 @@ const Modulos = () => {
 
     const moduloAccionDialogFooter = (
         <>
-            <Button label="Guardar cambios" icon="pi pi-check" className="p-button-text" onClick={guardarCambiosModuloAccion}  />
+            <Button label="Guardar cambios" icon="pi pi-check" className="p-button-text" onClick={guardarCambiosModuloAccion} />
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideModuloAccionDialog} />
         </>
     );
@@ -474,11 +538,11 @@ const Modulos = () => {
         return (
             <div className="orders-subtable">
                 <h5>Acciones del Módulo: {data.nombre}</h5>
-                <DataTable value={table} 
-                editMode="cell" 
-                className="editable-cells-table"
-                responsiveLayout="scroll"
-                emptyMessage="No se encontraron acciones del módulo.">
+                <DataTable value={table}
+                    editMode="cell"
+                    className="editable-cells-table"
+                    responsiveLayout="scroll"
+                    emptyMessage="No se encontraron acciones del módulo.">
                     <Column field="idModuloAccion" header="ID" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="accion.idAccion" header="ID Acción" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     <Column field="accion.nombre" header="Nombre" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
@@ -490,12 +554,17 @@ const Modulos = () => {
     //PickList
     const itemTemplate = (item) => {
         const templateClass = classNames({
-            'pi pi-plus': item.nombre==="Registrar",
-            'pi pi-pencil': item.nombre==="Actualizar",
-            'pi pi-trash': item.nombre==="Eliminar",
-            'pi pi-file': item.nombre==="Exportar CSV",
-            'pi pi-file-excel': item.nombre==="Exportar Excel",
-            'pi pi-file-pdf': item.nombre==="Exportar PDF"
+            'pi pi-plus': item.nombre === "Registrar",
+            'pi pi-pencil': item.nombre === "Actualizar",
+            'pi pi-trash': item.nombre === "Eliminar",
+            'pi pi-file': item.nombre === "Exportar CSV",
+            'pi pi-file-excel': item.nombre === "Exportar Excel",
+            'pi pi-file-pdf': item.nombre === "Exportar PDF",
+            'pi pi-book': item.nombre === "Ver Lista",
+            'pi pi-search': item.nombre === "Buscar",
+            'pi pi-check-circle': item.nombre === "Activar/Desactivar",
+            'pi pi-key': item.nombre === "Bloquear/Desbloquear",
+            'pi pi-clone': item.nombre === "Asignar"
         });
         return (
             <div className="flex flex-wrap p-2 align-items-center gap-3">
@@ -508,72 +577,80 @@ const Modulos = () => {
             </div>
         );
     };
- 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
-                    <DataTable
-                        ref={dt}
-                        value={modulos}
-                        dataKey="idModulo"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} módulos"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron módulos."
-                        header={header}
-                        responsiveLayout="scroll"
-                        expandedRows={expandedRows}
-                        onRowToggle={(e) => setExpandedRows(e.data)}
-                        rowExpansionTemplate={rowExpansionTemplate}
-                    >
-                        <Column expander style={{ width: '3em' }}></Column>
-                        <Column field="idModulo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog visible={moduloDialog} style={{ width: '450px' }} header="Registro de Modulos" modal className="p-fluid" footer={moduloDialogFooter} onHide={hideDialog}>
-                       
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={modulo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !modulo.nombre })} />
-                            {submitted && !modulo.nombre && <small className="p-invalid">Nombre es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={modulo_accionDialog} style={{ width: '950px' }} header={header_} modal className="p-fluid" footer={moduloAccionDialogFooter} onHide={hideModuloAccionDialog}>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={modulos}
+                            dataKey="idModulo"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} módulos"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron módulos."
+                            header={header}
+                            responsiveLayout="scroll"
+                            expandedRows={expandedRows}
+                            onRowToggle={(e) => setExpandedRows(e.data)}
+                            rowExpansionTemplate={rowExpansionTemplate}
+                        >
+                            <Column expander style={{ width: '3em' }}></Column>
+                            <Column field="idModulo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        </DataTable>:null}
                         
-                        <PickList source={listaPickList} target={target} onChange={onChange} itemTemplate={itemTemplate} filterBy="idAccion" breakpoint="1400px"
-                        sourceHeader="Disponibles" targetHeader="Seleccionados" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
-                        sourceFilterPlaceholder="Buscar por ID" targetFilterPlaceholder="Buscar por ID" />
-
-                    </Dialog>
-
-                    <Dialog visible={deleteModuloDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModuloDialogFooter} onHide={hideDeleteModuloDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {modulo && <span>¿Está seguro de que desea eliminar a <b>{modulo.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteModulosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModulosDialogFooter} onHide={hideDeleteModulosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {modulo && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
-                        </div>
-                    </Dialog>
+                        <Dialog visible={moduloDialog} style={{ width: '450px' }} header="Registro de Modulos" modal className="p-fluid" footer={moduloDialogFooter} onHide={hideDialog}>
+    
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={modulo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !modulo.nombre })} />
+                                {submitted && !modulo.nombre && <small className="p-invalid">Nombre es requerido.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={modulo_accionDialog} style={{ width: '950px' }} header={header_} modal className="p-fluid" footer={moduloAccionDialogFooter} onHide={hideModuloAccionDialog}>
+    
+                            <PickList source={listaPickList} target={target} onChange={onChange} itemTemplate={itemTemplate} filterBy="idAccion" breakpoint="1400px"
+                                sourceHeader="Disponibles" targetHeader="Seleccionados" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
+                                sourceFilterPlaceholder="Buscar por ID" targetFilterPlaceholder="Buscar por ID" />
+    
+                        </Dialog>
+    
+                        <Dialog visible={deleteModuloDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModuloDialogFooter} onHide={hideDeleteModuloDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {modulo && <span>¿Está seguro de que desea eliminar a <b>{modulo.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteModulosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteModulosDialogFooter} onHide={hideDeleteModulosDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {modulo && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {

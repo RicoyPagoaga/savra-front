@@ -1023,7 +1023,7 @@ const Repuestos = () => {
         );
     } else {
         return (
-            <h2>No tiene permisos disponibles para este modulo! </h2>
+            <h2>No tiene permisos disponibles para este módulo! </h2>
         )
     }
 

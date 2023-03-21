@@ -13,6 +13,7 @@ import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { AccionService } from '../../demo/service/AccionService';
 import { useSession } from 'next-auth/react'
 
+
 const TipoDocumentos = () => {
     let tipoDocumentoVacio = {
         idTipoDocumento: null,
@@ -414,11 +415,9 @@ const TipoDocumentos = () => {
     } else {
         {console.log(permisos)}
         return (
-            <h2>No tiene permisos disponibles para este modulo! </h2>
+            <h2>No tiene permisos disponibles para este módulo! </h2>
         )
     }
-
-
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {

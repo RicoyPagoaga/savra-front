@@ -13,6 +13,8 @@ import { ImpuestoService } from '../../demo/service/ImpuestoService';
 import { ImpuestoHistoricoService } from '../../demo/service/ImpuestoHistoricoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react';
+import { AccionService } from '../../demo/service/AccionService';
+
 
 const Impuestos = () => {
     let impuestoVacio = {
@@ -48,6 +50,21 @@ const Impuestos = () => {
     const [minDate, setMinDate] = useState(null);
     const [maxDate, setMaxDate] = useState(null);
 
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+    const [activarDesactivar, setActivarDesactivar] = useState(false);
+
+
     const listarImpuestos = () => {
         const impuestoService = new ImpuestoService();
         impuestoService.getImpuestos().then(data => setImpuestos(data));
@@ -64,17 +81,68 @@ const Impuestos = () => {
 
         let fechaAyer = fecha.getFullYear() + "-" + (fecha.getMonth() + 1) + "-" + (fecha.getDate() - 1);
         const [y, m, d] = fechaAyer.split('-');
-        let fechaMin = new Date(+y, m-1, +d);
-    
+        let fechaMin = new Date(+y, m - 1, +d);
+
         setMinDate(fechaMin);
         setMaxDate(fecha);
     };
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Impuestos').then(data => { setPermisos(data), setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                case "Activar/Desactivar":
+                    setActivarDesactivar(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(async () => {
-        listarImpuestos(); 
+        listarImpuestos();
         await listarImpuestosHistorico();
         setearRangoFechas();
-    }, []); 
+        listarPermisos();
+        permisosDisponibles();
+    }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando])
 
     const openNew = () => {
         setImpuesto(impuestoVacio);
@@ -111,7 +179,7 @@ const Impuestos = () => {
                 const impuestoService = new ImpuestoService();
                 if (!impuestoHistorico.valor)
                     await impuestoService.updateImpuesto(impuesto, 0, true);
-                else 
+                else
                     await impuestoService.updateImpuesto(impuesto, impuestoHistorico.valor, false);
                 const impuestoHistoricoService = new ImpuestoHistoricoService();
                 if (impuestoHistorico.idImpuesto == null) {
@@ -123,20 +191,20 @@ const Impuestos = () => {
                 } else {
                     impuestoHistorico.fechaFinal = '1822-03-03'
                     await impuestoHistoricoService.addImpuestoHistorico(impuestoHistorico);
-                }  
+                }
                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Actualizado', life: 3000 });
                 pasoRegistro();
             } catch (error) {
-                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
         }
         else {
             try {
                 //agregar impuesto
                 const impuestoService = new ImpuestoService();
-                if(!impuestoHistorico.valor) 
+                if (!impuestoHistorico.valor)
                     await impuestoService.addImpuesto(impuesto, 0, true);
-                else 
+                else
                     await impuestoService.addImpuesto(impuesto, impuestoHistorico.valor, false);
                 //agregar impuesto historico
                 const impuestoHistoricoService = new ImpuestoHistoricoService();
@@ -146,7 +214,7 @@ const Impuestos = () => {
                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Impuesto Creado', life: 3000 });
                 pasoRegistro();
             } catch (error) {
-                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
+                toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
             }
         }
     }
@@ -156,7 +224,7 @@ const Impuestos = () => {
         impuestoHistoricos.map((item) => {
             if (item.idImpuesto == impuesto.idImpuesto && item.fechaFinal == null) {
                 if (item.valor == 0) {
-                    let isv = { 
+                    let isv = {
                         idImpuesto: item.idImpuesto,
                         fechaInicio: item.fechaInicio,
                         fechaFinal: item.fechaFinal,
@@ -177,23 +245,23 @@ const Impuestos = () => {
     }
 
     const activarDesactivarImpuesto = async () => {
-        try{
+        try {
             const impuestoService = new ImpuestoService();
-            impuesto.estado = impuesto.estado==1?0:1;
+            impuesto.estado = impuesto.estado == 1 ? 0 : 1;
             await impuestoService.updateImpuesto(impuesto, 1, false);
             listarImpuestos();
             setActivarDesactivarImpuestoDialog(false);
-            toast.current.show({ severity: 'success', summary: 'Éxito', detail: `Impuesto ${impuesto.estado==1?'activado':'desactivado'}`, life: 3000 });
-        }catch(error){
-            toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });                    
+            toast.current.show({ severity: 'success', summary: 'Éxito', detail: `Impuesto ${impuesto.estado == 1 ? 'activado' : 'desactivado'}`, life: 3000 });
+        } catch (error) {
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
         }
     }
 
     const cols = [
-        { field: 'idImpuesto', header: 'ID'},
-        { field: 'nombre', header: 'Nombre'},
-        { field: 'descripcion', header: 'Descripción'},
-        { field: 'estado', header: 'Estado'},
+        { field: 'idImpuesto', header: 'ID' },
+        { field: 'nombre', header: 'Nombre' },
+        { field: 'descripcion', header: 'Descripción' },
+        { field: 'estado', header: 'Estado' },
     ]
 
     const exportColumns = cols.map(col => ({ title: col.header, dataKey: col.field }));
@@ -203,7 +271,7 @@ const Impuestos = () => {
             idImpuesto: element.idImpuesto,
             nombre: element.nombre,
             descripcion: element.descripcion,
-            estado: element.estado?'Activo':'Inactivo'
+            estado: element.estado ? 'Activo' : 'Inactivo'
         }
     })
 
@@ -280,8 +348,8 @@ const Impuestos = () => {
     const onValorChange = (e, nombre) => {
         const val = (e.target && e.target.value) || '';
         let _ImpuestoHistorico = { ...impuestoHistorico };
-        let valor=0;
-        valor = (val=='00') ? '0' : val;
+        let valor = 0;
+        valor = (val == '00') ? '0' : val;
         _ImpuestoHistorico[`${nombre}`] = valor;
         setImpuestoHistorico(_ImpuestoHistorico);
     }
@@ -308,9 +376,9 @@ const Impuestos = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
-                    disabled={!impuestos || !impuestos.length} />
+                    {agregar ? <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} /> : null}
+                    {verLista ? <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
+                        disabled={!impuestos || !impuestos.length} /> : null}
                 </div>
             </React.Fragment>
         )
@@ -319,9 +387,9 @@ const Impuestos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -354,13 +422,13 @@ const Impuestos = () => {
     }
 
     const estadoBodyTemplate = (rowData) => {
-        if(rowData.estado == 1 ){
+        if (rowData.estado == 1) {
             return (
                 <>
                     <span className={`customer-badge status-qualified`}>Activo</span>
                 </>
             );
-        }else{
+        } else {
             return (
                 <>
                     <span className={`customer-badge status-unqualified`}>Inactivo</span>
@@ -371,15 +439,16 @@ const Impuestos = () => {
 
     const actionBodyTemplate = (rowData) => {
         let iconResult = ''
-        if(rowData.estado == 1){
+        if (rowData.estado == 1) {
             iconResult = 'pi pi-lock-open'
-        }else{
+        } else {
             iconResult = 'pi pi-lock'
         }
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editImpuesto(rowData)} />
-                <Button icon= {iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearImpuesto(rowData)} />
+                {actualizar ? <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editImpuesto(rowData)} /> : null}
+                {activarDesactivar ? <Button icon={iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearImpuesto(rowData)} /> : null}
+
             </div>
         );
     }
@@ -387,7 +456,7 @@ const Impuestos = () => {
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -396,10 +465,10 @@ const Impuestos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Impuestos</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar? <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -423,23 +492,23 @@ const Impuestos = () => {
     const cellEditor = (options) => {
         //disabled={!options.value || (options.value != minDate && options.value != maxDate)}
         if (options.value) {
-            return calendarEditor(options); 
+            return calendarEditor(options);
         }
         else
-            return options.value; 
+            return options.value;
     };
 
     const calendarEditor = (options) => {
-        return <Calendar minDate={minDate} maxDate={maxDate} dateFormat="yy-mm-dd" value={options.value} onChange={(e) => options.editorCallback(e.target.value)} 
-         ></Calendar>;
+        return <Calendar minDate={minDate} maxDate={maxDate} dateFormat="yy-mm-dd" value={options.value} onChange={(e) => options.editorCallback(e.target.value)}
+        ></Calendar>;
     };
 
     const getFecha = (fecha) => {
         const getDay = (day) => {
-            return (day < 10) ? "0"+day : day;
+            return (day < 10) ? "0" + day : day;
         };
         const getMonth = (month) => {
-            return ((month + 1) < 10) ? "0"+(month+1) : (month+1)
+            return ((month + 1) < 10) ? "0" + (month + 1) : (month + 1)
         };
         let _fecha = fecha.getFullYear() + "-" + getMonth(fecha.getMonth()) + "-" + getDay(fecha.getDate());
         return _fecha;
@@ -449,13 +518,13 @@ const Impuestos = () => {
         let { rowData, newValue, field, originalEvent: event } = e;
         let min_date = getFecha(minDate);
         let max_date = getFecha(maxDate);
-        let impuesto_historico = {...impuestoHistoricoVacio};
+        let impuesto_historico = { ...impuestoHistoricoVacio };
         impuesto_historico = rowData;
         let fecha; let fechaActualizar; let valor;
         if (newValue == impuesto_historico.fechaFinal) {
             let valor = '' + newValue;
-            const [y, m ,d] = valor.split('-');
-            fecha = new Date(+y,m-1,+d);
+            const [y, m, d] = valor.split('-');
+            fecha = new Date(+y, m - 1, +d);
             fechaActualizar = getFecha(fecha);
         } else {
             valor = '' + newValue;
@@ -464,14 +533,14 @@ const Impuestos = () => {
         }
 
         try {
-            
+
             if (fechaActualizar != impuesto_historico.fechaFinal &&
-                (fechaActualizar == min_date || fechaActualizar == max_date) && 
+                (fechaActualizar == min_date || fechaActualizar == max_date) &&
                 (impuesto_historico.fechaFinal == min_date || impuesto_historico.fechaFinal == max_date)) {
-                
+
                 impuesto_historico[field] = fechaActualizar;
                 //actualizar BD
-                const impuestoHistoricoService = new ImpuestoHistoricoService();   
+                const impuestoHistoricoService = new ImpuestoHistoricoService();
                 impuestoHistoricoService.updateImpuestoHistorico(impuesto_historico);
                 toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Fechas Actualizadas', life: 3000 });
                 listarImpuestosHistorico();
@@ -479,7 +548,7 @@ const Impuestos = () => {
                 event.preventDefault();
             }
         } catch (error) {
-            toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails , life: 3000 });   
+            toast.current.show({ severity: 'error', summary: 'Error', detail: error.errorDetails, life: 3000 });
         }
     };
 
@@ -493,94 +562,102 @@ const Impuestos = () => {
         return (
             <div className="orders-subtable">
                 <h5>Histórico del Impuesto: {data.nombre}</h5>
-                <DataTable value={table} 
-                editMode="cell" 
-                className="editable-cells-table"
-                responsiveLayout="scroll"
-                emptyMessage="No se encontraron valores del impuesto.">
-                    <Column field="fechaInicio" header="Fecha Inicial" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    <Column key="fechaFinal" field="fechaFinal" header="Fecha Final" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }} 
-                                editor={(options) => cellEditor(options)} onCellEditComplete={onCellEditComplete} ></Column>
+                <DataTable value={table}
+                    editMode="cell"
+                    className="editable-cells-table"
+                    responsiveLayout="scroll"
+                    emptyMessage="No se encontraron valores del impuesto.">
+                    <Column field="fechaInicio" header="Fecha Inicial" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                    <Column key="fechaFinal" field="fechaFinal" header="Fecha Final" sortable headerStyle={{ width: '14%', minWidth: '10rem' }}
+                        editor={(options) => cellEditor(options)} onCellEditComplete={onCellEditComplete} ></Column>
                     <Column field="valor" header="Valor" body={valorBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                 </DataTable>
             </div>
         );
     };
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={impuestos}
-                        dataKey="idImpuesto"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} impuestos" 
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron impuestos."
-                        header={header}
-                        responsiveLayout="scroll"
-                        expandedRows={expandedRows}
-                        onRowToggle={(e) => setExpandedRows(e.data)}
-                        rowExpansionTemplate={rowExpansionTemplate}
-                    >
-                        <Column expander style={{ width: '3em' }} />
-                        <Column field="idImpuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
-                        <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '40%', minWidth: '10rem' }}></Column>
-                        <Column field="estado" header="Estado" body={estadoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={impuestoDialog} style={{ width: '450px' }} header="Detalles de Impuesto" modal className="p-fluid" footer={impuestoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={impuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
-                            className={classNames({ 'p-invalid': submitted && !impuesto.nombre })} />
-                            {submitted && !impuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="descripcion">Descripción</label>
-                            <InputTextarea id="descripcion" value={impuesto.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} tooltip="Debe ingresar más de cinco caracteres"
-                            className={classNames({ 'p-invalid': submitted && !impuesto.descripcion })} />
-                            { submitted && !impuesto.descripcion && <small className="p-invalid">La descripción es requerida.</small> }
-                        </div>
-                        <div className="field">
-                            <label htmlFor="valor">Valor</label>
-                            <span className='p-float-label p-input-icon-left'>
-                                <i className='pi pi-percentage' />
-                                <InputText id="valor" type="number" value={impuestoHistorico.valor} onChange={(e) => onValorChange(e, 'valor')} tooltip="Escribe solamente el número (sin su tanto porciento) del valor del impuesto"
-                                keyfilter={/[0-9]+/} className={classNames({ 'p-invalid': submitted && !impuestoHistorico.valor })} />
-                                {submitted && !impuestoHistorico.valor && <small className="p-invalid">El valor es requerido.</small>}     
-                            </span>        
-                        </div>
-                    </Dialog> 
-
-                    <Dialog visible={activarDesactivarImpuestoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={ActivarDesactivarImpuestoDialogFooter} onHide={hideDeleteImpuestoDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {impuesto && <span>¿Está seguro de que desea <b>{impuesto.estado==1?"desactivar ":"activar "}</b> a <b>{impuesto.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={impuestos}
+                            dataKey="idImpuesto"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} impuestos"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron impuestos."
+                            header={header}
+                            responsiveLayout="scroll"
+                            expandedRows={expandedRows}
+                            onRowToggle={(e) => setExpandedRows(e.data)}
+                            rowExpansionTemplate={rowExpansionTemplate}
+                        >
+                            <Column expander style={{ width: '3em' }} />
+                            <Column field="idImpuesto" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
+                            <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '40%', minWidth: '10rem' }}></Column>
+                            <Column field="estado" header="Estado" body={estadoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={impuestoDialog} style={{ width: '450px' }} header="Detalles de Impuesto" modal className="p-fluid" footer={impuestoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={impuesto.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de tres caracteres"
+                                    className={classNames({ 'p-invalid': submitted && !impuesto.nombre })} />
+                                {submitted && !impuesto.nombre && <small className="p-invalid">El nombre es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="descripcion">Descripción</label>
+                                <InputTextarea id="descripcion" value={impuesto.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} tooltip="Debe ingresar más de cinco caracteres"
+                                    className={classNames({ 'p-invalid': submitted && !impuesto.descripcion })} />
+                                {submitted && !impuesto.descripcion && <small className="p-invalid">La descripción es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="valor">Valor</label>
+                                <span className='p-float-label p-input-icon-left'>
+                                    <i className='pi pi-percentage' />
+                                    <InputText id="valor" type="number" value={impuestoHistorico.valor} onChange={(e) => onValorChange(e, 'valor')} tooltip="Escribe solamente el número (sin su tanto porciento) del valor del impuesto"
+                                        keyfilter={/[0-9]+/} className={classNames({ 'p-invalid': submitted && !impuestoHistorico.valor })} />
+                                    {submitted && !impuestoHistorico.valor && <small className="p-invalid">El valor es requerido.</small>}
+                                </span>
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={activarDesactivarImpuestoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={ActivarDesactivarImpuestoDialogFooter} onHide={hideDeleteImpuestoDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {impuesto && <span>¿Está seguro de que desea <b>{impuesto.estado == 1 ? "desactivar " : "activar "}</b> a <b>{impuesto.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
-export async function getServerSideProps({req}){
-    return autenticacionRequerida(req,({session}) =>
-    {
-        return{
-            props:{session}
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
         }
     })
 }

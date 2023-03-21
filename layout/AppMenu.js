@@ -138,7 +138,7 @@ const AppMenu = () => {
             to: '/acciones/'
         },
         {
-            label: 'Modulos',
+            label: 'Módulos',
             icon: 'pi pi-bars',
             to: '/modulo/'
         }

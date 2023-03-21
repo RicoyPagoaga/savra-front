@@ -9,7 +9,8 @@ import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import { TransmisionService } from '../../demo/service/TransmisionService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
-import { useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react';
+import { AccionService } from '../../demo/service/AccionService';
 
 const Transmisiones = () => {
     let transmisionVacio = {
@@ -28,15 +29,78 @@ const Transmisiones = () => {
     const toast = useRef(null);
     const dt = useRef(null);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
 
     const listarTransmisions = () => {
         const transmisionService = new TransmisionService();
         transmisionService.getTransmisiones().then(data => setTransmisions(data));
     };
 
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Transmisiones Automotrices').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
+
     useEffect(() => {
         listarTransmisions();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setTransmision(transmisionVacio);
@@ -211,8 +275,8 @@ const Transmisiones = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedTransmisions || !selectedTransmisions.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedTransmisions || !selectedTransmisions.length} />:null}     
                 </div>
             </React.Fragment>
         )
@@ -221,9 +285,9 @@ const Transmisiones = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -249,15 +313,15 @@ const Transmisiones = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editTransmision(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteTransmision(rowData)} />
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editTransmision(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteTransmision(rowData)} />:null}     
             </div>
         );
     }
     const filter = (e) => {
         let x = e.target.value;
 
-        if (x.trim() != '') 
+        if (x.trim() != '')
             setGlobalFilter(x);
         else
             setGlobalFilter(' ');
@@ -266,10 +330,10 @@ const Transmisiones = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Transmisiones</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -291,68 +355,74 @@ const Transmisiones = () => {
             <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedTransmisions} />
         </>
     );
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={transmisions}
-                        selection={selectedTransmisions}
-                        onSelectionChange={(e) => setSelectedTransmisions(e.value)}
-                        dataKey="idTransmision"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Transmisiones"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron transmisiones."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idTransmision" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog visible={transmisionDialog} style={{ width: '450px' }} header="Registro Transmisiones" modal className="p-fluid" footer={transmisionDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={transmision.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !transmision.nombre })} />
-                            {submitted && !transmision.nombre && <small className="p-invalid">Nombre es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteTransmisionDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTransmisionDialogFooter} onHide={hideDeleteTransmisionDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {transmision && <span>¿Está seguro de que desea eliminar a <b>{transmision.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteTransmisionsDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTransmisionsDialogFooter} onHide={hideDeleteTransmisionsDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {transmision && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={transmisions}
+                            selection={selectedTransmisions}
+                            onSelectionChange={(e) => setSelectedTransmisions(e.value)}
+                            dataKey="idTransmision"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Transmisiones"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron transmisiones."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idTransmision" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        </DataTable>:null}
+                        
+                        <Dialog visible={transmisionDialog} style={{ width: '450px' }} header="Registro Transmisiones" modal className="p-fluid" footer={transmisionDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={transmision.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !transmision.nombre })} />
+                                {submitted && !transmision.nombre && <small className="p-invalid">Nombre es requerido.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteTransmisionDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTransmisionDialogFooter} onHide={hideDeleteTransmisionDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {transmision && <span>¿Está seguro de que desea eliminar a <b>{transmision.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteTransmisionsDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteTransmisionsDialogFooter} onHide={hideDeleteTransmisionsDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {transmision && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
-export async function getServerSideProps({req}){
-    return autenticacionRequerida(req,({session}) =>
-    {
-        return{
-            props:{session}
+export async function getServerSideProps({ req }) {
+    return autenticacionRequerida(req, ({ session }) => {
+        return {
+            props: { session }
         }
     })
 }
