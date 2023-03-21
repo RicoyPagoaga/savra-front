@@ -17,6 +17,7 @@ import { EmpleadoService } from '../../demo/service/EmpleadoService';
 import { DevolucionCompraService } from '../../demo/service/DevolucionCompraService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react';
+import { AccionService } from '../../demo/service/AccionService';
 
 const DevolucionCompra = () => {
 
@@ -48,6 +49,18 @@ const DevolucionCompra = () => {
     const [devoluciones, setDevoluciones] = useState([]);
     const [devolucionesEditar, setDevolucionesEditar] = useState(false);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
 
     //nueva devolucion
     const [dropdownRepuestos, setDropdownRepuestos] = useState([]);
@@ -114,6 +127,48 @@ const DevolucionCompra = () => {
             setComprasConDevolucion(compras_);
         }
     }
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Devolución de compras').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(() => {
         isMounted.current = true;
@@ -122,7 +177,13 @@ const DevolucionCompra = () => {
         listarDevolucionesCompra();
         listarRepuestos();
         listarEmpleados();
+        listarPermisos();
+        permisosDisponibles();
     }, []); 
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     useEffect(() => {
         listarComprasConDevolucion();
@@ -448,9 +509,9 @@ const DevolucionCompra = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
-                    disabled={!comprasConDevolucion || !comprasConDevolucion.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {verLista?<Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem" 
+                    disabled={!comprasConDevolucion || !comprasConDevolucion.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -459,9 +520,9 @@ const DevolucionCompra = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -586,8 +647,8 @@ const DevolucionCompra = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editDevolucion(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteCompra(rowData)} />
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editDevolucion(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteCompra(rowData)} />:null} 
             </div>
         );
     }
@@ -622,10 +683,10 @@ const DevolucionCompra = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Devoluciones de Compras</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar? <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e, 'globalFilter')} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -743,150 +804,160 @@ const DevolucionCompra = () => {
         );
     };
 
-    
-    return (
-        <div className="grid crud-demo datatable-style-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-                    
-                    <DataTable
-                        ref={dt}
-                        value={comprasConDevolucion}
-                        dataKey="idCompra"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} compras" 
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron devoluciones de compras."
-                        header={header}
-                        responsiveLayout="scroll"
-                        expandedRows={expandedRows} 
-                        onRowToggle={(e) => setExpandedRows(e.data)}
-                        rowExpansionTemplate={rowExpansionTemplate}
-                    >
-                        <Column expander style={{ width: '3em' }} />
-                        <Column field="idCompra" header="Código" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="fechaCompra" header="Fecha de Compra" sortable headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
-                        <Column field="fechaDespacho" header="Fecha de Despacho" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
-                        <Column field="fechaRecibido" header="Fecha de Entrega" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
-                        <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
-                        <Column field="noComprobante" header="No. de Comprobante" sortable body={comprobanteBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={devolucionCompraDialog} style={{ width: '1200px' }} header="Devolución de Compra" modal className="p-fluid" footer={devolucionCompraDialogFooter} onHide={hideDialog}>
-                        
-                        <div className='card' >
-                            <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-                                <h5 className="m-20">Compra a Aplicar Devolución</h5>
-                            </div>
-                            <div className='formgrid grid' style={{ width: "500px" }}>
-                                <div className='field col'>
-                                    <hr></hr>
-                                    <Button type="button" icon="pi pi-search" label={selectedCompra.idCompra ? selectedCompra.idCompra : 'Indique Compra'} onClick={(e) => op.current.toggle(e)} aria-haspopup aria-controls="overlay_panel" className="select-product-button" 
-                                    tooltip='Solo puede seleccionar Compras cuya fecha de Entrega no esté Pendiente' style={{ width: "200px" }}/>
-
-                                    <OverlayPanel ref={op} showCloseIcon id="overlay_panel" style={{width: '450px'}} className="overlaypanel-demo">
-                                        <DataTable value={comprasOverlay} selectionMode="single" paginator rows={5} header={headerCompra} emptyMessage="No se encontraron compras."
-                                            selection={selectedCompra} onSelectionChange={onCompraSelect} globalFilter={compraFilter} >
-                                            <Column field="idCompra" header="Código" sortable />
-                                            <Column field="fechaCompra" header="Fecha de Compra" sortable />
-                                            <Column field="noComprobante" header="Número de Comprobante" sortable  />
-                                        </DataTable>
-                                    </OverlayPanel>
-                                    <hr></hr>
-                                </div>
-                                <div className='field col'>
-                                    <hr></hr>
-                                    <InputText id="noComprobante" value={selectedCompra ? selectedCompra.noComprobante : undefined} placeholder="Número de Comprobante"
-                                    readOnly tooltip='No. de Comprobante'/>
-                                    <hr></hr>
-                                </div>
-                            </div>
-                            <div className='formgrid grid'>
-                                <div className='field col'>
-                                    <label htmlFor="idRepuesto">Repuesto</label>
-                                    <Dropdown id="idRepuesto" options={dropdownRepuestos} value={repuesto} onChange={(e) => onInputChange(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="idRepuesto" 
-                                    emptyMessage="No se encontraron repuestos." emptyFilterMessage="No hay opciones disponibles." disabled={!selectedCompra.idCompra}
-                                    placeholder="Seleccione repuesto"></Dropdown>
-                                </div>
-                                <div className='field col'>
-                                    <label htmlFor="cantidad">Cantidad Compra</label>
-                                    <InputNumber id='cantidad' value={devolucion.cantCompra} mode="decimal" disabled
-                                    readOnly ></InputNumber>
-                                </div>
-                                <div className='field col'>
-                                    <label htmlFor="cantidad">Cantidad Devolución</label>
-                                    <InputNumber id='cantidad' value={devolucion.cantDevolver} onValueChange={(e) => onInputChange(e, 'cantDevolver')} showButtons mode="decimal"
-                                    min={1} max={ !devolucion.cantCompra ? 2 : devolucion.cantCompra} tooltip='Indique cantidad a devolver' disabled={!selectedCompra.idCompra}></InputNumber>
-                                
-                                </div>
-                               
-                            </div>
-                           
-                            <div className='formgrid grid'>
-                                <div className='field col'>
-                                    <label htmlFor="fecha">Fecha</label>
-                                    <Calendar inputId="fecha" value={devolucion.fecha} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fecha')} dateFormat="yy-mm-dd"
-                                    readOnlyInput disabled={!selectedCompra.idCompra} 
-                                    tooltip="Seleccione la fecha de Devolución"></Calendar>
-                                </div>
-                                <div className='field col'>
-                                    <label htmlFor="motivo">Motivo</label>
-                                    <InputText id="motivo" value={devolucion.motivo} onChange={(e) => onInputChange(e, 'motivo')} disabled={!selectedCompra.idCompra}   
-                                    tooltip="Indique motivo de devolución de manera breve" style={{ width:"515px" }} />
-                                </div>
-                                <div className='field col-3' style={{ width: "200px" }}>
-                                    <hr></hr>
-                                    <Button type='button' label="Agregar" icon="pi pi-plus" className="p-button-outlined p-button-primary ml-auto" disabled={!selectedCompra.idCompra} 
-                                    onClick={agregarDevolucion} style={{ width: "200px" }}/>
-                                    <hr></hr>
-                                </div>
-                            </div>
-
-                            <DataTable 
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo datatable-style-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
                             ref={dt}
-                            value={devoluciones}
-                            dataKey="idDevolucion"
+                            value={comprasConDevolucion}
+                            dataKey="idCompra"
                             paginator
                             rows={10}
                             rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
                             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} devoluciones" 
-                            className="datatable-responsive editable-cells-table"
-                            emptyMessage="No se han agregado devoluciones de la compra."
-                            header={headerDev}
-                            globalFilter={devolucionFilter}
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} compras" 
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron devoluciones de compras."
+                            header={header}
                             responsiveLayout="scroll"
-                            >
-                                <Column field="compraDetalle.idCompraDetalle" header="Código de Detalle" sortable headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
-                                <Column header="Repuesto" sortable body={idDetalleBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                <Column field="fecha" header="Fecha" sortable body={fechaEditarBodyTemplate} headerStyle={{ width: '15%', minWidth: '10rem' }}></Column>
-                                <Column header="Cantidad Compra" sortable body={cantDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
-                                <Column field="cantidad" header="Cantidad Devolución" sortable body={cantidadEditarBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                <Column field="motivo" header="Motivo" sortable body={motivoEditarBodyTemplate} headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
-                                <Column header="Eliminar" body={actionDevolucionBodyTemplate} headerStyle={{ width: '8%', minWidth: '3em' }} bodyStyle={{ textAlign: 'center' }}></Column>                
-                            </DataTable>
-                        </div>
-
-                    </Dialog> 
-
-                    <Dialog visible={deleteDevolucionCompraDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteCompraDialogFooter} onHide={hideDeleteDevolucionCompraDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {selectedCompra && <span>¿Está seguro de que desea eliminar devoluciones en Compra: <b>{selectedCompra.idCompra}</b>?</span>}
-                        </div>
-                    </Dialog>
-
+                            expandedRows={expandedRows} 
+                            onRowToggle={(e) => setExpandedRows(e.data)}
+                            rowExpansionTemplate={rowExpansionTemplate}
+                        >
+                            <Column expander style={{ width: '3em' }} />
+                            <Column field="idCompra" header="Código" sortable  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="fechaCompra" header="Fecha de Compra" sortable headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
+                            <Column field="fechaDespacho" header="Fecha de Despacho" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
+                            <Column field="fechaRecibido" header="Fecha de Entrega" sortable headerStyle={{ width: '18%', minWidth: '8rem' }}></Column>
+                            <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
+                            <Column field="noComprobante" header="No. de Comprobante" sortable body={comprobanteBodyTemplate} headerStyle={{ width: '18%', minWidth: '10rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={devolucionCompraDialog} style={{ width: '1200px' }} header="Devolución de Compra" modal className="p-fluid" footer={devolucionCompraDialogFooter} onHide={hideDialog}>
+                            
+                            <div className='card' >
+                                <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
+                                    <h5 className="m-20">Compra a Aplicar Devolución</h5>
+                                </div>
+                                <div className='formgrid grid' style={{ width: "500px" }}>
+                                    <div className='field col'>
+                                        <hr></hr>
+                                        <Button type="button" icon="pi pi-search" label={selectedCompra.idCompra ? selectedCompra.idCompra : 'Indique Compra'} onClick={(e) => op.current.toggle(e)} aria-haspopup aria-controls="overlay_panel" className="select-product-button" 
+                                        tooltip='Solo puede seleccionar Compras cuya fecha de Entrega no esté Pendiente' style={{ width: "200px" }}/>
+    
+                                        <OverlayPanel ref={op} showCloseIcon id="overlay_panel" style={{width: '450px'}} className="overlaypanel-demo">
+                                            <DataTable value={comprasOverlay} selectionMode="single" paginator rows={5} header={headerCompra} emptyMessage="No se encontraron compras."
+                                                selection={selectedCompra} onSelectionChange={onCompraSelect} globalFilter={compraFilter} >
+                                                <Column field="idCompra" header="Código" sortable />
+                                                <Column field="fechaCompra" header="Fecha de Compra" sortable />
+                                                <Column field="noComprobante" header="Número de Comprobante" sortable  />
+                                            </DataTable>
+                                        </OverlayPanel>
+                                        <hr></hr>
+                                    </div>
+                                    <div className='field col'>
+                                        <hr></hr>
+                                        <InputText id="noComprobante" value={selectedCompra ? selectedCompra.noComprobante : undefined} placeholder="Número de Comprobante"
+                                        readOnly tooltip='No. de Comprobante'/>
+                                        <hr></hr>
+                                    </div>
+                                </div>
+                                <div className='formgrid grid'>
+                                    <div className='field col'>
+                                        <label htmlFor="idRepuesto">Repuesto</label>
+                                        <Dropdown id="idRepuesto" options={dropdownRepuestos} value={repuesto} onChange={(e) => onInputChange(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="idRepuesto" 
+                                        emptyMessage="No se encontraron repuestos." emptyFilterMessage="No hay opciones disponibles." disabled={!selectedCompra.idCompra}
+                                        placeholder="Seleccione repuesto"></Dropdown>
+                                    </div>
+                                    <div className='field col'>
+                                        <label htmlFor="cantidad">Cantidad Compra</label>
+                                        <InputNumber id='cantidad' value={devolucion.cantCompra} mode="decimal" disabled
+                                        readOnly ></InputNumber>
+                                    </div>
+                                    <div className='field col'>
+                                        <label htmlFor="cantidad">Cantidad Devolución</label>
+                                        <InputNumber id='cantidad' value={devolucion.cantDevolver} onValueChange={(e) => onInputChange(e, 'cantDevolver')} showButtons mode="decimal"
+                                        min={1} max={ !devolucion.cantCompra ? 2 : devolucion.cantCompra} tooltip='Indique cantidad a devolver' disabled={!selectedCompra.idCompra}></InputNumber>
+                                    
+                                    </div>
+                                   
+                                </div>
+                               
+                                <div className='formgrid grid'>
+                                    <div className='field col'>
+                                        <label htmlFor="fecha">Fecha</label>
+                                        <Calendar inputId="fecha" value={devolucion.fecha} showIcon showButtonBar onChange={(e) => onInputChange(e, 'fecha')} dateFormat="yy-mm-dd"
+                                        readOnlyInput disabled={!selectedCompra.idCompra} 
+                                        tooltip="Seleccione la fecha de Devolución"></Calendar>
+                                    </div>
+                                    <div className='field col'>
+                                        <label htmlFor="motivo">Motivo</label>
+                                        <InputText id="motivo" value={devolucion.motivo} onChange={(e) => onInputChange(e, 'motivo')} disabled={!selectedCompra.idCompra}   
+                                        tooltip="Indique motivo de devolución de manera breve" style={{ width:"515px" }} />
+                                    </div>
+                                    <div className='field col-3' style={{ width: "200px" }}>
+                                        <hr></hr>
+                                        <Button type='button' label="Agregar" icon="pi pi-plus" className="p-button-outlined p-button-primary ml-auto" disabled={!selectedCompra.idCompra} 
+                                        onClick={agregarDevolucion} style={{ width: "200px" }}/>
+                                        <hr></hr>
+                                    </div>
+                                </div>
+    
+                                <DataTable 
+                                ref={dt}
+                                value={devoluciones}
+                                dataKey="idDevolucion"
+                                paginator
+                                rows={10}
+                                rowsPerPageOptions={[5, 10, 25]}
+                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} devoluciones" 
+                                className="datatable-responsive editable-cells-table"
+                                emptyMessage="No se han agregado devoluciones de la compra."
+                                header={headerDev}
+                                globalFilter={devolucionFilter}
+                                responsiveLayout="scroll"
+                                >
+                                    <Column field="compraDetalle.idCompraDetalle" header="Código de Detalle" sortable headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
+                                    <Column header="Repuesto" sortable body={idDetalleBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                    <Column field="fecha" header="Fecha" sortable body={fechaEditarBodyTemplate} headerStyle={{ width: '15%', minWidth: '10rem' }}></Column>
+                                    <Column header="Cantidad Compra" sortable body={cantDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '10rem' }}></Column>
+                                    <Column field="cantidad" header="Cantidad Devolución" sortable body={cantidadEditarBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                    <Column field="motivo" header="Motivo" sortable body={motivoEditarBodyTemplate} headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
+                                    <Column header="Eliminar" body={actionDevolucionBodyTemplate} headerStyle={{ width: '8%', minWidth: '3em' }} bodyStyle={{ textAlign: 'center' }}></Column>                
+                                </DataTable>
+                            </div>
+    
+                        </Dialog> 
+    
+                        <Dialog visible={deleteDevolucionCompraDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteCompraDialogFooter} onHide={hideDeleteDevolucionCompraDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {selectedCompra && <span>¿Está seguro de que desea eliminar devoluciones en Compra: <b>{selectedCompra.idCompra}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
+    
 };
 export async function getServerSideProps({req}){
     return autenticacionRequerida(req,({session}) =>

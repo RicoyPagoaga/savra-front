@@ -33,6 +33,7 @@ import { PDFViewer } from '@react-pdf/renderer';
 import Moment, { now } from 'moment';
 import Router from 'next/router';
 import dynamic from "next/dynamic";
+import { AccionService } from '../../demo/service/AccionService';
 
 const jaja = dynamic(() => ReciboPDF, {
     ssr: false,
@@ -132,6 +133,19 @@ const Facturas = () => {
     const [displayResponsive, setDisplayResponsive] = useState(false);
     const [facturaDetalles, setFacturaDetalles] = useState([]);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+    const [reImpresion, setReImpresion] = useState(false);
 
     //condicionRender
     const [efectivo, setEfectivo] = useState(false);
@@ -234,6 +248,51 @@ const Facturas = () => {
         const detalle = new FacturaDetalleService();
         detalle.getDetalleRecibo(id).then(data => setDetallesRecibo(data));
     }
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'facturas').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                    case "Reimpresión":
+                        setReImpresion(true);
+                        break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(() => {
         setValor(true)
@@ -250,8 +309,14 @@ const Facturas = () => {
         listarImpuestos();
         listarPrecios();
         listarImpuestosHistoricos();
+        listarPermisos();
+        permisosDisponibles();
         //console.log(precioHistoricos);
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setearDropdownCupones()
@@ -635,7 +700,7 @@ const Facturas = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nueva" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
+                    {agregar?<Button label="Nueva" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
                 </div>
             </React.Fragment>
         )
@@ -644,9 +709,9 @@ const Facturas = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -719,17 +784,17 @@ const Facturas = () => {
         return (
             <div className="actions">
                 {/* <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCupon(rowData)} /> */}
-                <Button icon="pi pi-print" className="p-button-rounded p-button-secondary mt-2" onClick={() => visualizarRecibo(rowData)} />
+                {reImpresion?<Button icon="pi pi-print" className="p-button-rounded p-button-secondary mt-2" onClick={() => visualizarRecibo(rowData)} />:null}  
             </div>
         );
     }
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Facturas</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -901,166 +966,176 @@ const Facturas = () => {
 
         );
     } else {
-        return (
-            <div className="grid crud-demo">
-
-                <div className="col-12">
-                    <div className="card">
-                        <Toast ref={toast} />
-                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                        <DataTable
-                            ref={dt}
-                            value={facturas}
-                            selection={selectedCupons}
-                            onSelectionChange={(e) => setSelectedCupons(e.value)}
-                            dataKey="idFactura"
-                            //filters = {filter}
-                            globalFilter={globalFilter}
-                            paginator
-                            rows={10}
-                            rowsPerPageOptions={[5, 10, 25]}
-                            className="datatable-responsive"
-                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Facturas"
-                            //globalFilter={globalFilter}
-                            emptyMessage="No se encontraron facturas."
-                            header={header}
-                            responsiveLayout="scroll"
-                        >
-                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                            <Column field="idFactura" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="parametroFactura.cai" header="Parámetro" sortable body={parametroBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="noFactura" header="Número Factura" sortable body={noFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
-                            <Column field="cliente.nombre" header="Cliente" sortable body={clienteBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                            <Column field="fechaFactura" header="Fecha Factura" sortable body={fechaFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                            <Column field="metodoPago.nombre" header="Forma de Pago" sortable body={metodoPagoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                            <Column header="Acciones" body={actionBodyTemplate}></Column>
-                        </DataTable>
-
-                        <Dialog visible={facturaDialog} style={{ width: '800px' }} header="FACTURACIÓN" modal className="p-fluid" footer={facturaDialogFooter} onHide={hideDialog}>
-                            <div className='p-fluid formgrid grid'>
-                                <div className="field col ">
-                                    <label htmlFor="parametroFactura">Parámetro Factura:</label>
-                                    <Dropdown id="parametroFactura.cai" options={parametros} value={factura.parametroFactura} onChange={(e) => onInputChange(e, 'parametroFactura')} optionLabel="cai" required autoFocus placeholder="Seleccione un parámetro" className={classNames({ 'p-invalid': submitted && !factura.parametroFactura })}></Dropdown>
-                                    {submitted && !factura.parametroFactura && <small className="p-invalid">Parámetro es requerido.</small>}
-                                </div>
-                                <div className="field col-3">
-                                    <label htmlFor="fechaFactura">Fecha:</label>
-                                    <InputText id="fechaFactura" value={Moment(new Date()).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
-                                </div>
-                            </div>
-                            <div className='p-fluid formgrid grid'>
-                                <div className="field col">
-                                    <label htmlFor="idCliente">Cliente:</label>
-                                    <Dropdown id="idCliente" options={clientes} value={factura.cliente} onChange={(e) => onInputChange(e, 'cliente')} optionLabel="nombre" placeholder="Seleccione un cliente" className={classNames({ 'p-invalid': submitted && !factura.cliente })}></Dropdown>
-                                    {submitted && !factura.cliente && <small className="p-invalid">Cliente es requerido.</small>}
-                                </div>
-                                <div className="field col">
-                                    <label htmlFor="idEmpleado">Empleado:</label>
-                                    <Dropdown id="idEmpleado" options={empleados} value={factura.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !factura.empleado })}></Dropdown>
-                                    {submitted && !factura.empleado && <small className="p-invalid">Empleado es requerido.</small>}
-                                </div>
-                            </div>
-                            <div className='formgrid grid'>
-                                <div className="field col ">
-                                    <label htmlFor="idRepuesto">Repuestos:</label>
-                                    <Dropdown id="idRepuesto" options={repuestos} value={repuesto} onChange={(e) => onInputChangeDetalle(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="idRepuesto" placeholder="Seleccione un repuesto a agregar"></Dropdown>
-                                </div>
-                                <div className='field col-3'>
-                                    <hr></hr>
-                                    <Button type='button' label="Agregar" icon="pi pi-plus" className="p-button-outlined p-button-primary ml-auto" onClick={agregarDetalle} />
-                                </div>
-                                {/* <div className='field col-3'>
-                                    <hr></hr>
-                                    <Button label="Habilitar Descuentos" icon="pi pi-external-link" onClick={() => onClick('displayResponsive')} />
-                                    <Dialog header="Header" visible={displayResponsive} onHide={() => onHide('displayResponsive')} breakpoints={{ '960px': '75vw' }} style={{ width: '50vw' }} footer={renderFooter('displayResponsive')}>
-                                        <p>Hola</p>
-                                    </Dialog>
-                                </div> */}
-
-                            </div>
-                            <div className='card' style={{ width: '740px' }}>
-                                <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-                                    <h5 className="m-20">Artículos/Repuestos Agregados</h5>
-                                </div>
-
-                                <DataTable
-                                    ref={dt}
-                                    value={detalles}
-                                    dataKey="idFacturaDetalle"
-                                    footer={footer}
-
-                                    //paginator
-                                    rows={15}
-                                    rowsPerPageOptions={[5, 10, 25]}
-                                    className="datatable-responsive editable-cells-table"
-                                    emptyMessage="No se han agregado detalles de la venta."
-                                    editMode='cell'
-                                    responsiveLayout="scroll"
-                                >
-                                    <Column field="idRepuesto" header="Repuesto" body={repBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                    <Column field="cantidad" header="Cantidad" body={cantidadBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                    <Column field="descuento" header="descuento" body={descuentoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                    <Column field="precio" header="precio" body={precioBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                                    <Column header="Eliminar" body={actionDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '3em' }} bodyStyle={{ textAlign: 'center' }}></Column>
-                                </DataTable>
-                            </div>
-                            <div className='p-fluid formgrid grid'>
-                                <div className="field col-5">
-                                    <label htmlFor="idMetodoPago">Forma de Pago:</label>
-                                    <Dropdown id="idMetodoPago" options={metodosPago} value={factura.metodoPago} onChange={(e) => onInputChange(e, 'metodoPago')} optionLabel="nombre" placeholder="Seleccione un método de pago" className={classNames({ 'p-invalid': submitted && !factura.metodoPago })}></Dropdown>
-                                    {submitted && !factura.metodoPago && <small className="p-invalid">Forma de pago es requerido.</small>}
-                                </div>
-                                <div className="field col-2">
-                                    <label htmlFor="efectivo">Efectivo Recibido:</label>
-                                    <InputNumber id="efectivo" value={factura.efectivo} onValueChange={(e) => onInputChange(e, 'efectivo')} disabled={efectivo} max={40000} cod prefix="L. " tooltip="Escribe la cantidad de dinero en efectivo que proporciona el cliente, máximo permitido: L. 40,000.00" className={classNames({ 'p-invalid': submitted && !efectivo && !factura.efectivo })} />
-                                    {submitted && !efectivo && !factura.efectivo && <small className="p-invalid">Efectivo es requerido.</small>}
-                                </div>
-                                <div className="field col-5">
-                                    <label htmlFor="tarjeta">No. Tarjeta:</label>
-                                    <InputText id="tarjeta" value={factura.tarjeta} onChange={(e) => onInputChange(e, 'tarjeta')} minLength={13} maxLength={18} disabled={tarjeta} tooltip="Digite el número de la tarjeta del cliente sin utilizar espacios ni guiones debe ser mayor de 13 digitos" className={classNames({ 'p-invalid': submitted && !tarjeta && !factura.tarjeta })} />
-                                    {submitted && !tarjeta && !factura.tarjeta && <small className="p-invalid">No. Tarjeta es requerida.</small>}
-                                </div>
-                            </div>
-                            <div className='p-fluid formgrid grid'>
-                                <div className="col-12 md:col-2">
-                                    <div className="field-checkbox">
-                                        <Checkbox inputId="checkOption1" checked={checked} onChange={e => onInputChange(e, 'isCupon')} />
-                                        <label htmlFor="checkOption1">Cupón</label>
+        if(cargando){
+            return 'Cargando...'
+        }
+        if (permisos.length > 0) {
+            return (
+                <div className="grid crud-demo">
+    
+                    <div className="col-12">
+                        <div className="card">
+                            <Toast ref={toast} />
+                            <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                            {verLista?<DataTable
+                                ref={dt}
+                                value={facturas}
+                                selection={selectedCupons}
+                                onSelectionChange={(e) => setSelectedCupons(e.value)}
+                                dataKey="idFactura"
+                                //filters = {filter}
+                                globalFilter={globalFilter}
+                                paginator
+                                rows={10}
+                                rowsPerPageOptions={[5, 10, 25]}
+                                className="datatable-responsive"
+                                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Facturas"
+                                //globalFilter={globalFilter}
+                                emptyMessage="No se encontraron facturas."
+                                header={header}
+                                responsiveLayout="scroll"
+                            >
+                                <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                                <Column field="idFactura" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                <Column field="parametroFactura.cai" header="Parámetro" sortable body={parametroBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                <Column field="noFactura" header="Número Factura" sortable body={noFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
+                                <Column field="cliente.nombre" header="Cliente" sortable body={clienteBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                <Column field="empleado.nombre" header="Empleado" sortable body={empleadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                <Column field="fechaFactura" header="Fecha Factura" sortable body={fechaFacturaBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                                <Column field="metodoPago.nombre" header="Forma de Pago" sortable body={metodoPagoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                                <Column header="Acciones" body={actionBodyTemplate}></Column>
+                            </DataTable>:null}
+                            
+    
+                            <Dialog visible={facturaDialog} style={{ width: '800px' }} header="FACTURACIÓN" modal className="p-fluid" footer={facturaDialogFooter} onHide={hideDialog}>
+                                <div className='p-fluid formgrid grid'>
+                                    <div className="field col ">
+                                        <label htmlFor="parametroFactura">Parámetro Factura:</label>
+                                        <Dropdown id="parametroFactura.cai" options={parametros} value={factura.parametroFactura} onChange={(e) => onInputChange(e, 'parametroFactura')} optionLabel="cai" required autoFocus placeholder="Seleccione un parámetro" className={classNames({ 'p-invalid': submitted && !factura.parametroFactura })}></Dropdown>
+                                        {submitted && !factura.parametroFactura && <small className="p-invalid">Parámetro es requerido.</small>}
+                                    </div>
+                                    <div className="field col-3">
+                                        <label htmlFor="fechaFactura">Fecha:</label>
+                                        <InputText id="fechaFactura" value={Moment(new Date()).format('DD/MM/YYYY')} onChange={(e) => onInputChange(e, 'fechaFactura')} disabled />
                                     </div>
                                 </div>
-                                <div className="field col-7">
-                                    <Dropdown id="idCupon" disabled={cuponChek} options={dropdownCupones} value={factura.cupon} onChange={(e) => onInputChange(e, 'cupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.cupon })}></Dropdown>
-                                    {submitted && !cuponChek && !factura.cupon && <small className="p-invalid">Cúpon es requerido.</small>}
-                                </div>
-                            </div>
-                            <div className="field">
-                                <label htmlFor="idTipoEntrega">Tipo Entrega:</label>
-                                <Dropdown id="idTipoEntrega" options={tipoEntregas} value={factura.tipoEntrega} onChange={(e) => onInputChange(e, 'tipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.tipoEntrega })}></Dropdown>
-                                {submitted && !factura.tipoEntrega && <small className="p-invalid">Tipo de entrega es requerido.</small>}
-                            </div>
-                            {/* si es por envio: */}
-                            {envio ? ventaPorEnvio() : <hr></hr>}
-                            <div >
-                                <div className='card, col-5' style={{ paddingLeft: '15%', width: '430px', paddingRight: '0%' }}>
-                                    <div style={{ textAlign: 'right', paddingRight: '1%' }}>
-                                        <h5>SubTotal:                   L. {subTotal.toFixed(2)}</h5>
-                                        <h5>Total Impuestos:            L. {impuestoTotal.toFixed(2)}</h5>
-                                        <h5>Total Descuentos y Rebajas: L. {descuentoTotal.toFixed(2)}</h5>
-
-                                        <h5>Total:                      L. {total.toFixed(2)}</h5>
-
+                                <div className='p-fluid formgrid grid'>
+                                    <div className="field col">
+                                        <label htmlFor="idCliente">Cliente:</label>
+                                        <Dropdown id="idCliente" options={clientes} value={factura.cliente} onChange={(e) => onInputChange(e, 'cliente')} optionLabel="nombre" placeholder="Seleccione un cliente" className={classNames({ 'p-invalid': submitted && !factura.cliente })}></Dropdown>
+                                        {submitted && !factura.cliente && <small className="p-invalid">Cliente es requerido.</small>}
+                                    </div>
+                                    <div className="field col">
+                                        <label htmlFor="idEmpleado">Empleado:</label>
+                                        <Dropdown id="idEmpleado" options={empleados} value={factura.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !factura.empleado })}></Dropdown>
+                                        {submitted && !factura.empleado && <small className="p-invalid">Empleado es requerido.</small>}
                                     </div>
                                 </div>
-                            </div>
-
-                        </Dialog>
+                                <div className='formgrid grid'>
+                                    <div className="field col ">
+                                        <label htmlFor="idRepuesto">Repuestos:</label>
+                                        <Dropdown id="idRepuesto" options={repuestos} value={repuesto} onChange={(e) => onInputChangeDetalle(e, 'idRepuesto')} optionLabel="nombre" filter showClear filterBy="idRepuesto" placeholder="Seleccione un repuesto a agregar"></Dropdown>
+                                    </div>
+                                    <div className='field col-3'>
+                                        <hr></hr>
+                                        <Button type='button' label="Agregar" icon="pi pi-plus" className="p-button-outlined p-button-primary ml-auto" onClick={agregarDetalle} />
+                                    </div>
+                                    {/* <div className='field col-3'>
+                                        <hr></hr>
+                                        <Button label="Habilitar Descuentos" icon="pi pi-external-link" onClick={() => onClick('displayResponsive')} />
+                                        <Dialog header="Header" visible={displayResponsive} onHide={() => onHide('displayResponsive')} breakpoints={{ '960px': '75vw' }} style={{ width: '50vw' }} footer={renderFooter('displayResponsive')}>
+                                            <p>Hola</p>
+                                        </Dialog>
+                                    </div> */}
+    
+                                </div>
+                                <div className='card' style={{ width: '740px' }}>
+                                    <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
+                                        <h5 className="m-20">Artículos/Repuestos Agregados</h5>
+                                    </div>
+    
+                                    <DataTable
+                                        ref={dt}
+                                        value={detalles}
+                                        dataKey="idFacturaDetalle"
+                                        footer={footer}
+    
+                                        //paginator
+                                        rows={15}
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        className="datatable-responsive editable-cells-table"
+                                        emptyMessage="No se han agregado detalles de la venta."
+                                        editMode='cell'
+                                        responsiveLayout="scroll"
+                                    >
+                                        <Column field="idRepuesto" header="Repuesto" body={repBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                        <Column field="cantidad" header="Cantidad" body={cantidadBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                        <Column field="descuento" header="descuento" body={descuentoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                        <Column field="precio" header="precio" body={precioBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                                        <Column header="Eliminar" body={actionDetalleBodyTemplate} headerStyle={{ width: '8%', minWidth: '3em' }} bodyStyle={{ textAlign: 'center' }}></Column>
+                                    </DataTable>
+                                </div>
+                                <div className='p-fluid formgrid grid'>
+                                    <div className="field col-5">
+                                        <label htmlFor="idMetodoPago">Forma de Pago:</label>
+                                        <Dropdown id="idMetodoPago" options={metodosPago} value={factura.metodoPago} onChange={(e) => onInputChange(e, 'metodoPago')} optionLabel="nombre" placeholder="Seleccione un método de pago" className={classNames({ 'p-invalid': submitted && !factura.metodoPago })}></Dropdown>
+                                        {submitted && !factura.metodoPago && <small className="p-invalid">Forma de pago es requerido.</small>}
+                                    </div>
+                                    <div className="field col-2">
+                                        <label htmlFor="efectivo">Efectivo Recibido:</label>
+                                        <InputNumber id="efectivo" value={factura.efectivo} onValueChange={(e) => onInputChange(e, 'efectivo')} disabled={efectivo} max={40000} cod prefix="L. " tooltip="Escribe la cantidad de dinero en efectivo que proporciona el cliente, máximo permitido: L. 40,000.00" className={classNames({ 'p-invalid': submitted && !efectivo && !factura.efectivo })} />
+                                        {submitted && !efectivo && !factura.efectivo && <small className="p-invalid">Efectivo es requerido.</small>}
+                                    </div>
+                                    <div className="field col-5">
+                                        <label htmlFor="tarjeta">No. Tarjeta:</label>
+                                        <InputText id="tarjeta" value={factura.tarjeta} onChange={(e) => onInputChange(e, 'tarjeta')} minLength={13} maxLength={18} disabled={tarjeta} tooltip="Digite el número de la tarjeta del cliente sin utilizar espacios ni guiones debe ser mayor de 13 digitos" className={classNames({ 'p-invalid': submitted && !tarjeta && !factura.tarjeta })} />
+                                        {submitted && !tarjeta && !factura.tarjeta && <small className="p-invalid">No. Tarjeta es requerida.</small>}
+                                    </div>
+                                </div>
+                                <div className='p-fluid formgrid grid'>
+                                    <div className="col-12 md:col-2">
+                                        <div className="field-checkbox">
+                                            <Checkbox inputId="checkOption1" checked={checked} onChange={e => onInputChange(e, 'isCupon')} />
+                                            <label htmlFor="checkOption1">Cupón</label>
+                                        </div>
+                                    </div>
+                                    <div className="field col-7">
+                                        <Dropdown id="idCupon" disabled={cuponChek} options={dropdownCupones} value={factura.cupon} onChange={(e) => onInputChange(e, 'cupon')} optionLabel="codigo" placeholder="Seleccione un cupón" filter showClear filterBy="codigo" className={classNames({ 'p-invalid': submitted && !cuponChek && !factura.cupon })}></Dropdown>
+                                        {submitted && !cuponChek && !factura.cupon && <small className="p-invalid">Cúpon es requerido.</small>}
+                                    </div>
+                                </div>
+                                <div className="field">
+                                    <label htmlFor="idTipoEntrega">Tipo Entrega:</label>
+                                    <Dropdown id="idTipoEntrega" options={tipoEntregas} value={factura.tipoEntrega} onChange={(e) => onInputChange(e, 'tipoEntrega')} optionLabel="nombre" placeholder="Seleccione un tipo de entrega" className={classNames({ 'p-invalid': submitted && !factura.tipoEntrega })}></Dropdown>
+                                    {submitted && !factura.tipoEntrega && <small className="p-invalid">Tipo de entrega es requerido.</small>}
+                                </div>
+                                {/* si es por envio: */}
+                                {envio ? ventaPorEnvio() : <hr></hr>}
+                                <div >
+                                    <div className='card, col-5' style={{ paddingLeft: '15%', width: '430px', paddingRight: '0%' }}>
+                                        <div style={{ textAlign: 'right', paddingRight: '1%' }}>
+                                            <h5>SubTotal:                   L. {subTotal.toFixed(2)}</h5>
+                                            <h5>Total Impuestos:            L. {impuestoTotal.toFixed(2)}</h5>
+                                            <h5>Total Descuentos y Rebajas: L. {descuentoTotal.toFixed(2)}</h5>
+    
+                                            <h5>Total:                      L. {total.toFixed(2)}</h5>
+    
+                                        </div>
+                                    </div>
+                                </div>
+    
+                            </Dialog>
+                        </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        } else {
+            {console.log(permisos)}
+            return (
+                <h2>No tiene permisos disponibles para este módulo! </h2>
+            )
+        }
     }
 };
 export async function getServerSideProps({ req }) {

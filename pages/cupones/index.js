@@ -12,6 +12,7 @@ import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 import Moment from 'moment';
 
@@ -42,15 +43,79 @@ const Cupones = () => {
     const dt = useRef(null);
     const [cantidadDefault, setCantidadDefault] = useState(true);
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+    const [activarDesactivar, setActivarDesactivar] = useState(false);
 
     const listarCupons = () => {
         const cuponService = new CuponService();
         cuponService.getCupones().then(data => setCupons(data));
     };
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Cupones').then(data => { setPermisos(data), setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                case "Activar/Desactivar":
+                    setActivarDesactivar(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(() => {
         listarCupons();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setCupon(cuponVacio);
@@ -158,7 +223,7 @@ const Cupones = () => {
             fechaCaducidad: element.fechaCaducidad,
             cantidadMaxima: element.cantidadMaxima,
             cantidadDisponible: element.cantidadDisponible,
-            activo: element.activo?'Activo':'Inactivo',
+            activo: element.activo ? 'Activo' : 'Inactivo',
             porcentajeDescuento: element.porcentajeDescuento,
         };
     })
@@ -265,8 +330,7 @@ const Cupones = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
                 </div>
             </React.Fragment>
         )
@@ -275,9 +339,9 @@ const Cupones = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -365,8 +429,8 @@ const Cupones = () => {
         }
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCupon(rowData)} />
-                <Button icon={iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearCupon(rowData)} />
+                {actualizar ? <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCupon(rowData)} /> : null}
+                {activarDesactivar ? <Button icon={iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearCupon(rowData)} /> : null}
             </div>
         );
     }
@@ -381,10 +445,10 @@ const Cupones = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Cupones</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -401,88 +465,97 @@ const Cupones = () => {
         </>
     );
 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={cupons}
-                        selection={selectedCupons}
-                        onSelectionChange={(e) => setSelectedCupons(e.value)}
-                        dataKey="idCupon"
-                        //filters = {filter}
-                        globalFilter={globalFilter}
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cupones"
-                        //globalFilter={globalFilter}
-                        emptyMessage="No se encontraron cupones."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idCupon" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="codigo" header="Código" sortable body={codigoBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
-                        <Column field="fechaEmision" header="Fecha Emisión" sortable body={fechaEmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                        <Column field="fechaCaducidad" header="Fecha Caducidad" sortable body={fechaCaducidadBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                        {/* <Column field="cantidadMaxima" header="Cantidad Máxima" sortable body={cantidadMaximaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="cantidadDisponible" header="Cantidad Disponible" sortable body={cantidadDisponibleDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column> */}
-                        <Column field="porcentaDescuento" header="Porcentaje Descuento" sortable body={porcentaDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="activo" header="Estado" sortable body={estadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog visible={cuponDialog} style={{ width: '450px' }} header="Registro Cupones" modal className="p-fluid" footer={cuponDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="codigo">Código</label>
-                            <InputText id="codigo" value={cupon.codigo} onChange={(e) => onInputChange(e, 'codigo')} required autoFocus tooltip="Escribe el nombre como se identificará el cupón" className={classNames({ 'p-invalid': submitted && !cupon.codigo })} />
-                            {submitted && !cupon.codigo && <small className="p-invalid">Código es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaEmision">Fecha Emisión </label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaE} onChange={(e) => onInputChange(e, 'fechaEmision')} placeholder="Seleccione una fecha de emisión"></Calendar>
-                            {submitted && !cupon.fechaEmision && <small className="p-invalid">Fecha de Emisión es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaCaducidad">Fecha Caducidad</label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaC} onChange={(e) => onInputChange(e, 'fechaCaducidad')} placeholder="Seleccione una fecha de caducidad"></Calendar>
-                            {submitted && !cupon.fechaCaducidad && <small className="p-invalid">Fecha de Caducidad es requerida.</small>}
-                        </div>
-                        {/* <div className="field">
-                            <label htmlFor="cantidadMaxima">Cantidad Máxima</label>
-                            <InputNumber id="cantidadMaxima" value={cupon.cantidadMaxima} onValueChange={(e) => onInputChange(e, 'cantidadMaxima')} max={150} tooltip="Digita la cantidad máxima apropiada que tendras de este cupón " className={classNames({ 'p-invalid': submitted && !cupon.cantidadMaxima })} />
-                            {submitted && !cupon.cantidadMaxima && <small className="p-invalid">Cantidad Máxima es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="cantidadDisponible">Cantidad Disponible</label>
-                            <InputNumber id="cantidadDisponible" disabled={cantidadDefault} value={cupon.cantidadDisponible} max={150} onValueChange={(e) => onInputChange(e, 'cantidadDisponible')} tooltip="Al crear este cupon por defecto tendrá su cantidad máxima, si quieres cambiar el valor editalo una vez creado" className={classNames({ 'p-invalid': submitted && !cupon.cantidadDisponible })} />
-                            {submitted && !cupon.cantidadDisponible && <small className="p-invalid">Cantidad Disponible es requerida.</small>}
-                        </div> */}
-                        <div className="field">
-                            <label htmlFor="porcentaDescuento">Porcentaje Descuento</label>
-                            <InputNumber id="porcentajeDescuento" value={cupon.porcentajeDescuento} onValueChange={(e) => onInputChange(e, 'porcentajeDescuento')} suffix="%" tooltip="Escribe solamente el número (sin su tanto porciento) del porcentaje que deseas aplicar" className={classNames({ 'p-invalid': submitted && !cupon.porcentajeDescuento })} />
-                            {submitted && !cupon.porcentajeDescuento && <small className="p-invalid">Porcentaje descuento es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={activarDesactivarCuponDialog} style={{ width: '450px' }} header="Confirmar" modal footer={activarDesactivarCuponDialogFooter} onHide={hideDeleteCuponDialog}>
-
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {cupon && <span>¿Está seguro de que desea <b>{cupon.activo == 1 ? "desactivar a" : "activar a"} {cupon.codigo}</b>?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={cupons}
+                            selection={selectedCupons}
+                            onSelectionChange={(e) => setSelectedCupons(e.value)}
+                            dataKey="idCupon"
+                            //filters = {filter}
+                            globalFilter={globalFilter}
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cupones"
+                            //globalFilter={globalFilter}
+                            emptyMessage="No se encontraron cupones."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idCupon" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="codigo" header="Código" sortable body={codigoBodyTemplate} headerStyle={{ width: '14%', minWidth: '15rem' }}></Column>
+                            <Column field="fechaEmision" header="Fecha Emisión" sortable body={fechaEmisionBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                            <Column field="fechaCaducidad" header="Fecha Caducidad" sortable body={fechaCaducidadBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                            {/* <Column field="cantidadMaxima" header="Cantidad Máxima" sortable body={cantidadMaximaBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="cantidadDisponible" header="Cantidad Disponible" sortable body={cantidadDisponibleDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column> */}
+                            <Column field="porcentaDescuento" header="Porcentaje Descuento" sortable body={porcentaDescBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="activo" header="Estado" sortable body={estadoBodyTemplate} headerStyle={{ width: '14%', minWidth: '12rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        </DataTable>:null}
+                        
+                        <Dialog visible={cuponDialog} style={{ width: '450px' }} header="Registro Cupones" modal className="p-fluid" footer={cuponDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="codigo">Código</label>
+                                <InputText id="codigo" value={cupon.codigo} onChange={(e) => onInputChange(e, 'codigo')} required autoFocus tooltip="Escribe el nombre como se identificará el cupón" className={classNames({ 'p-invalid': submitted && !cupon.codigo })} />
+                                {submitted && !cupon.codigo && <small className="p-invalid">Código es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaEmision">Fecha Emisión </label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaE} onChange={(e) => onInputChange(e, 'fechaEmision')} placeholder="Seleccione una fecha de emisión"></Calendar>
+                                {submitted && !cupon.fechaEmision && <small className="p-invalid">Fecha de Emisión es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaCaducidad">Fecha Caducidad</label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaC} onChange={(e) => onInputChange(e, 'fechaCaducidad')} placeholder="Seleccione una fecha de caducidad"></Calendar>
+                                {submitted && !cupon.fechaCaducidad && <small className="p-invalid">Fecha de Caducidad es requerida.</small>}
+                            </div>
+                            {/* <div className="field">
+                                <label htmlFor="cantidadMaxima">Cantidad Máxima</label>
+                                <InputNumber id="cantidadMaxima" value={cupon.cantidadMaxima} onValueChange={(e) => onInputChange(e, 'cantidadMaxima')} max={150} tooltip="Digita la cantidad máxima apropiada que tendras de este cupón " className={classNames({ 'p-invalid': submitted && !cupon.cantidadMaxima })} />
+                                {submitted && !cupon.cantidadMaxima && <small className="p-invalid">Cantidad Máxima es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="cantidadDisponible">Cantidad Disponible</label>
+                                <InputNumber id="cantidadDisponible" disabled={cantidadDefault} value={cupon.cantidadDisponible} max={150} onValueChange={(e) => onInputChange(e, 'cantidadDisponible')} tooltip="Al crear este cupon por defecto tendrá su cantidad máxima, si quieres cambiar el valor editalo una vez creado" className={classNames({ 'p-invalid': submitted && !cupon.cantidadDisponible })} />
+                                {submitted && !cupon.cantidadDisponible && <small className="p-invalid">Cantidad Disponible es requerida.</small>}
+                            </div> */}
+                            <div className="field">
+                                <label htmlFor="porcentaDescuento">Porcentaje Descuento</label>
+                                <InputNumber id="porcentajeDescuento" value={cupon.porcentajeDescuento} onValueChange={(e) => onInputChange(e, 'porcentajeDescuento')} suffix="%" tooltip="Escribe solamente el número (sin su tanto porciento) del porcentaje que deseas aplicar" className={classNames({ 'p-invalid': submitted && !cupon.porcentajeDescuento })} />
+                                {submitted && !cupon.porcentajeDescuento && <small className="p-invalid">Porcentaje descuento es requerido.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={activarDesactivarCuponDialog} style={{ width: '450px' }} header="Confirmar" modal footer={activarDesactivarCuponDialogFooter} onHide={hideDeleteCuponDialog}>
+    
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {cupon && <span>¿Está seguro de que desea <b>{cupon.activo == 1 ? "desactivar a" : "activar a"} {cupon.codigo}</b>?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 
 export async function getServerSideProps({ req }) {

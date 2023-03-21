@@ -14,6 +14,7 @@ import { UsuarioService } from '../../demo/service/UsuarioService';
 import { RolService } from '../../demo/service/RolService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 const Usuarios = () => {
     let usuarioVacio = {
@@ -49,6 +50,20 @@ const Usuarios = () => {
     const toast = useRef(null);
     const dt = useRef(null)
     const { data: session } = useSession();
+    //
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+    const [activarDesactivar, setActivarDesactivar] = useState(false);
+    const [bloquearDesbloquear, setBloquearDesbloquear] = useState(false);
 
 
     const listarUsuarios = () => {
@@ -64,11 +79,65 @@ const Usuarios = () => {
         const rolService = new RolService();
         rolService.getRols().then(data => setRoles(data));
     };
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Usuarios').then(data => { setPermisos(data), setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                case "Activar/Desactivar":
+                    setActivarDesactivar(true);
+                    break;
+                case "Bloquear/Desbloquear":
+                    setBloquearDesbloquear(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
 
     useEffect(() => {
         listarUsuarios();
         listarRoles();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setUsuario(usuarioVacio);
@@ -281,8 +350,8 @@ const Usuarios = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={true} />
+                    {agregar ? <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} /> : null}
+                    {eliminar ? <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={true} /> : null}
                 </div>
             </React.Fragment>
         )
@@ -291,9 +360,9 @@ const Usuarios = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -371,8 +440,8 @@ const Usuarios = () => {
         }
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editUsuario(rowData)} />
-                <Button icon={iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearUsuario(rowData)} />
+                {actualizar ? <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editUsuario(rowData)} /> : null}
+                {activarDesactivar ? <Button icon={iconResult} className="p-button-rounded p-button-secondary mt-2" onClick={() => confirmBloquearDesbloquearUsuario(rowData)} /> : null}
             </div>
         );
     }
@@ -380,10 +449,10 @@ const Usuarios = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Usuarios</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar ? <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span> : null}
         </div>
     );
 
@@ -399,105 +468,112 @@ const Usuarios = () => {
             <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={activarDesactivarUsuario} />
         </>
     );
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={usuarios}
-                        selection={selectedUsuarios}
-                        onSelectionChange={(e) => setSelectedUsuarios(e.value)}
-                        dataKey="idUsuario"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} usuarios"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron usuarios."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idUsuario" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="usermame" header="Nombre de Usuario" sortable body={usernameBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        {/* <Column field="password" header="Contraseña" sortable body={passwordBodyTemplate} headerStyle={{ width: '16%', minWidth: '10rem' }}></Column> */}
-                        <Column field="rol.nombre" header="Rol de Usuario" sortable body={rolBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="activo" header="Estado" sortable body={estadoBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={usuarioDialog} style={{ width: '450px' }} header="Registro Usuarios" modal className="p-fluid" footer={usuarioDialogFooter} onHide={hideDialog}>
-                        <div className='formgrid grid'>
-                            <div className="field col">
-                                <label htmlFor="nombre">Nombre</label>
-                                <InputText id="nombre" value={usuario.nombre} onChange={(e) => onInputChange(e, 'nombre')}
-                                    required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.nombre })} />
-                                {submitted && !usuario.nombre && <small className="p-invalid">El nombre es requerido.</small>}
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={usuarios}
+                            selection={selectedUsuarios}
+                            onSelectionChange={(e) => setSelectedUsuarios(e.value)}
+                            dataKey="idUsuario"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} usuarios"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron usuarios."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idUsuario" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="usermame" header="Nombre de Usuario" sortable body={usernameBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            {/* <Column field="password" header="Contraseña" sortable body={passwordBodyTemplate} headerStyle={{ width: '16%', minWidth: '10rem' }}></Column> */}
+                            <Column field="rol.nombre" header="Rol de Usuario" sortable body={rolBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="activo" header="Estado" sortable body={estadoBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+    
+                        <Dialog visible={usuarioDialog} style={{ width: '450px' }} header="Registro Usuarios" modal className="p-fluid" footer={usuarioDialogFooter} onHide={hideDialog}>
+                            <div className='formgrid grid'>
+                                <div className="field col">
+                                    <label htmlFor="nombre">Nombre</label>
+                                    <InputText id="nombre" value={usuario.nombre} onChange={(e) => onInputChange(e, 'nombre')}
+                                        required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.nombre })} />
+                                    {submitted && !usuario.nombre && <small className="p-invalid">El nombre es requerido.</small>}
+                                </div>
+                                <div className="field col">
+                                    <label htmlFor="apellido">Apellido</label>
+                                    <InputText id="apellido" value={usuario.apellido} onChange={(e) => onInputChange(e, 'apellido')}
+                                        required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.apellido })} />
+                                    {submitted && !usuario.apellido && <small className="p-invalid">El apellido es requerido.</small>}
+                                </div>
                             </div>
-                            <div className="field col">
-                                <label htmlFor="apellido">Apellido</label>
-                                <InputText id="apellido" value={usuario.apellido} onChange={(e) => onInputChange(e, 'apellido')}
-                                    required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.apellido })} />
-                                {submitted && !usuario.apellido && <small className="p-invalid">El apellido es requerido.</small>}
+    
+                            <div className="field">
+                                <label htmlFor="username">Nombre Usuario</label>
+                                <InputText id="username" value={usuario.username} onChange={(e) => onInputChange(e, 'username')} required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.username })} />
+                                {submitted && !usuario.username && <small className="p-invalid">Nombre de Usuario es requerido.</small>}
                             </div>
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="username">Nombre Usuario</label>
-                            <InputText id="username" value={usuario.username} onChange={(e) => onInputChange(e, 'username')} required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.username })} />
-                            {submitted && !usuario.username && <small className="p-invalid">Nombre de Usuario es requerido.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="password">Contraseña</label>
-                            <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')}
-                                toggleMask inputClassName='w-full p-3 md:w-30rem' disabled={editarPassword}
-                                promptLabel='Ingrese una contraseña' weakLabel='Débil' mediumLabel='Medio' strongLabel='Fuerte'
-                                required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.password })} ></Password>
-                            {submitted && !usuario.password && <small className="p-invalid">Contraseña usuario es requerido.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="confirmPassword">Confirmar Contraseña</label>
-                            <Password inputid="confirmPassword" value={confirmPassword} onChange={(e) => onInputChangeConfirm(e)} disabled={editarPassword}
-                                toggleMask feedback={false} inputClassName='w-full p-3 md:w-30rem' placeholder="Confirmar contraseña"
-                                required autoFocus className={classNames({ 'p-invalid': submitted && !confirmPassword })} ></Password>
-                            {submitted && !confirmPassword && <small className="p-invalid"> Confirmar Contraseña usuario es requerido.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="idRol">Rol</label>
-                            <Dropdown id="idRol" options={roles} value={usuario.rol} onChange={(e) => onInputChange(e, 'rol')} optionLabel="nombre" placeholder="Seleccione rol de usuario"
-                                emptyMessage="No se encontraron roles."
-                                required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.rol })}></Dropdown>
-                            {submitted && !usuario.rol && <small className="p-invalid">Rol de usuario es requerido.</small>}
-                        </div>
-
-                        <div className="field-checkbox">
-                            <Checkbox inputId="bloqueado" checked={checked} onChange={e => setChecked(e.checked)} />
-                            <label htmlFor="bloqueado">Usuario Bloqueado</label>
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={activarDesactivarUsuarioDialog} style={{ width: '450px' }} header="Confirm" modal footer={activarDesactivarUsuarioDialogFooter} onHide={hideDeleteUsuarioDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {usuario && <span>¿Está seguro de que desea <b>{usuario.activo == 1 ? "desactivar " : "activar "}</b> a <b>{usuario.username}</b>?</span>}
-                        </div>
-                    </Dialog>
-
+    
+                            <div className="field">
+                                <label htmlFor="password">Contraseña</label>
+                                <Password inputid="password" value={usuario.password} onChange={(e) => onInputChange(e, 'password')}
+                                    toggleMask inputClassName='w-full p-3 md:w-30rem' disabled={editarPassword}
+                                    promptLabel='Ingrese una contraseña' weakLabel='Débil' mediumLabel='Medio' strongLabel='Fuerte'
+                                    required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.password })} ></Password>
+                                {submitted && !usuario.password && <small className="p-invalid">Contraseña usuario es requerido.</small>}
+                            </div>
+    
+                            <div className="field">
+                                <label htmlFor="confirmPassword">Confirmar Contraseña</label>
+                                <Password inputid="confirmPassword" value={confirmPassword} onChange={(e) => onInputChangeConfirm(e)} disabled={editarPassword}
+                                    toggleMask feedback={false} inputClassName='w-full p-3 md:w-30rem' placeholder="Confirmar contraseña"
+                                    required autoFocus className={classNames({ 'p-invalid': submitted && !confirmPassword })} ></Password>
+                                {submitted && !confirmPassword && <small className="p-invalid"> Confirmar Contraseña usuario es requerido.</small>}
+                            </div>
+    
+                            <div className="field">
+                                <label htmlFor="idRol">Rol</label>
+                                <Dropdown id="idRol" options={roles} value={usuario.rol} onChange={(e) => onInputChange(e, 'rol')} optionLabel="nombre" placeholder="Seleccione rol de usuario"
+                                    emptyMessage="No se encontraron roles."
+                                    required autoFocus className={classNames({ 'p-invalid': submitted && !usuario.rol })}></Dropdown>
+                                {submitted && !usuario.rol && <small className="p-invalid">Rol de usuario es requerido.</small>}
+                            </div>
+                            {bloquearDesbloquear?<div className="field-checkbox">
+                                <Checkbox inputId="bloqueado" checked={checked} onChange={e => setChecked(e.checked)} />
+                                <label htmlFor="bloqueado">Usuario Bloqueado</label>
+                            </div>:null}
+                        </Dialog>
+    
+                        <Dialog visible={activarDesactivarUsuarioDialog} style={{ width: '450px' }} header="Confirm" modal footer={activarDesactivarUsuarioDialogFooter} onHide={hideDeleteUsuarioDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {usuario && <span>¿Está seguro de que desea <b>{usuario.activo == 1 ? "desactivar " : "activar "}</b> a <b>{usuario.username}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {
