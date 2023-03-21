@@ -13,6 +13,8 @@ import { ProveedorService } from '../../demo/service/ProveedorService';
 import { PaisService } from '../../demo/service/PaisService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
+
 
 const Proveedores = () => {
     let proveedorVacio = {
@@ -39,6 +41,18 @@ const Proveedores = () => {
     const [codigoISO, setCodigoISO] = useState(false);
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
     const listarProveedores = () => {
         const proveedorService = new ProveedorService();
         proveedorService.getProveedores().then(data => setProveedores(data));
@@ -49,10 +63,59 @@ const Proveedores = () => {
         paisService.getPaises().then(data => setPaises(data));
     };
 
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Proveedores').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
     useEffect(() => {
         listarProveedores();  
         listarPaises();
+        listarPermisos();
+        permisosDisponibles();
     }, []); 
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setProveedor(proveedorVacio);
@@ -256,8 +319,8 @@ const Proveedores = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProveedores || !selectedProveedores.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedProveedores || !selectedProveedores.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -266,9 +329,9 @@ const Proveedores = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ?<Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -339,8 +402,8 @@ const Proveedores = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProveedor(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteProveedor(rowData)} />
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editProveedor(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteProveedor(rowData)} />:null}
             </div>
         );
     }
@@ -357,10 +420,10 @@ const Proveedores = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Proveedores</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -382,99 +445,108 @@ const Proveedores = () => {
             <Button label="Sí" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProveedores} />
         </>
     );
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={proveedores}
-                        selection={selectedProveedores}
-                        onSelectionChange={(e) => setSelectedProveedores(e.value)}
-                        dataKey="idProveedor"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores" 
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron proveedores."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
-                        <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '24%', minWidth: '10rem' }}></Column>
-                        <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
-                        <Column field="pais.nombre" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={proveedorDialog} style={{ width: '450px' }} header="Detalles de Proveedor" modal className="p-fluid" footer={proveedorDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
-                            className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />
-                            {submitted && !proveedor.nombre && <small className="p-invalid">El nombre es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="correo">Correo Electrónico</label>
-                            <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} tooltip="Ingrese correo electrónico del proveedor"
-                            className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
-                            {submitted && !proveedor.correo && <small className="p-invalid">El correo es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="telefono">Teléfono</label>
-                            <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} tooltip="Indique teléfono sin espacios, puntos o guiones"
-                            className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />                            
-                            {submitted && !proveedor.telefono && <small className="p-invalid">El teléfono es requerido.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="pais">País del Proveedor</label>
-                            <Dropdown id="pais" options={paises} value={proveedor.pais} onChange={(e) => onInputChange(e, 'pais')} optionLabel="nombre" emptyMessage="No se encontraron códigos ISO" 
-                            className={classNames({ 'p-invalid': submitted && !proveedor.pais })}  />
-                            {submitted && !proveedor.pais && <small className="p-invalid">El País es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="nombreContacto">Contacto</label>
-                            <InputText id="nombreContacto" value={proveedor.nombreContacto} onChange={(e) => onInputChange(e, 'nombreContacto')} tooltip="Debe ingresar más de cinco caracteres"
-                            className={classNames({ 'p-invalid': submitted && !proveedor.nombreContacto })} />
-                            {submitted && !proveedor.nombreContacto && <small className="p-invalid">El nombre de contacto es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="sitioWeb">Sitio Web</label>
-                            <InputText id="sitioWeb" value={proveedor.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} tooltip="Ingrese sitio web del proveedor"
-                            className={classNames({ 'p-invalid': submitted && !proveedor.sitioWeb })} />
-                            {submitted && !proveedor.sitioWeb && <small className="p-invalid">El sitio web es requerido.</small>}
-                        </div>
-                    </Dialog> 
-
-                    <Dialog visible={deleteProveedorDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteProveedorDialogFooter} onHide={hideDeleteProveedorDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {proveedor && <span>¿Está seguro de que desea eliminar a <b>{proveedor.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteProveedoresDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteProveedoresDialogFooter} onHide={hideDeleteProveedoresDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {proveedor && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
-                        </div>
-                    </Dialog>
+    
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={proveedores}
+                            selection={selectedProveedores}
+                            onSelectionChange={(e) => setSelectedProveedores(e.value)}
+                            dataKey="idProveedor"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} proveedores" 
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron proveedores."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                            <Column field="idProveedor" header="Código" sortable body={idBodyTemplate} headerStyle={{ width: '10%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="correo" header="Correo Electrónico" sortable body={correoBodyTemplate} headerStyle={{ width: '24%', minWidth: '10rem' }}></Column>
+                            <Column field="telefono" header="Teléfono" body={telefonoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '8rem' }}></Column>
+                            <Column field="pais.nombre" header="Código ISO" sortable body={paisBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombreContacto" header="Contacto" body={contactoBodyTemplate} sortable headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="sitioWeb" header="Sitio Web" body={sitioWebBodyTemplate} sortable headerStyle={{ width: '20%', minWidth: '10rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}  headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+    
+                        <Dialog visible={proveedorDialog} style={{ width: '450px' }} header="Detalles de Proveedor" modal className="p-fluid" footer={proveedorDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={proveedor.nombre} onChange={(e) => onInputChange(e, 'nombre')} tooltip="Debe ingresar más de cinco caracteres"
+                                className={classNames({ 'p-invalid': submitted && !proveedor.nombre })} />
+                                {submitted && !proveedor.nombre && <small className="p-invalid">El nombre es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="correo">Correo Electrónico</label>
+                                <InputText id="correo" value={proveedor.correo} onChange={(e) => onInputChange(e, 'correo')} tooltip="Ingrese correo electrónico del proveedor"
+                                className={classNames({ 'p-invalid': submitted && !proveedor.correo })} />
+                                {submitted && !proveedor.correo && <small className="p-invalid">El correo es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="telefono">Teléfono</label>
+                                <InputText id="telefono" value={proveedor.telefono} onChange={(e) => onInputChange(e, 'telefono')} tooltip="Indique teléfono sin espacios, puntos o guiones"
+                                className={classNames({ 'p-invalid': submitted && !proveedor.telefono })} />                            
+                                {submitted && !proveedor.telefono && <small className="p-invalid">El teléfono es requerido.</small>}
+                            </div>
+    
+                            <div className="field">
+                                <label htmlFor="pais">País del Proveedor</label>
+                                <Dropdown id="pais" options={paises} value={proveedor.pais} onChange={(e) => onInputChange(e, 'pais')} optionLabel="nombre" emptyMessage="No se encontraron códigos ISO" 
+                                className={classNames({ 'p-invalid': submitted && !proveedor.pais })}  />
+                                {submitted && !proveedor.pais && <small className="p-invalid">El País es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="nombreContacto">Contacto</label>
+                                <InputText id="nombreContacto" value={proveedor.nombreContacto} onChange={(e) => onInputChange(e, 'nombreContacto')} tooltip="Debe ingresar más de cinco caracteres"
+                                className={classNames({ 'p-invalid': submitted && !proveedor.nombreContacto })} />
+                                {submitted && !proveedor.nombreContacto && <small className="p-invalid">El nombre de contacto es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="sitioWeb">Sitio Web</label>
+                                <InputText id="sitioWeb" value={proveedor.sitioWeb} onChange={(e) => onInputChange(e, 'sitioWeb')} tooltip="Ingrese sitio web del proveedor"
+                                className={classNames({ 'p-invalid': submitted && !proveedor.sitioWeb })} />
+                                {submitted && !proveedor.sitioWeb && <small className="p-invalid">El sitio web es requerido.</small>}
+                            </div>
+                        </Dialog> 
+    
+                        <Dialog visible={deleteProveedorDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteProveedorDialogFooter} onHide={hideDeleteProveedorDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {proveedor && <span>¿Está seguro de que desea eliminar a <b>{proveedor.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteProveedoresDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteProveedoresDialogFooter} onHide={hideDeleteProveedoresDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {proveedor && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 export async function getServerSideProps({req}){
     return autenticacionRequerida(req,({session}) =>

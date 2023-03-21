@@ -19,6 +19,7 @@ import Moment from 'moment';
 import { Calendar } from 'primereact/calendar';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 
 const Arqueos = () => {
@@ -52,6 +53,18 @@ const Arqueos = () => {
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
 
 
     const listarArqueos = () => {
@@ -63,16 +76,67 @@ const Arqueos = () => {
         await empleadoService.getEmpleados().then(data => setEmpleados(data))
     }
 
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Arqueos').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+    
 
 
     useEffect(async () => {
         listarArqueos();
         console.log(arqueos)
+        permisosDisponibles();
         await listarEmpleados();
+        listarPermisos();
+    
     }, []);
     //const [documentosItem,setOpcionesDocumentoItem] = useState(null);
     //const documentosItem = tipoDocumentos.map((idTipoDocumento) =>{
     //})
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
+
+
     const openNew = () => {
         setArqueo(emptyArqueo);
         setEmpleado(null);
@@ -285,8 +349,8 @@ const Arqueos = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedArqueos || !selectedArqueos.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedArqueos || !selectedArqueos.length} />:null}
                 </div>
             </React.Fragment>
         );
@@ -295,9 +359,9 @@ const Arqueos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         );
     };
@@ -352,8 +416,10 @@ const Arqueos = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editArqueo(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteArqueo(rowData)} />
+            {actualizar?
+            <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editArqueo(rowData)} />:null}
+            {eliminar?
+            <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteArqueo(rowData)} />:null}  
             </>
         );
     };
@@ -361,10 +427,12 @@ const Arqueos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Arqueos</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?
+             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
+           
         </div>
     );
 
@@ -386,84 +454,95 @@ const Arqueos = () => {
             <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedArqueos} />
         </>
     );
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable id='TablaArqueo'
-                        ref={dt}
-                        value={arqueos}
-                        selection={selectedArqueos}
-                        onSelectionChange={(e) => setSelectedArqueos(e.value)}
-                        dataKey="idArqueo"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Arqueos"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron arqueos."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idArqueo" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="fecha" header="Fecha Arqueo" sortable body={fechaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="empleado.nombre" header="Empleado" sortable body={idEmpleadoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="totalRecuento" header="Total Recuento" sortable body={totalRecuentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="observacion" header="Observación" sortable body={observacionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={arqueoDialog} style={{ width: '450px' }} header="Registro Arqueos" modal className="p-fluid" footer={arqueoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="fecha">Fecha del Arqueo</label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e, 'fecha')} placeholder="Seleccione una fecha"></Calendar>
-                            {submitted && !arqueo.fecha && <small className="p-invalid">Fecha es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idEmpleado">Empleado</label>
-                            <Dropdown id="idEmpleado" options={empleados} value={arqueo.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !arqueo.empleado })}></Dropdown>
-                            {submitted && !arqueo.empleado && <small className="p-invalid">Tipo Documento es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="precio">Total Recuento</label>
-                            <InputNumber id="precio" value={arqueo.totalRecuento} onValueChange={(e) => onInputChange(e, 'totalRecuento')} mode='currency' currency='HNL' locale='en-US' required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.totalRecuento })} />
-                            {submitted && !arqueo.totalRecuento && <small className="p-invalid">El recuento total es requerido, no debe ser menor o igual a cero.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="observacion">Observación</label>
-                            <InputText id="observacion" value={arqueo.observacion} onChange={(e) => onInputChange(e, 'observacion')} required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.observacion })} />
-                            {submitted && !arqueo.observacion && <small className="p-invalid">Observacion es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteArqueoDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deletearqueoDialogFooter} onHide={hideDeleteArqueoDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {arqueo && (
-                                <span>
-                                    Esta seguro que desea eliminar el arqueo: <b>{arqueo.idArqueo}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteArqueosDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteArqueosDialogFooter} onHide={hideDeleteArqueosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {arqueo && <span>Esta seguro que desea eliminar los siguientes Arqueos?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable id='TablaArqueo'
+                            ref={dt}
+                            value={arqueos}
+                            selection={selectedArqueos}
+                            onSelectionChange={(e) => setSelectedArqueos(e.value)}
+                            dataKey="idArqueo"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Arqueos"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron arqueos."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idArqueo" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="fecha" header="Fecha Arqueo" sortable body={fechaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="empleado.nombre" header="Empleado" sortable body={idEmpleadoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="totalRecuento" header="Total Recuento" sortable body={totalRecuentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="observacion" header="Observación" sortable body={observacionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={arqueoDialog} style={{ width: '450px' }} header="Registro Arqueos" modal className="p-fluid" footer={arqueoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="fecha">Fecha del Arqueo</label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e, 'fecha')} placeholder="Seleccione una fecha"></Calendar>
+                                {submitted && !arqueo.fecha && <small className="p-invalid">Fecha es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="idEmpleado">Empleado</label>
+                                <Dropdown id="idEmpleado" options={empleados} value={arqueo.empleado} onChange={(e) => onInputChange(e, 'empleado')} optionLabel="nombre" placeholder="Seleccione un empleado" className={classNames({ 'p-invalid': submitted && !arqueo.empleado })}></Dropdown>
+                                {submitted && !arqueo.empleado && <small className="p-invalid">Tipo Documento es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="precio">Total Recuento</label>
+                                <InputNumber id="precio" value={arqueo.totalRecuento} onValueChange={(e) => onInputChange(e, 'totalRecuento')} mode='currency' currency='HNL' locale='en-US' required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.totalRecuento })} />
+                                {submitted && !arqueo.totalRecuento && <small className="p-invalid">El recuento total es requerido, no debe ser menor o igual a cero.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="observacion">Observación</label>
+                                <InputText id="observacion" value={arqueo.observacion} onChange={(e) => onInputChange(e, 'observacion')} required autoFocus className={classNames({ 'p-invalid': submitted && !arqueo.observacion })} />
+                                {submitted && !arqueo.observacion && <small className="p-invalid">Observacion es requerido.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteArqueoDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deletearqueoDialogFooter} onHide={hideDeleteArqueoDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {arqueo && (
+                                    <span>
+                                        Esta seguro que desea eliminar el arqueo: <b>{arqueo.idArqueo}</b>?
+                                    </span>
+                                )}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteArqueosDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteArqueosDialogFooter} onHide={hideDeleteArqueosDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {arqueo && <span>Esta seguro que desea eliminar los siguientes Arqueos?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
+
+    
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {

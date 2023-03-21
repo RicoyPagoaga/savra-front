@@ -16,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CategoriaClienteService } from '../../demo/service/CategoriaClienteService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 const CategoriaCliente = () => {
     let emptyCategoriaCliente = {
@@ -44,13 +45,76 @@ const CategoriaCliente = () => {
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
     const listarCategoriaClientes = () => {
         const categoriaClienteService = new CategoriaClienteService();
         categoriaClienteService.getCategoriaClientes().then(data => setCategoriaClientes(data));
     };
+    
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Categoria Clientes').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
     useEffect(() => {
         listarCategoriaClientes()
+        permisosDisponibles();
+        listarPermisos();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
+
 
     const openNew = () => {
         setCategoriaCliente(emptyCategoriaCliente);
@@ -227,8 +291,8 @@ const CategoriaCliente = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedCategoriaClientes || !selectedCategoriaClientes.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedCategoriaClientes || !selectedCategoriaClientes.length} />:null}
                 </div>
             </React.Fragment>
         );
@@ -237,9 +301,9 @@ const CategoriaCliente = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
+               {exportarCVS ?<Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+               {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+               {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         );
     };
@@ -274,8 +338,8 @@ const CategoriaCliente = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCategoriaCliente(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCategoriaCliente(rowData)} />
+            {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCategoriaCliente(rowData)} />:null}
+            {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteCategoriaCliente(rowData)} />:null}
             </>
         );
     };
@@ -292,10 +356,10 @@ const CategoriaCliente = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Categoria Clientes</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -318,71 +382,103 @@ const CategoriaCliente = () => {
         </> 
     );
 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={categoriaClientes}
-                        selection={selectedCategoriaClientes}
-                        onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
-                        dataKey="idCategoria"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron categorias de clientes."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
-                        <Column field="idCategoria" header="ID Categoría" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={categoriaClienteDialog} style={{ width: '450px' }} header="Registro Categorias Clientes" modal className="p-fluid" footer={categoriaClienteDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={CategoriaCliente.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.nombre })} />
-                            {submitted && !CategoriaCliente.nombre && <small className="p-invalid">Nombre es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="descripcion">Descripción</label>
-                            <InputTextarea id="descripcion" value={CategoriaCliente.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.descripcion })} />
-                            {submitted && !CategoriaCliente.descripcion && <small className="p-invalid">Descripción es requerida.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteCategoriaClienteDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriaClienteDialogFooter} onHide={hideDeleteCategoriaClienteDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {CategoriaCliente && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{CategoriaCliente.nombre}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteCategoriasClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriasClientesDialogFooter} onHide={hideDeleteCategoriasClientesDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {CategoriaCliente && <span>Esta seguro que desea eliminar esta Categoria (s)?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={categoriaClientes}
+                            selection={selectedCategoriaClientes}
+                            onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
+                            dataKey="idCategoria"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron categorias de clientes."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                            <Column field="idCategoria" header="ID Categoría" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        <DataTable
+                            ref={dt}
+                            value={categoriaClientes}
+                            selection={selectedCategoriaClientes}
+                            onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
+                            dataKey="idCategoria"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron categorias de clientes."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
+                            <Column field="idCategoria" header="ID Categoría" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>
+    
+                        <Dialog visible={categoriaClienteDialog} style={{ width: '450px' }} header="Registro Categorias Clientes" modal className="p-fluid" footer={categoriaClienteDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={CategoriaCliente.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.nombre })} />
+                                {submitted && !CategoriaCliente.nombre && <small className="p-invalid">Nombre es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="descripcion">Descripción</label>
+                                <InputTextarea id="descripcion" value={CategoriaCliente.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} required autoFocus className={classNames({ 'p-invalid': submitted && !CategoriaCliente.descripcion })} />
+                                {submitted && !CategoriaCliente.descripcion && <small className="p-invalid">Descripción es requerida.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteCategoriaClienteDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriaClienteDialogFooter} onHide={hideDeleteCategoriaClienteDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {CategoriaCliente && (
+                                    <span>
+                                        Esta seguro que desea eliminar a <b>{CategoriaCliente.nombre}</b>?
+                                    </span>
+                                )}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteCategoriasClientesDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteCategoriasClientesDialogFooter} onHide={hideDeleteCategoriasClientesDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {CategoriaCliente && <span>Esta seguro que desea eliminar esta Categoria (s)?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 
 export async function getServerSideProps({req}){
