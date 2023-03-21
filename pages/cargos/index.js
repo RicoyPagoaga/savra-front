@@ -11,6 +11,7 @@ import { CargoService } from '../../demo/service/CargoService';
 import { InputNumber } from 'primereact/inputnumber';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 const Cargos = () => {
     let cargoVacio = {
@@ -39,6 +40,62 @@ const Cargos = () => {
     const dt = useRef(null);
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(),'Arqueos').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
     const listarCargos = () => {
         const cargoService = new CargoService();
         cargoService.getCargos().then(data => setCargos(data));
@@ -46,7 +103,13 @@ const Cargos = () => {
 
     useEffect(() => {
         listarCargos();
+        permisosDisponibles();
+        listarPermisos();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
     const openNew = () => {
         setCargo(cargoVacio);
@@ -222,8 +285,8 @@ const Cargos = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedCargos || !selectedCargos.length} />
+                    {agregar? <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedCargos || !selectedCargos.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -232,9 +295,9 @@ const Cargos = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
+                {exportarCVS ? <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         )
     }
@@ -277,8 +340,10 @@ const Cargos = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <div className="actions">
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCargo(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteCargo(rowData)} />
+                {actualizar?
+                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editCargo(rowData)} />:null}
+                {eliminar?
+                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning mt-2" onClick={() => confirmDeleteCargo(rowData)} />:null}
             </div>
         );
     }
@@ -286,10 +351,12 @@ const Cargos = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Cargos</h5>
+            {buscar? 
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
+           
         </div>
     );
 
@@ -312,74 +379,85 @@ const Cargos = () => {
         </>
     );
 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={cargos}
-                        selection={selectedCargos}
-                        onSelectionChange={(e) => setSelectedCargos(e.value)}
-                        dataKey="idCargo"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cargos"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron Cargos."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idCargo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column field="salarioBase" header="Salario Base" sortable body={salarioBaseBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog visible={cargoDialog} style={{ width: '450px' }} header="Registro de Cargos" modal className="p-fluid" footer={cargoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={cargo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.nombre })} tooltip="Ingrese un nombre de cargo 🖊️📋" />
-                            {submitted && !cargo.nombre && <small className="p-invalid">Nombre cargo es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="salarioBase">Salario Base</label>
-                            <InputNumber id="salarioBase" value={cargo.salarioBase} onValueChange={(e) => onInputChange(e, 'salarioBase')} mode='currency' currency='HNL' locale='en-US' max={150000} className={classNames({ 'p-invalid': submitted && !cargo.salarioBase })} tooltip="Ingrese un salario en números, no debe ser mayor de L. 150,000.00 🖊️📋" />
-                            {submitted && !cargo.salarioBase && <small className="p-invalid">El salario base es requerido, no debe ser menor o igual a cero.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="descripcion">Descripción</label>
-                            <InputText id="descripcion" value={cargo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} className={classNames({ 'p-invalid': submitted && !cargo.descripcion })} tooltip="Ingrese una descripción relacionada al cargo 🖊️📋" />
-                            {submitted && !cargo.descripcion && <small className="p-invalid">Descripcion cargo es requerido.</small>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteCargoDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteCargoDialogFooter} onHide={hideDeleteCargoDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {cargo && <span>¿Está seguro de que desea eliminar a <b>{cargo.nombre}</b>?</span>}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteCargosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteCargosDialogFooter} onHide={hideDeleteCargosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {cargo && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={cargos}
+                            selection={selectedCargos}
+                            onSelectionChange={(e) => setSelectedCargos(e.value)}
+                            dataKey="idCargo"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Cargos"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron Cargos."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idCargo" header="ID" sortable body={idBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column field="descripcion" header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column field="salarioBase" header="Salario Base" sortable body={salarioBaseBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={cargoDialog} style={{ width: '450px' }} header="Registro de Cargos" modal className="p-fluid" footer={cargoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={cargo.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !cargo.nombre })} tooltip="Ingrese un nombre de cargo 🖊️📋" />
+                                {submitted && !cargo.nombre && <small className="p-invalid">Nombre cargo es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="salarioBase">Salario Base</label>
+                                <InputNumber id="salarioBase" value={cargo.salarioBase} onValueChange={(e) => onInputChange(e, 'salarioBase')} mode='currency' currency='HNL' locale='en-US' max={150000} className={classNames({ 'p-invalid': submitted && !cargo.salarioBase })} tooltip="Ingrese un salario en números, no debe ser mayor de L. 150,000.00 🖊️📋" />
+                                {submitted && !cargo.salarioBase && <small className="p-invalid">El salario base es requerido, no debe ser menor o igual a cero.</small>}
+                            </div>
+    
+                            <div className="field">
+                                <label htmlFor="descripcion">Descripción</label>
+                                <InputText id="descripcion" value={cargo.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} className={classNames({ 'p-invalid': submitted && !cargo.descripcion })} tooltip="Ingrese una descripción relacionada al cargo 🖊️📋" />
+                                {submitted && !cargo.descripcion && <small className="p-invalid">Descripcion cargo es requerido.</small>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteCargoDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteCargoDialogFooter} onHide={hideDeleteCargoDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {cargo && <span>¿Está seguro de que desea eliminar a <b>{cargo.nombre}</b>?</span>}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteCargosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteCargosDialogFooter} onHide={hideDeleteCargosDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {cargo && <span>¿Está seguro de que desea eliminar los registros seleccionados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este modulo! </h2>
+        )
+    }
+   
 };
 
 export async function getServerSideProps({req}){

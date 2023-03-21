@@ -21,7 +21,7 @@ import { EmpleadoCargoService } from '../../demo/service/EmpleadoCargoService';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import Moment from 'moment';
 import { useSession } from 'next-auth/react'
-
+import { AccionService } from '../../demo/service/AccionService';
 
 const Empleados = () => {
     let emptyEmpleado = {
@@ -85,6 +85,18 @@ const Empleados = () => {
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
 
     const listarEmpleados = () => {
         const empleadoservice = new EmpleadoService();
@@ -103,6 +115,49 @@ const Empleados = () => {
         empleadoCargoService.getEmpleadoCargos().then(data => setEmpleadoCargos(data));
     };
 
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Empleados').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
 
     useEffect(async () => {
         listarEmpleados();
@@ -111,7 +166,14 @@ const Empleados = () => {
         listarCargos();
         listarEmpleadoCargos();
         console.log(empleados);
+        permisosDisponibles();
+        listarPermisos();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
+
 
 
     const openNew = () => {
@@ -468,9 +530,9 @@ const Empleados = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
-                        disabled={!empleados || !empleados.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {verLista?<Button icon={allExpanded ? 'pi pi-minus' : 'pi pi-plus'} label={allExpanded ? 'Colapsar Todas' : 'Expandir Todas'} onClick={toggleAll} className="w-12rem"
+                        disabled={!empleados || !empleados.length} />:null}
                 </div>
             </React.Fragment>
         )
@@ -479,9 +541,9 @@ const Empleados = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} />
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} />
+                {exportarCVS ?<Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         );
     };
@@ -607,9 +669,9 @@ const Empleados = () => {
 
     const actionBodyTemplate = (rowData) => {
         return (
-            <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editEmpleado(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteEmpleado(rowData)} />
+            <>  
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editEmpleado(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteEmpleado(rowData)} />:null}
             </>
         );
     };
@@ -647,11 +709,10 @@ const Empleados = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Empleados</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
-
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -673,119 +734,128 @@ const Empleados = () => {
             <Button label="Si" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedEmpleados} />
         </>
     );
-
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={empleados}
-                        selection={selectedEmpleados}
-                        onSelectionChange={(e) => setSelectedEmpleados(e.value)}
-                        dataKey="idEmpleado"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Empleados"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontraron empleados."
-                        header={header}
-                        responsiveLayout="scroll"
-                        expandedRows={expandedRows}
-                        onRowToggle={(e) => setExpandedRows(e.data)}
-                        rowExpansionTemplate={rowExpansionTemplate}
-                    >
-                        {/* <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column> */}
-                        <Column expander style={{ width: '3em' }} />
-                        <Column field="idEmpleado" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="tipoDocumento.nombreDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="fechaNacimiento" header="Fecha Nacimiento" sortable body={fechaNacimientoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="fechaIngreso" header="Fecha Ingreso" sortable body={fechaIngresoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="correo" header="Correo electrónico" sortable body={correoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={empleadoDialog} style={{ width: '450px' }} header="Registro Empleados" modal className="p-fluid" footer={empleadoDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="nombre">Nombre</label>
-                            <InputText id="nombre" value={empleado.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.nombre })} tooltip="Ingrese un nombre 🖊️📋" />
-                            {submitted && !empleado.nombre && <small className="p-invalid">Nombre es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="documento">Documento</label>
-                            <InputText id="documento" value={empleado.documento} onChange={(e) => onInputChange(e, 'documento')} className={classNames({ 'p-invalid': submitted && !empleado.documento })} tooltip="Ingrese un numero de documento valido 🖊️📋" />
-                            {submitted && !empleado.documento && <small className="p-invalid">Documento es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idTipoDocumento">Tipo Documento</label>
-                            <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={empleado.tipoDocumento} onChange={(e) => onInputChange(e, 'tipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" className={classNames({ 'p-invalid': submitted && !empleado.tipoDocumento })}></Dropdown>
-                            {submitted && !empleado.tipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e, 'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
-                            {submitted && !empleado.fechaNacimiento && <small className="p-invalid">Fecha de Nacimiento es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="telefono">Teléfono</label>
-                            <InputText id="telefono" value={empleado.telefono} onChange={(e) => onInputChange(e, 'telefono')} className={classNames({ 'p-invalid': submitted && !empleado.telefono })} tooltip="Ingrese un numero de telefono valido 🖊️📋" />
-                            {submitted && !empleado.telefono && <small className="p-invalid">Teléfono es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaIngreso">Fecha Ingreso</label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChange(e, 'fechaIngreso')} placeholder="Seleccione una fecha de ingreso"></Calendar>
-                            {submitted && !empleado.fechaIngreso && <small className="p-invalid">Fecha de Ingreso es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="correo">Correo Electrónico</label>
-                            <InputText id="correo" value={empleado.correo} onChange={(e) => onInputChange(e, 'correo')} className={classNames({ 'p-invalid': submitted && !empleado.correo })} tooltip="Ingrese un correo electronico valido 🖊️📋" />
-                            {submitted && !empleado.correo && <small className="p-invalid">Correo electrónico es requerido.</small>}
-                        </div>
-
-                        <div className="field">
-                            <label htmlFor="direccion">Dirección</label>
-                            <InputText id="direccion" value={empleado.direccion} onChange={(e) => onInputChange(e, 'direccion')} className={classNames({ 'p-invalid': submitted && !empleado.direccion })} tooltip="Ingrese una dirección u/o ubicación 🖊️📋" />
-                            {submitted && !empleado.direccion && <small className="p-invalid">Dirección es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="idCargo">Cargo</label>
-                            <Dropdown id="idCargo" options={cargos} value={cargo} onChange={(e) => onInputChange(e, 'idCargo')} optionLabel="nombre" placeholder="Seleccione un cargo" className={classNames({ 'p-invalid': submitted && !empleadoCargo.idCargo })}></Dropdown>
-                            {submitted && !empleadoCargo.idCargo && <small className="p-invalid">Cargo es requerido.</small>}
-                        </div>
-
-                    </Dialog>
-
-                    <Dialog visible={deleteEmpleadoDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteEmpleadoDialogFooter} onHide={hideDeleteEmpleadoDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {empleado && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{empleado.nombre}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteEmpleadosDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteEmpleadosDialogFooter} onHide={hideDeleteEmpleadosDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {empleado && <span>Esta seguro que desea eliminar los siguientes Empleados?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista? <DataTable
+                            ref={dt}
+                            value={empleados}
+                            selection={selectedEmpleados}
+                            onSelectionChange={(e) => setSelectedEmpleados(e.value)}
+                            dataKey="idEmpleado"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Empleados"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontraron empleados."
+                            header={header}
+                            responsiveLayout="scroll"
+                            expandedRows={expandedRows}
+                            onRowToggle={(e) => setExpandedRows(e.data)}
+                            rowExpansionTemplate={rowExpansionTemplate}
+                        >
+                            {/* <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column> */}
+                            <Column expander style={{ width: '3em' }} />
+                            <Column field="idEmpleado" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="documento" header="Documento" sortable body={documentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="tipoDocumento.nombreDocumento" header="Tipo Documento" sortable body={idTipoDocumentoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="fechaNacimiento" header="Fecha Nacimiento" sortable body={fechaNacimientoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="telefono" header="Teléfono" sortable body={telefonoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="fechaIngreso" header="Fecha Ingreso" sortable body={fechaIngresoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="correo" header="Correo electrónico" sortable body={correoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="direccion" header="Dirección" sortable body={direccionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                       
+    
+                        <Dialog visible={empleadoDialog} style={{ width: '450px' }} header="Registro Empleados" modal className="p-fluid" footer={empleadoDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="nombre">Nombre</label>
+                                <InputText id="nombre" value={empleado.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !empleado.nombre })} tooltip="Ingrese un nombre 🖊️📋" />
+                                {submitted && !empleado.nombre && <small className="p-invalid">Nombre es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="documento">Documento</label>
+                                <InputText id="documento" value={empleado.documento} onChange={(e) => onInputChange(e, 'documento')} className={classNames({ 'p-invalid': submitted && !empleado.documento })} tooltip="Ingrese un numero de documento valido 🖊️📋" />
+                                {submitted && !empleado.documento && <small className="p-invalid">Documento es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="idTipoDocumento">Tipo Documento</label>
+                                <Dropdown id="idTipoDocumento" options={tipoDocumentos} value={empleado.tipoDocumento} onChange={(e) => onInputChange(e, 'tipoDocumento')} optionLabel="nombreDocumento" placeholder="Seleccione un tipo de Documento" className={classNames({ 'p-invalid': submitted && !empleado.tipoDocumento })}></Dropdown>
+                                {submitted && !empleado.tipoDocumento && <small className="p-invalid">Tipo Documento es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaNacimiento">Fecha Nacimiento </label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueNac} onChange={(e) => onInputChange(e, 'fechaNacimiento')} placeholder="Seleccione una fecha de nacimiento"></Calendar>
+                                {submitted && !empleado.fechaNacimiento && <small className="p-invalid">Fecha de Nacimiento es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="telefono">Teléfono</label>
+                                <InputText id="telefono" value={empleado.telefono} onChange={(e) => onInputChange(e, 'telefono')} className={classNames({ 'p-invalid': submitted && !empleado.telefono })} tooltip="Ingrese un numero de telefono valido 🖊️📋" />
+                                {submitted && !empleado.telefono && <small className="p-invalid">Teléfono es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaIngreso">Fecha Ingreso</label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={calendarValueIn} onChange={(e) => onInputChange(e, 'fechaIngreso')} placeholder="Seleccione una fecha de ingreso"></Calendar>
+                                {submitted && !empleado.fechaIngreso && <small className="p-invalid">Fecha de Ingreso es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="correo">Correo Electrónico</label>
+                                <InputText id="correo" value={empleado.correo} onChange={(e) => onInputChange(e, 'correo')} className={classNames({ 'p-invalid': submitted && !empleado.correo })} tooltip="Ingrese un correo electronico valido 🖊️📋" />
+                                {submitted && !empleado.correo && <small className="p-invalid">Correo electrónico es requerido.</small>}
+                            </div>
+    
+                            <div className="field">
+                                <label htmlFor="direccion">Dirección</label>
+                                <InputText id="direccion" value={empleado.direccion} onChange={(e) => onInputChange(e, 'direccion')} className={classNames({ 'p-invalid': submitted && !empleado.direccion })} tooltip="Ingrese una dirección u/o ubicación 🖊️📋" />
+                                {submitted && !empleado.direccion && <small className="p-invalid">Dirección es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="idCargo">Cargo</label>
+                                <Dropdown id="idCargo" options={cargos} value={cargo} onChange={(e) => onInputChange(e, 'idCargo')} optionLabel="nombre" placeholder="Seleccione un cargo" className={classNames({ 'p-invalid': submitted && !empleadoCargo.idCargo })}></Dropdown>
+                                {submitted && !empleadoCargo.idCargo && <small className="p-invalid">Cargo es requerido.</small>}
+                            </div>
+    
+                        </Dialog>
+    
+                        <Dialog visible={deleteEmpleadoDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteEmpleadoDialogFooter} onHide={hideDeleteEmpleadoDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {empleado && (
+                                    <span>
+                                        Esta seguro que desea eliminar a <b>{empleado.nombre}</b>?
+                                    </span>
+                                )}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteEmpleadosDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteEmpleadosDialogFooter} onHide={hideDeleteEmpleadosDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {empleado && <span>Esta seguro que desea eliminar los siguientes Empleados?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
 };
 export async function getServerSideProps({ req }) {
     return autenticacionRequerida(req, ({ session }) => {

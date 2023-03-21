@@ -16,6 +16,7 @@ import { ParametroFacturaService } from '../../demo/service/ParametroFacturaServ
 import Moment from 'moment';
 import { autenticacionRequerida } from '../../utils/AutenticacionRequerida';
 import { useSession } from 'next-auth/react'
+import { AccionService } from '../../demo/service/AccionService';
 
 const ParametrosFactura = () => {
     let emptyParametroFactura = {
@@ -53,14 +54,78 @@ const ParametrosFactura = () => {
     const contextPath = getConfig().publicRuntimeConfig.contextPath;
     const { data: session } = useSession();
 
+    const [permisos, setPermisos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    //Estado de acciones
+    const [verLista, setVerLista] = useState(false);
+    const [buscar, setBuscar] = useState(false);
+    const [agregar, setAgregar] = useState(false);
+    const [actualizar, setActualizar] = useState(false);
+    const [eliminar, setEliminar] = useState(false);
+    const [exportarCVS, setExportarCVS] = useState(false);
+    const [exportarXLS, setExportarXLS] = useState(false);
+    const [exportarPDF, setExportarPDF] = useState(false);
+
+
     const listarParametrosFactura = () => {
         const parametrofacturaservice = new ParametroFacturaService();
         parametrofacturaservice.getParametrosFactura().then(data => setParametrosFactura(data));
     };
 
+
+    let obtenerRol = () => {
+        var info = session.user.email.split('/');
+        return info[4]
+    }
+    const listarPermisos = () => {
+        const accionService = new AccionService();
+        accionService.getAccionesModuloRol(obtenerRol(), 'Parámetros Factura').then(data => {setPermisos(data) , setCargando(false) });
+    };
+
+    const permisosDisponibles = () => {
+        permisos.forEach(element => {
+            switch (element.nombre) {
+                case "Ver Lista":
+                    setVerLista(true);
+                    break;
+                case "Buscar":
+                    setBuscar(true);
+                    break;
+                case "Registrar":
+                    console.log('Hola3.2')
+                    setAgregar(true);
+                    break;
+                case "Actualizar":
+                    setActualizar(true);
+                    break;
+                case "Eliminar":
+                    setEliminar(true);
+                    break;
+                case "Exportar CSV":
+                    setExportarCVS(true);
+                    break;
+                case "Exportar Excel":
+                    setExportarXLS(true);
+                    break;
+                case "Exportar PDF":
+                    setExportarPDF(true);
+                    break;
+                default:
+                    break;
+            }
+        });
+    };
+
+
     useEffect(async () => {
         listarParametrosFactura();
+        listarPermisos();
+        permisosDisponibles();
     }, []);
+
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
 
 
     const openNew = () => {
@@ -276,8 +341,8 @@ const ParametrosFactura = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />
-                    <Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedParametrosFactura || !selectedParametrosFactura.length} />
+                    {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
+                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedParametrosFactura || !selectedParametrosFactura.length} />:null}
                 </div>
             </React.Fragment>
         );
@@ -286,9 +351,9 @@ const ParametrosFactura = () => {
     const rightToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLS"  tooltipOptions={{ position: 'bottom' }}/>
-                <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF"  tooltipOptions={{ position: 'bottom' }}/>
+                {exportarCVS ?<Button type="button" icon="pi pi-file" onClick={() => exportCSV(false)} className="mr-2" tooltip="CSV" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarXLS ? <Button type="button" icon="pi pi-file-excel" onClick={exportExcel} className="p-button-success mr-2" tooltip="XLSX" tooltipOptions={{ position: 'bottom' }} /> : null}
+                {exportarPDF ? <Button type="button" icon="pi pi-file-pdf" onClick={exportPdf} className="p-button-warning mr-2" tooltip="PDF" tooltipOptions={{ position: 'bottom' }} /> : null}
             </React.Fragment>
         );
     };
@@ -357,8 +422,8 @@ const ParametrosFactura = () => {
     const actionBodyTemplate = (rowData) => {
         return (
             <>
-                <Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editParametroFactura(rowData)} />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteParametroFactura(rowData)} />
+                {actualizar?<Button icon="pi pi-pencil" className="p-button-rounded p-button-success mr-2" onClick={() => editParametroFactura(rowData)} />:null}
+                {eliminar?<Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteParametroFactura(rowData)} />:null}
             </>
         );
     };
@@ -366,10 +431,10 @@ const ParametrosFactura = () => {
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Parámetros Factura</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
+            {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
-            </span>
+            </span>:null}
         </div>
     );
 
@@ -392,96 +457,108 @@ const ParametrosFactura = () => {
         </>
     );
 
-    return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable
-                        ref={dt}
-                        value={parametrosFactura}
-                        selection={selectedParametrosFactura}
-                        onSelectionChange={(e) => setSelectedParametrosFactura(e.value)}
-                        dataKey="idParametro"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Parámetros de Factura"
-                        globalFilter={globalFilter}
-                        emptyMessage="No se encontrarón parámetros de factura."
-                        header={header}
-                        responsiveLayout="scroll"
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="idParametro" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                        <Column field="cai" header="CAI" sortable body={caiBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="rangoInicial" header="Rango Inicial" sortable body={rangoInicialBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="rangoFinal" header="Rango Final" sortable body={rangoFinalBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="fechaLimiteEmision" header="Fecha Límite Emisión" sortable body={fechaLimiteEmisionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="fechaInicio" header="Fecha Inicio" sortable body={fechaLimiteInicioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="ultimaFactura" header="Última Factura" sortable body={ultimaFacturaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={parametrofacturaDialog} style={{ width: '450px' }} header="Registro Parámetros Factura" modal className="p-fluid" footer={parametrofacturaDialogFooter} onHide={hideDialog}>
-                        <div className="field">
-                            <label htmlFor="cai">CAI</label>
-                            <InputMask id="cai" value={valueCai} onChange={(e) => onInputChange(e, 'cai')} mask="******-******-******-******-******-**" slotChar="######-######-######-######-######-##" className={classNames({ 'p-invalid': submitted && !parametrofactura.cai })} />
-                            {submitted && !parametrofactura.cai && <small className="p-invalid">CAI es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="rangoInicial">Rango Inicial</label>
-                            <InputMask id="rangoInicial" value={valueRangoI} onChange={(e) => onInputChange(e, 'rangoInicial')} mask="999-999-99-99999999" slotChar="xxx-xxx-xx-xxxxxxxx" tooltip="Ejemplo dígitos rango  aurorizado desde: 000-001-01-00000000" className={classNames({ 'p-invalid': submitted && !parametrofactura.rangoInicial })} />
-                            {submitted && !parametrofactura.rangoInicial && <small className="p-invalid">Rango Inicial es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="rangoFinal">Rango Final</label>
-                            <InputMask id="rangoFinal" value={valueRangoF} onChange={(e) => onInputChange(e, 'rangoFinal')} mask="999-999-99-99999999" slotChar="xxx-xxx-xx-xxxxxxxx" tooltip="Ejemplo dígitos rango  aurorizado hasta: 000-001-01-00010000 " className={classNames({ 'p-invalid': submitted && !parametrofactura.rangoFinal })} />
-                            {submitted && !parametrofactura.rangoFinal && <small className="p-invalid">Rango Final es requerido.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaLimiteEmision">Fecha Límite de Emisión</label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaLE} onChange={(e) => onInputChange(e, 'fechaLimiteEmision')} tooltip="La fecha límite de emisión de este parámetro deber ser posterior a una fecha actual." placeholder="Seleccione una fecha limite de Emisión"></Calendar>
-                            {submitted && !parametrofactura.fechaLimiteEmision && <small className="p-invalid">Fecha Límite de Emisión es requerida.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="fechaInicio">Fecha Inicio</label>
-                            <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaI} onChange={(e) => onInputChange(e, 'fechaInicio')} tooltip="Selecciona la fecha en que empezará a operar este parámetro, que debera ser la fecha de su registro." placeholder="Seleccione una fecha de Inicio"></Calendar>
-                            {submitted && !parametrofactura.fechaInicio && <small className="p-invalid">Fecha Inicio es requerida.</small>}
-                        </div>
-                        {/* <div className="field">
-                            <label htmlFor="direccion">Última Factura</label>
-                            <InputText id="direccion" type="number" value={parametrofactura.ultimaFactura} onChange={(e) => onInputChange(e, 'ultimaFactura')} className={classNames({ 'p-invalid': submitted && !parametrofactura.ultimaFactura })} />
-                            {submitted && !parametrofactura.ultimaFactura && <small className="p-invalid">Dirección es requerido.</small>}
-                        </div> */}
-
-                    </Dialog>
-
-                    <Dialog visible={deleteParametroFacturaDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteParametroFacturaDialogFooter} onHide={hideDeleteParametroFacturaDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {parametrofactura && (
-                                <span>
-                                    Esta seguro que desea eliminar a <b>{parametrofactura.cai}</b>?
-                                </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    <Dialog visible={deleteParametrosFacturaDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteParametrosFacturaDialogFooter} onHide={hideDeleteParametrosFacturaDialog}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {parametrofactura && <span>Esta seguro que desea eliminar los siguientes Parámetros Factura?</span>}
-                        </div>
-                    </Dialog>
+    if(cargando){
+        return 'Cargando...'
+    }
+    if (permisos.length > 0) {
+        return (
+            <div className="grid crud-demo">
+                <div className="col-12">
+                    <div className="card">
+                        <Toast ref={toast} />
+                        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                        {verLista?<DataTable
+                            ref={dt}
+                            value={parametrosFactura}
+                            selection={selectedParametrosFactura}
+                            onSelectionChange={(e) => setSelectedParametrosFactura(e.value)}
+                            dataKey="idParametro"
+                            paginator
+                            rows={10}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            className="datatable-responsive"
+                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Parámetros de Factura"
+                            globalFilter={globalFilter}
+                            emptyMessage="No se encontrarón parámetros de factura."
+                            header={header}
+                            responsiveLayout="scroll"
+                        >
+                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                            <Column field="idParametro" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                            <Column field="cai" header="CAI" sortable body={caiBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="rangoInicial" header="Rango Inicial" sortable body={rangoInicialBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="rangoFinal" header="Rango Final" sortable body={rangoFinalBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="fechaLimiteEmision" header="Fecha Límite Emisión" sortable body={fechaLimiteEmisionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="fechaInicio" header="Fecha Inicio" sortable body={fechaLimiteInicioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column field="ultimaFactura" header="Última Factura" sortable body={ultimaFacturaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                            <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        </DataTable>:null}
+                        
+    
+                        <Dialog visible={parametrofacturaDialog} style={{ width: '450px' }} header="Registro Parámetros Factura" modal className="p-fluid" footer={parametrofacturaDialogFooter} onHide={hideDialog}>
+                            <div className="field">
+                                <label htmlFor="cai">CAI</label>
+                                <InputMask id="cai" value={valueCai} onChange={(e) => onInputChange(e, 'cai')} mask="******-******-******-******-******-**" slotChar="######-######-######-######-######-##" className={classNames({ 'p-invalid': submitted && !parametrofactura.cai })} />
+                                {submitted && !parametrofactura.cai && <small className="p-invalid">CAI es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="rangoInicial">Rango Inicial</label>
+                                <InputMask id="rangoInicial" value={valueRangoI} onChange={(e) => onInputChange(e, 'rangoInicial')} mask="999-999-99-99999999" slotChar="xxx-xxx-xx-xxxxxxxx" tooltip="Ejemplo dígitos rango  aurorizado desde: 000-001-01-00000000" className={classNames({ 'p-invalid': submitted && !parametrofactura.rangoInicial })} />
+                                {submitted && !parametrofactura.rangoInicial && <small className="p-invalid">Rango Inicial es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="rangoFinal">Rango Final</label>
+                                <InputMask id="rangoFinal" value={valueRangoF} onChange={(e) => onInputChange(e, 'rangoFinal')} mask="999-999-99-99999999" slotChar="xxx-xxx-xx-xxxxxxxx" tooltip="Ejemplo dígitos rango  aurorizado hasta: 000-001-01-00010000 " className={classNames({ 'p-invalid': submitted && !parametrofactura.rangoFinal })} />
+                                {submitted && !parametrofactura.rangoFinal && <small className="p-invalid">Rango Final es requerido.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaLimiteEmision">Fecha Límite de Emisión</label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaLE} onChange={(e) => onInputChange(e, 'fechaLimiteEmision')} tooltip="La fecha límite de emisión de este parámetro deber ser posterior a una fecha actual." placeholder="Seleccione una fecha limite de Emisión"></Calendar>
+                                {submitted && !parametrofactura.fechaLimiteEmision && <small className="p-invalid">Fecha Límite de Emisión es requerida.</small>}
+                            </div>
+                            <div className="field">
+                                <label htmlFor="fechaInicio">Fecha Inicio</label>
+                                <Calendar dateFormat="dd/mm/yy" showIcon showButtonBar value={fechaI} onChange={(e) => onInputChange(e, 'fechaInicio')} tooltip="Selecciona la fecha en que empezará a operar este parámetro, que debera ser la fecha de su registro." placeholder="Seleccione una fecha de Inicio"></Calendar>
+                                {submitted && !parametrofactura.fechaInicio && <small className="p-invalid">Fecha Inicio es requerida.</small>}
+                            </div>
+                            {/* <div className="field">
+                                <label htmlFor="direccion">Última Factura</label>
+                                <InputText id="direccion" type="number" value={parametrofactura.ultimaFactura} onChange={(e) => onInputChange(e, 'ultimaFactura')} className={classNames({ 'p-invalid': submitted && !parametrofactura.ultimaFactura })} />
+                                {submitted && !parametrofactura.ultimaFactura && <small className="p-invalid">Dirección es requerido.</small>}
+                            </div> */}
+    
+                        </Dialog>
+    
+                        <Dialog visible={deleteParametroFacturaDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteParametroFacturaDialogFooter} onHide={hideDeleteParametroFacturaDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {parametrofactura && (
+                                    <span>
+                                        Esta seguro que desea eliminar a <b>{parametrofactura.cai}</b>?
+                                    </span>
+                                )}
+                            </div>
+                        </Dialog>
+    
+                        <Dialog visible={deleteParametrosFacturaDialog} style={{ width: '450px' }} header="Confirmación" modal footer={deleteParametrosFacturaDialogFooter} onHide={hideDeleteParametrosFacturaDialog}>
+                            <div className="flex align-items-center justify-content-center">
+                                <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                                {parametrofactura && <span>Esta seguro que desea eliminar los siguientes Parámetros Factura?</span>}
+                            </div>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    } else {
+        {console.log(permisos)}
+        return (
+            <h2>No tiene permisos disponibles para este módulo! </h2>
+        )
+    }
+
+   
 };
 export async function getServerSideProps({req}){
     return autenticacionRequerida(req,({session}) =>
