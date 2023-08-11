@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from "react";
 import { Document, Text, PDFViewer, Page, Image, View, StyleSheet, Font } from "@react-pdf/renderer";
 import { useRouter } from "next/router";
-
+import Table from "./Table";
 
 const styles = StyleSheet.create({
     body: {
@@ -40,8 +39,9 @@ const styles = StyleSheet.create({
     valores:{
        textAlign:'right',
        paddingRight:'35%'
-    }
-})
+    },
+    
+});
 const ReciboPDF = ({ facturaRecibo}) => {
     const detallesList = () =>{
         return facturaRecibo.detallesRecibo.map(detalle => <Text style={styles.estiloTextoFuerte}>{detalle.repuesto}            {detalle.cantidad}                   {detalle.precio}        {detalle.importe}</Text>);   
@@ -75,10 +75,7 @@ const ReciboPDF = ({ facturaRecibo}) => {
                     <Text>Fecha y Hora: {facturaRecibo.encabezado.fechaFactura}</Text>
                     <Text>Atentido por: {facturaRecibo.encabezado.empleado}</Text>
                     <Text> </Text>
-                    <Text style={styles.estiloTextoFuerte}>-----------------------------------------------------------------------------------------------</Text>
-                    <Text style={styles.estiloTextoFuerte}>Artículo          Cantidad            Precio U.        Importe</Text>
-                    <Text style={styles.estiloTextoFuerte}>-----------------------------------------------------------------------------------------------</Text>
-                    {detallesList()}
+                    <Table data={facturaRecibo}></Table>
                 </View>
                 {/* <View>
                     {facturaRecibo.detallesRecibo.forEach(element => {
@@ -89,10 +86,10 @@ const ReciboPDF = ({ facturaRecibo}) => {
                     {/* <Text>---------------------------------------------------------------------------------------------</Text> */}
                     <Text> </Text>
                     <Text>  Tipo Entrega:             {facturaRecibo.encabezado.tipoEntrega}</Text>
-                    <Text>       Shipper:             {facturaRecibo.encabezado.shipper}</Text>
+                    <Text>       Shipper:                     {facturaRecibo.encabezado.shipper}</Text>
                     <Text>   Costo Envío:              L. {facturaRecibo.encabezado.costoEnvio}</Text>
-                    <Text>Fecha Despacho:             {facturaRecibo.encabezado.fechaDespacho}</Text>
-                    <Text> Fecha Entrega:             {facturaRecibo.encabezado.fechaEntrega}</Text>
+                    <Text> Fecha Despacho:      {facturaRecibo.encabezado.fechaDespacho}</Text>
+                    <Text> Fecha Entrega:          {facturaRecibo.encabezado.fechaEntrega}</Text>
                 </View>
                 <View style={styles.valores}>
                     <Text> </Text>

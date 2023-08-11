@@ -254,7 +254,7 @@ const Facturas = () => {
     }
     const listarPermisos = () => {
         const accionService = new AccionService();
-        accionService.getAccionesModuloRol(obtenerRol(), 'facturas').then(data => {setPermisos(data) , setCargando(false) });
+        accionService.getAccionesModuloRol(obtenerRol(), 'Facturas').then(data => {setPermisos(data) , setCargando(false) });
     };
 
     const permisosDisponibles = () => {
@@ -285,9 +285,9 @@ const Facturas = () => {
                 case "Exportar PDF":
                     setExportarPDF(true);
                     break;
-                    case "Reimpresión":
-                        setReImpresion(true);
-                        break;
+                case "Reimpresión":
+                    setReImpresion(true);
+                    break;
                 default:
                     break;
             }
@@ -356,11 +356,12 @@ const Facturas = () => {
         setActivarDesactivarCuponDialog(false);
     }
 
-    const pasoRegistro = () => {
+    const pasoRegistro = async () => {
         listarFacturas();
         listarParametrosFactura();
         setFacturaDialog(false);
-        setFactura(facturaVacia);
+        
+        visualizarRecibo(factura);
     }
     const obtenerNoFactura = (parametroFactura) => {
         const parametro = parametros.find((item) => {
@@ -382,11 +383,10 @@ const Facturas = () => {
     };
     const actualizarCorrelativo = async (factura) => {
         const parametro = parametros.find((item) => {
-            if (item.idParametro == factura.idParametroFactura)
+            if (item.idParametro == factura.parametroFactura.idParametro)
                 return item;
         });
         try {
-            console.log(parametro.ultimaFactura + 1);
             parametro.ultimaFactura = (parametro.ultimaFactura + 1);
             console.log(parametro);
             const parametrofacturaservice = new ParametroFacturaService();
@@ -409,13 +409,11 @@ const Facturas = () => {
             const dateM = Date.now();
             factura.fechaFactura = dateM;
             //Aqui se guarda la factura
-            console.log(detalles.length);
             const response = await facturaService.addFactura(factura,detalles.length,total);
             detalles.forEach(function (detalle) {
                 detalle.idFactura = response.idFactura;
             })
             const facturaDetalleService = new FacturaDetalleService();
-            console.log(detalles);
             await facturaDetalleService.addFacturaDetalles(detalles);
             actualizarCorrelativo(factura);
             toast.current.show({ severity: 'success', summary: 'Éxito', detail: 'Factura Creada', life: 3000 });
@@ -435,10 +433,15 @@ const Facturas = () => {
         let totalItems1 = 0;
         let valorCupon = 0;
         let valorDescCupon = 0
+        
         const recibo = new FacturaService();
+        if (!factura.idFactura) {
+            const r = await recibo.getReciboByNoFactura(factura.noFactura);
+            factura.idFactura = r.idFactura;    
+        }
         const response = await recibo.getRecibo(factura.idFactura);
         const detalle = new FacturaDetalleService();
-        const datos = await detalle.getDetalleRecibo(factura.idFactura)
+        const datos = await detalle.getDetalleRecibo(factura.idFactura);
         _detalles = datos;
         console.log(_detalles);
         let _recibo = { ...reciboFactura };
@@ -467,6 +470,14 @@ const Facturas = () => {
         _recibo.totalDescuento = descuentos1.toFixed(2);
         _recibo.totalItem = totalItems1;
         _recibo.total = (subTotal1 + impuestos1 - descuentos1 + _recibo.encabezado.costoEnvio).toFixed(2);
+
+        const h = [
+            { field: "repuesto", header: "Artículo" }, 
+            { field: "cantidad", header: "Cantidad" }, 
+            { field: "precio", header: "Precio U." }, 
+            { field: "importe", header: "Importe" }
+        ]
+        _recibo.column = h;
         setReciboFactura(_recibo);
         console.log(_recibo);
         setVerRecibo(true);
@@ -788,12 +799,21 @@ const Facturas = () => {
             </div>
         );
     }
+    const filter = (e) => {
+        let x = e.target.value;
+
+        if (x.trim() != '') 
+            setGlobalFilter(x);
+        else
+            setGlobalFilter(' ');
+    }
+
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
             <h5 className="m-0">Listado de Facturas</h5>
             {buscar?<span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar..." />
+                <InputText type="search" onInput={(e) => filter(e)} placeholder="Buscar..." />
             </span>:null}
         </div>
     );
@@ -809,19 +829,25 @@ const Facturas = () => {
                 return item.idRepuesto === repuesto.idRepuesto;
             });
             if (!hasRepuesto) {
-                //IdFactura Siempre sera null al inicio de la facturacion, igual se deja la siguiente validacion
-                let idFactura = (!factura.idFactura) ? null : factura.idFactura;
-                let detalleVacio = {
-                    idFacturaDetalle: null,
-                    idFactura: idFactura,
-                    idRepuesto: repuesto.idRepuesto,
-                    cantidad: 1,
-                    descuento: 0.0,
-                };
-                _detalles.push(detalleVacio);
-                //console.log(_detalles);
-                setDetalles(_detalles);
-                setRepuesto(null);
+                //validar si tiene stock
+                if(repuesto.stockActual>0) {
+                    //IdFactura Siempre sera null al inicio de la facturacion, igual se deja la siguiente validacion
+                    let idFactura = (!factura.idFactura) ? null : factura.idFactura;
+                    let detalleVacio = {
+                        idFacturaDetalle: null,
+                        idFactura: idFactura,
+                        idRepuesto: repuesto.idRepuesto,
+                        cantidad: 1,
+                        descuento: 0.0,
+                    };
+                    _detalles.push(detalleVacio);
+                    //console.log(_detalles);
+                    setDetalles(_detalles);
+                    setRepuesto(null);
+                } else {
+                    Toast('El repuesto: ' + repuesto.nombre + ' no tiene Stock!')
+                }
+                
             } else {
                 Toast('El repuesto: ' + repuesto.nombre + ' ya ha sido agregado al detalle!');
             }
@@ -933,7 +959,8 @@ const Facturas = () => {
                 </div>
                 <div className="field col-4">
                     <label htmlFor="costoEnvio">Costo Envío:</label>
-                    <InputNumber id="costoEnvio" value={costoEnvio} max={10000} onValueChange={(e) => onInputChange(e, 'costoEnvio')} prefix="L. " tooltip="Escribe el costo de envío que se estima con el shipper, maximo L. 10,000" className={classNames({ 'p-invalid': submitted && !factura.costoEnvio })} />
+                    <InputNumber id="costoEnvio" value={costoEnvio} max={10000} onValueChange={(e) => onInputChange(e, 'costoEnvio')} mode='currency' currency='HNL' locale='en-US' 
+                    tooltip="Escribe el costo de envío que se estima con el shipper, maximo L. 10,000" className={classNames({ 'p-invalid': submitted && !factura.costoEnvio })} />
                     {submitted && !factura.costoEnvio && <small className="p-invalid">Costo de Envío es requerido.</small>}
                 </div>
 
@@ -1082,12 +1109,13 @@ const Facturas = () => {
                                         <Dropdown id="idMetodoPago" options={metodosPago} value={factura.metodoPago} onChange={(e) => onInputChange(e, 'metodoPago')} optionLabel="nombre" placeholder="Seleccione un método de pago" className={classNames({ 'p-invalid': submitted && !factura.metodoPago })}></Dropdown>
                                         {submitted && !factura.metodoPago && <small className="p-invalid">Forma de pago es requerido.</small>}
                                     </div>
-                                    <div className="field col-2">
+                                    <div className="field col-3">
                                         <label htmlFor="efectivo">Efectivo Recibido:</label>
-                                        <InputNumber id="efectivo" value={factura.efectivo} onValueChange={(e) => onInputChange(e, 'efectivo')} disabled={efectivo} max={40000} cod prefix="L. " tooltip="Escribe la cantidad de dinero en efectivo que proporciona el cliente, máximo permitido: L. 40,000.00" className={classNames({ 'p-invalid': submitted && !efectivo && !factura.efectivo })} />
+                                        <InputNumber id="efectivo" value={factura.efectivo} onValueChange={(e) => onInputChange(e, 'efectivo')} disabled={efectivo} max={40000} mode='currency' currency='HNL' locale='en-US' 
+                                        tooltip="Escribe la cantidad de dinero en efectivo que proporciona el cliente, máximo permitido: L. 40,000.00" className={classNames({ 'p-invalid': submitted && !efectivo && !factura.efectivo })} />
                                         {submitted && !efectivo && !factura.efectivo && <small className="p-invalid">Efectivo es requerido.</small>}
                                     </div>
-                                    <div className="field col-5">
+                                    <div className="field col-4">
                                         <label htmlFor="tarjeta">No. Tarjeta:</label>
                                         <InputText id="tarjeta" value={factura.tarjeta} onChange={(e) => onInputChange(e, 'tarjeta')} minLength={13} maxLength={18} disabled={tarjeta} tooltip="Digite el número de la tarjeta del cliente sin utilizar espacios ni guiones debe ser mayor de 13 digitos" className={classNames({ 'p-invalid': submitted && !tarjeta && !factura.tarjeta })} />
                                         {submitted && !tarjeta && !factura.tarjeta && <small className="p-invalid">No. Tarjeta es requerida.</small>}

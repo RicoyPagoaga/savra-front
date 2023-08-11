@@ -128,7 +128,7 @@ const MetodoPago = () => {
 
     const saveMetodo = async () => {
         setSubmitted(true);
-        if (metodo.idMetodo) {
+        if (metodo.idMetodoPago) {
             try {
                  const metodoService = new MetodoPagoService();
                  await metodoService.updateMetodoPago(metodo);

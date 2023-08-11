@@ -68,7 +68,7 @@ const CategoriaCliente = () => {
     }
     const listarPermisos = () => {
         const accionService = new AccionService();
-        accionService.getAccionesModuloRol(obtenerRol(), 'Categoria Clientes').then(data => {setPermisos(data) , setCargando(false) });
+        accionService.getAccionesModuloRol(obtenerRol(), 'Categorías Clientes').then(data => {setPermisos(data) , setCargando(false) });
     };
 
     const permisosDisponibles = () => {
@@ -415,30 +415,7 @@ const CategoriaCliente = () => {
                             <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                             <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                         </DataTable>:null}
-                        <DataTable
-                            ref={dt}
-                            value={categoriaClientes}
-                            selection={selectedCategoriaClientes}
-                            onSelectionChange={(e) => setSelectedCategoriaClientes(e.value)}
-                            dataKey="idCategoria"
-                            paginator
-                            rows={10}
-                            rowsPerPageOptions={[5, 10, 25]}
-                            className="datatable-responsive"
-                            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} Categorias de Clientes"
-                            globalFilter={globalFilter}
-                            emptyMessage="No se encontraron categorias de clientes."
-                            header={header}
-                            responsiveLayout="scroll"
-                        >
-                            <Column selectionMode="multiple" headerStyle={{ width: '3rem'}}></Column>
-                            <Column field="idCategoria" header="ID Categoría" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                            <Column field="nombre" header="Nombre" sortable body={nombreBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                            <Column field="descripcion"header="Descripción" sortable body={descripcionBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                            <Column header="Acciones"body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                        </DataTable>
-    
+                        
                         <Dialog visible={categoriaClienteDialog} style={{ width: '450px' }} header="Registro Categorias Clientes" modal className="p-fluid" footer={categoriaClienteDialogFooter} onHide={hideDialog}>
                             <div className="field">
                                 <label htmlFor="nombre">Nombre</label>

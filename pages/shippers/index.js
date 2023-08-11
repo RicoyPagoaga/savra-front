@@ -443,11 +443,11 @@ if (permisos.length > 0) {
                         <Column field="correo" header="Correo" sortable body={correoBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="sitioWeb" header="Sitio Web" sortable body={sitioWebBodyTemplate} headerStyle={{ width: '14%', minWidth: '20rem' }}></Column>
                         <Column field="fechaContrato" header="Fecha Contrato" sortable body={fechaContratoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column header="Acciones" body={actionBodyTemplate}></Column>
+                        <Column header="Acciones" body={actionBodyTemplate} headerStyle={{ width: '14%', minWidth: '10rem' }}></Column>
                     </DataTable>:null}
                     
 
-                    <Dialog visible={shipperDialog} style={{ width: '450px' }} header="Registro de Trasnportistas" modal className="p-fluid" footer={shipperDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={shipperDialog} style={{ width: '450px' }} header="Registro de Transportistas" modal className="p-fluid" footer={shipperDialogFooter} onHide={hideDialog}>
                         <div className="field">
                             <label htmlFor="nombre">Nombre</label>
                             <InputText id="nombre" value={shipper.nombre} onChange={(e) => onInputChange(e, 'nombre')} required autoFocus className={classNames({ 'p-invalid': submitted && !shipper.nombre })} />

@@ -342,7 +342,6 @@ const ParametrosFactura = () => {
             <React.Fragment>
                 <div className="my-2">
                     {agregar?<Button label="Nuevo" icon="pi pi-plus" className="p-button-success mr-2" onClick={openNew} />:null}
-                    {eliminar?<Button label="Eliminar" icon="pi pi-trash" className="p-button-danger" onClick={confirmDeleteSelected} disabled={!selectedParametrosFactura || !selectedParametrosFactura.length} />:null}
                 </div>
             </React.Fragment>
         );
@@ -484,7 +483,6 @@ const ParametrosFactura = () => {
                             header={header}
                             responsiveLayout="scroll"
                         >
-                            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                             <Column field="idParametro" header="ID" sortable body={idBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                             <Column field="cai" header="CAI" sortable body={caiBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                             <Column field="rangoInicial" header="Rango Inicial" sortable body={rangoInicialBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>

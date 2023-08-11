@@ -564,7 +564,8 @@ const Modulos = () => {
             'pi pi-search': item.nombre === "Buscar",
             'pi pi-check-circle': item.nombre === "Activar/Desactivar",
             'pi pi-key': item.nombre === "Bloquear/Desbloquear",
-            'pi pi-clone': item.nombre === "Asignar"
+            'pi pi-clone': item.nombre === "Asignar",
+            'pi pi-print': item.nombre === "Reimpresión"
         });
         return (
             <div className="flex flex-wrap p-2 align-items-center gap-3">

@@ -16,6 +16,11 @@ export class FacturaService{
         const response = await fetch(url+'/idFactura/'+id);
         return await response.json();
     }
+
+    async getReciboByNoFactura(noFactura){
+        const response = await fetch(url+'/noFactura/'+noFactura);
+        return await response.json();
+    }
     // async removeFactura(id){
     //     let url_ = url + '/delete/' + id;
     //     const response = await fetch(url_,{

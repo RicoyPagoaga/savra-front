@@ -151,6 +151,10 @@ const Compras = () => {
         permisosDisponibles();
     }, []); 
 
+    useEffect(() => {
+        permisosDisponibles();
+    }, [cargando]);
+
 
     const openNew = () => {
         setDetalles([]);
@@ -522,14 +526,8 @@ const Compras = () => {
     };
 
     const precioBodyTemplate = (rowData) => {
-        let x = 1;
-        let _precios=[...precioHistoricos];
-        _precios.map((item)=>{
-            if(item.idRepuesto===rowData.idRepuesto && item.fechaFinal===null) {
-                x = item.precio-1;
-            }
-        });
-        return <InputNumber value={rowData.precio} onValueChange={(e) => onInputDetalleChange(e, "precio", rowData)} min={1} max={x} mode='currency' currency='HNL' locale='en-US' 
+        
+        return <InputNumber value={rowData.precio} onValueChange={(e) => onInputDetalleChange(e, "precio", rowData)} min={1} max={200000} mode='currency' currency='HNL' locale='en-US' 
         tooltip="No podrá colocar un valor mayor o igual al del Precio de Venta del repuesto"/>
     };
 
@@ -679,38 +677,26 @@ const Compras = () => {
                     });
                     if(!x) {
                         if(precioValue) {
-                            //validar que no compre a un precio menor del de venta
-                            let y=false;
-                            let _precios=[...precioHistoricos];
-                            _precios.map((item)=>{
-                                if(item.idRepuesto===repuesto.idRepuesto && item.fechaFinal===null &&
-                                    precioValue>=item.precio) {
-                                        y=true;
-                                }
-                            });
-                            if(!y) {
-                                //agregar detalle
-                                let id = crearId();
-                                let idCompra = (!compra.idCompra) ? undefined : compra.idCompra;
-                                let detalleVacio = {
-                                    idCompraDetalle: -id,
-                                    idCompra: idCompra,
-                                    idRepuesto: repuesto.idRepuesto,
-                                    cantidad: inputNumberValue,
-                                    precio: precioValue
-                                };
-                                _detalles.push(detalleVacio);
-                                setDetalles(_detalles);
-                                setRepuesto(null);
-                                setInputNumberValue(null);
-                                setPrecioValue(null);
+                            //agregar detalle
+                            let id = crearId();
+                            let idCompra = (!compra.idCompra) ? undefined : compra.idCompra;
+                            let detalleVacio = {
+                                idCompraDetalle: -id,
+                                idCompra: idCompra,
+                                idRepuesto: repuesto.idRepuesto,
+                                cantidad: inputNumberValue,
+                                precio: precioValue
+                            };
+                            _detalles.push(detalleVacio);
+                            setDetalles(_detalles);
+                            setRepuesto(null);
+                            setInputNumberValue(null);
+                            setPrecioValue(null);
 
-                            } else 
-                                Toast("Precio de compra del repuesto no puede ser mayor o igual al precio de venta");
                         } else 
                             Toast("Indique el precio, no puede ser igual a cero");
                     } else 
-                        Toast("Cantidad no puede ser mayor a la del Stock Máximo del Repuesto");
+                        Toast("Cantidad supera a la del Stock Máximo del Repuesto");
                 } else 
                     Toast("Indique cantidad");
             } else 
@@ -788,7 +774,7 @@ const Compras = () => {
                                 </div>
                                 <div className="field">
                                     <label htmlFor="noComprobante">Número de Comprobante</label>
-                                    <InputText id="noComprobante" value={compra.noComprobante} onChange={(e) => onInputChange(e, 'noComprobante')} tooltip="Indique no. de Comprobante sin espacios, puntos o guiones"
+                                    <InputText id="noComprobante" maxLength={20} value={compra.noComprobante} onChange={(e) => onInputChange(e, 'noComprobante')} tooltip="Indique no. de Comprobante sin espacios, puntos o guiones"
                                     className={classNames({ 'p-invalid': submitted && !compra.noComprobante })}/>
                                     {submitted && !compra.noComprobante && <small className="p-invalid">El número de comprobante es requerido.</small>}
                                 </div>
@@ -815,7 +801,7 @@ const Compras = () => {
                                 <div className='formgrid grid'>
                                     <div className='field col'>
                                         <InputNumber id="precio" value={precioValue} onValueChange={(e) => setPrecioValue(e.value)} min={0} max={200000} mode='currency' currency='HNL' locale='en-US' 
-                                        placeholder='Precio' tooltip="No se permiten valores mayores a 200,000"/>
+                                        placeholder='Precio unitario' tooltip="No se permiten valores mayores a 200,000"/>
                                         <hr></hr>
                                     </div>
                                     <div className='field col-3'>

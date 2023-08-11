@@ -66,7 +66,7 @@ const Modelos = () => {
     }
     const listarPermisos = () => {
         const accionService = new AccionService();
-        accionService.getAccionesModuloRol(obtenerRol(), ' Modelos ').then(data => {setPermisos(data) , setCargando(false) });
+        accionService.getAccionesModuloRol(obtenerRol(), 'Modelos').then(data => {setPermisos(data) , setCargando(false) });
     };
 
     const permisosDisponibles = () => {
