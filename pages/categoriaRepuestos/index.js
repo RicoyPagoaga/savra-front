@@ -55,7 +55,7 @@ const categoria_repuestos = () => {
     }
     const listarPermisos = () => {
         const accionService = new AccionService();
-        accionService.getAccionesModuloRol(obtenerRol(), 'Categoría Repuestos').then(data => {setPermisos(data) , setCargando(false) });
+        accionService.getAccionesModuloRol(obtenerRol(), 'Categorías Repuestos').then(data => {setPermisos(data) , setCargando(false) });
     };
 
     const permisosDisponibles = () => {
